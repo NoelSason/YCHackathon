@@ -20,6 +20,19 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 14:01 PT · Noel (Claude Code) · branch `main`
+
+**What:** Added `docs/strengths/PROMPT.md` (Prompt 1: each person's agent interviews them and writes
+a rated strengths file. Prompt 2: proposes roles from all four files) and
+`docs/strengths/TEMPLATE.md`.
+**Why:** Pick roles from real strengths instead of guesses. The split in `README.md` stands until
+the team decides.
+**Files:** `docs/strengths/PROMPT.md`, `docs/strengths/TEMPLATE.md`.
+**State:** Docs only.
+**Next / heads-up:** **Everyone:** pull, run Prompt 1, and push your
+`docs/strengths/<first-name>.md`. When all four are in, one person runs Prompt 2, which writes
+`docs/roles.md` as a proposal for the team to decide on.
+
 ### 2026-11-07 13:57 PT · Noel (Claude Code) · branch `main`
 
 **What:** Six games became **three**, one per genre: match-3 (Candy Crush–style), a rhythm runner
