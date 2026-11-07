@@ -1,9 +1,15 @@
-// Store the platform MCP bearer in Naïve's vault, keyed to PLATFORM_MCP_URL, so every agent that
-// declares that server gets it injected. Idempotent by vault name. Reads MCP_BEARER_TOKEN from .env.
+// Store MCP bearers in Naïve's vault, keyed to each server URL, so every agent that declares the
+// server gets the token injected. Idempotent by URL. Reads from .env:
+//   PLATFORM_MCP_URL + MCP_BEARER_TOKEN        (the platform server, required)
+//   BUSINESS_MCP_URL + BUSINESS_MCP_TOKEN      (Noel's business server, optional)
+// ROTATE=1 replaces existing credentials.
 import { naive, PLATFORM_MCP_URL } from "./client.js";
 
-const token = process.env.MCP_BEARER_TOKEN;
-if (!PLATFORM_MCP_URL || !token) {
+const targets: Array<{ label: string; url: string | undefined; token: string | undefined; required: boolean }> = [
+  { label: "platform mcp bearer", url: PLATFORM_MCP_URL, token: process.env.MCP_BEARER_TOKEN, required: true },
+  { label: "business mcp bearer", url: process.env.BUSINESS_MCP_URL, token: process.env.BUSINESS_MCP_TOKEN, required: false },
+];
+if (!targets[0]!.url || !targets[0]!.token) {
   console.error("PLATFORM_MCP_URL and MCP_BEARER_TOKEN must be set in platform/naive/.env");
   process.exit(1);
 }
@@ -19,16 +25,18 @@ if (!vault) {
 }
 
 const creds = (await naive.vaults.credentials.list(vault.id, { limit: 100 })).data as Array<{ id: string; key: string; mcp_server_url?: string | null }>;
-const have = creds.find((c) => c.mcp_server_url === PLATFORM_MCP_URL);
-if (have && !process.env.ROTATE) {
-  console.log(`credential for ${PLATFORM_MCP_URL} exists (${have.id}); set ROTATE=1 to replace`);
-} else {
+
+for (const t of targets) {
+  if (!t.url || !t.token) {
+    if (!t.required) console.log(`skipped  ${t.label}: BUSINESS_MCP_URL / BUSINESS_MCP_TOKEN not set`);
+    continue;
+  }
+  const have = creds.find((c) => c.mcp_server_url === t.url);
+  if (have && !process.env.ROTATE) {
+    console.log(`exists   ${t.label} for ${t.url} (${have.id}); ROTATE=1 to replace`);
+    continue;
+  }
   if (have) await naive.vaults.credentials.delete(vault.id, have.id);
-  const c = await naive.vaults.credentials.create(vault.id, {
-    kind: "static_bearer",
-    key: "platform mcp bearer",
-    value: token,
-    mcp_server_url: PLATFORM_MCP_URL,
-  });
-  console.log(`stored bearer for ${PLATFORM_MCP_URL} as ${(c as { id: string }).id}`);
+  const c = await naive.vaults.credentials.create(vault.id, { kind: "static_bearer", key: t.label, value: t.token, mcp_server_url: t.url });
+  console.log(`stored   ${t.label} for ${t.url} as ${(c as { id: string }).id}`);
 }

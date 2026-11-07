@@ -20,6 +20,21 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:00 PT · Abhinav (Claude) · branch `main`
+
+**What:** `npm run vault` now stores both bearers in one run: the platform's (`PLATFORM_MCP_URL`
++ `MCP_BEARER_TOKEN`) and Noel's business server's (`BUSINESS_MCP_URL` + `BUSINESS_MCP_TOKEN`),
+each keyed to its URL, idempotent by URL. Replaces the env-override trick in `business/README.md`
+step 3. Noel's roster changes (business tools on playtest, research, sales, finance) typecheck.
+**Why:** One command for all MCP credentials before `npm run setup`.
+**Files:** `platform/naive/src/vault.ts`, `platform/naive/.env.example`.
+**State:** Typechecks. Not yet run with the admin key; the approval test is still pending.
+**Next / heads-up:** **Noel:** two things from your 15:40 entry: `save_level` URLs come from
+`GAMES_BASE_URL`, which is `http://localhost:3000` in Abhinav's `.env` until Max has a hosted URL
+(then redeploy); and the smoke test's `validate_level` failure is intentional, it tests the error
+path with a bad level. **Abhinav:** vault (both bearers) → setup (with `BUSINESS_MCP_URL`) →
+approval test → commit `team.json`.
+
 ### 2026-11-07 15:55 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Demo centerpiece ready: a judge becomes a customer on stage.**
