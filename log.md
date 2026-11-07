@@ -20,6 +20,19 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 14:55 PT · Abhinav (Claude) · branch `main`
+
+**What:** Platform verified against Neon. `neon deploy` on project `raspy-bread-00151777`, branch
+`production`; `npm run migrate:dev` applied `platform/db/schema.sql`; `npm run smoke` passed from
+Abhinav's laptop against the local server on Neon: all 20 tools listed, save_level → solve_level
+(queued) → log_decision → resolve_decision → get_company_metrics.
+**Why:** Proves the schema, the MCP server, and the database together before anyone builds on them.
+**Files:** none (verification only).
+**State:** Works locally on Neon. Not yet deployed to a public URL, so Naïve can't attach it yet.
+**Next / heads-up:** Render deploy next (`platform/render.yaml`), then vault the bearer in Naïve
+and run `platform/naive` setup + approval test. **Pinara:** `solver_runs` rows are queueing in Neon
+now; your harness can be pointed at `DATABASE_URL` from `platform/mcp/.env.local` (ask Abhinav).
+
 ### 2026-11-07 14:58 PT · Abhinav (Claude) · branch `main`
 
 **What:** Naïve Team as code (`platform/naive/`): `npm run setup` creates/updates the seven
