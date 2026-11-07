@@ -99,3 +99,38 @@ touching it.**
 - [Reskilll: How to win a hackathon](https://blogs.reskilll.com/how-to-win-hackathon-2026-complete-playbook/):
   the README-as-tiebreaker point. This is a vendor blog.
 - The 16-winner research was pasted into the team chat on Nov 7. It isn't linked here.
+
+## Second research pass (pasted Nov 7, ~2:05 PM): what we keep and what we reject
+
+A second write-up recommended the same idea, an AI puzzle level studio, and ranked two alternatives
+below it: a content agency and a mobile QA agency. Most of its plan is already in `README.md`.
+Several parts are wrong or unsafe, so **agents must not copy code or claims from it.**
+
+**Keep:**
+
+- **The QA-agency angle supports our phone integration.** Selling "our agents playtest your app on
+  real phones" is a second offer to studios, and it uses the same plan runner.
+- **The diagrams.** An architecture flowchart and a sequence diagram of one level's life belong in
+  the slides. Redraw them from our actual design.
+- **Run the full demo several times before judging.**
+
+**Reject:**
+
+- **Its code is guessed.** Calls like `naive.agents.create({ model: "gpt-4", ... })`,
+  `monid.run("send an email ...")`, and `mobilerun run "..."` don't match the real APIs:
+  - Monid runs a specific provider endpoint, found with `discover` and checked with `inspect`.
+  - `mobilerun run` is the separate local open-source framework, not Mobilerun Cloud.
+
+  Use the docs linked in `AGENTS.md`.
+- **Its winner examples are wrong.** It names Countinghouse's AI CFO as 1st place at YC's Own Your
+  Intelligence hackathon. The c0mpiled.sh writeup lists QM Motion as 1st, with Countinghouse's
+  "GM" and "goodnight" as honorable mentions. Its other winner examples weren't checked.
+- **"Pre-generate a sample and say the agents did it."** Never do that. Judges score honesty about
+  step-ins, and YC calls exaggeration a fatal error. A pre-recorded backup is fine if we say it's a
+  recording.
+- **"Judges care more about autonomy than real money flow."** The official brief says "making,
+  selling, shipping, earning." A real payment still matters.
+- **Verifying puzzles by tapping through them on a phone.** Our solvers check solvability in code,
+  which is faster, cheaper, and exact. Phones check that a level loads and plays correctly on a
+  real device.
+- **Its timeline** assumes 24 hours and slides on a laptop. Ours is in `README.md`.

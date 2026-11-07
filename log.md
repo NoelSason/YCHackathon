@@ -20,6 +20,28 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 14:10 PT · Noel (Claude Code) · branch `main`
+
+**What:** Added Noel's strengths file from Prompt 1. Strongest areas: Backend and platform (5),
+Mobile (4), and AI agents (4).
+**Why:** It's one of the four inputs Prompt 2 needs to propose roles.
+**Files:** `docs/strengths/noel.md`.
+**State:** Docs only.
+**Next / heads-up:** Noel wants Mobilerun plus automating business ops, and wants to avoid
+frontend. Noel is available all night, including 2:00–8:00 AM. Prompt 2 runs once all four files
+are in.
+
+### 2026-11-07 14:04 PT · Noel (Claude Code) · branch `main`
+
+**What:** Reviewed a second research write-up and added "Second research pass" to
+`docs/how-to-win.md`: what we keep (the QA-agency angle, diagrams, rehearsal) and what we reject
+(guessed API calls, a wrong winner claim, faking agent work, and checking puzzles by tapping
+through them on phones).
+**Why:** So nobody's agent copies its made-up code or claims.
+**Files:** `docs/how-to-win.md`.
+**State:** Docs only.
+**Next / heads-up:** **Everyone:** don't use the code snippets from that write-up. Use the real docs.
+
 ### 2026-11-07 14:01 PT · Noel (Claude Code) · branch `main`
 
 **What:** Added `docs/strengths/PROMPT.md` (Prompt 1: each person's agent interviews them and writes
