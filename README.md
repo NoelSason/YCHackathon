@@ -10,6 +10,125 @@ what to stream next.
 **What a human does:** sets the budget and the guardrails, and steps in when something breaks.
 Every step-in is logged.
 
+## Possible pivot: autonomous level design for puzzle games
+
+**Status: under discussion, Sat Nov 7, 1:27 PM. Decide by 2:30 PM.** Until then, build only
+the pieces that work for both ideas (listed under "Decision").
+
+**The idea:** puzzle games like Candy Crush need a steady stream of new levels. Studios keep
+level designers producing them by hand, then tune each one so it's hard but beatable. An agent
+company could do that work: design levels, playtest them, tune their difficulty, and deliver
+them.
+
+From the team's recording (transcribed locally; it caught only a few sentences): "level design
+automation", and "automating their business … for different streams."
+
+**Ground rule:** we build our **own original match-3 game**: our name, art, and rules. Candy
+Crush and similar games are examples of the customer, not something we copy. Don't reuse their
+levels, art, or names in our product.
+
+### Why it might be the stronger idea
+
+- **It removes our biggest risk.** The streaming plan depends on getting an agent's gameplay
+  onto a live stream, which nobody has proven yet. Level design needs no streaming
+  infrastructure.
+- **It's checkable work with numbers.** Each level can be played thousands of times by a solver
+  bot, giving a measured win rate. "Target 40% win rate, measured 38%" is the kind of proof
+  winners show.
+- **The demo has a clear before and after.** A level starts at a 3% win rate, so it's too hard.
+  The agent changes it. Now it's at 41%. Then a real phone plays it.
+- **It's a plain B2B story for the YC interview:** "We make game levels for puzzle studios. Our
+  agents design, test, and tune them."
+- **Mobilerun has a real job.** "Test apps" is one of Mobilerun's own example uses.
+
+### Three ways to run it
+
+**A. Level studio for game companies (B2B).** Agents find puzzle studios and indie developers,
+make sample levels in their style before contacting them, pitch, and deliver packs.
+- Pro: the largest market story.
+- Con: studios don't buy overnight. In 22 hours, expect replies or a letter of intent, not
+  payment. Each studio's level format is different.
+
+**B. Our own puzzle game, run entirely by agents.** We ship an original match-3 web game (playable
+on phones). Agents design a new level pack every few hours, playtest and tune it, publish it,
+read real player data (where players quit, win rates), and adjust. Hints or level packs sell
+through Stripe.
+- Pro: fully autonomous, earns from real players, and builds a history to demo.
+- Con: we need players by Sunday, so marketing has to work fast.
+
+**C. Both (recommended).** Run B as the live proof and the history, and sell A to studios:
+"our agents have run this game's levels since Saturday. Here's the data. We'll do the same for
+yours." It's the same structure as the streaming plan, where our own channel was the showcase
+and the clipping service earned.
+
+### How the company would run (option C)
+
+```
+Research (Mobilerun phones) ── plays top puzzle games' live levels and records each
+     │                         mechanic, difficulty curve, and move limit (research only)
+     ▼
+Designer (Naïve) ── writes new levels as JSON: grid, pieces, blockers, goal, move limit
+     ▼
+Solver (Naïve Computer) ── plays each level thousands of times, measures win rate and moves left
+     ▼
+Tuner (Naïve) ── adjusts levels until each hits its target difficulty on a curve
+     ▼
+Playtester (Mobilerun phone) ── plays the shipped level in the real mobile browser, catches
+     │                          visual and touch bugs, and records a clip
+     ▼
+Publisher ── ships the pack to our game. Max's pipeline turns playtest recordings into trailers
+     ▼
+CEO / Ops (Naïve) ── reads player data, changes the curve, pitches studios with sample packs
+                     and data, runs Stripe, and logs every decision
+```
+
+### What changes for each person
+
+| Person | Streaming plan | Level-design plan |
+|---|---|---|
+| Noel | Research and posting on phones | **Research** (play top puzzle games on phones, record mechanics and difficulty) and the **Playtester** (play our levels on real phones, flag bugs, record) |
+| Max | Clipper and video generation | **Marketing video**: level trailers and "watch the agent play" clips from playtest recordings. Generated tile art and backgrounds in our own style. |
+| Abhinav | Naïve agents and platform | **Naïve Team** (Designer, Tuner, CEO), the **game engine and level format**, the **Solver**, and the platform |
+| Teammate 4 | Ops, sales, demo | **CEO/Ops**: player metrics, studio outreach with sample packs, Stripe, the heartbeat screen, the demo |
+
+### How it wins
+
+- **Autonomy:** the agents decide each level's difficulty and the curve from player data. We
+  only set "keep players at about a 40% win rate on level 1–20."
+- **Numbers:** levels generated, the share that passed the solver, target vs. measured difficulty,
+  real players, completion rates, cost per level, revenue, and step-ins.
+- **Best Mobile Automation:** real phones doing research on live games, and playtesting our own.
+  Both are jobs only a phone can do.
+- **People's choice:** a QR code on stage. The audience plays a level the agents generated a
+  minute ago, and the CEO retunes it live from their results.
+- **Unicorn:** studios already pay people to make levels. Bottom-up math for the slide: studios ×
+  levels per month × price per level. Find real sources for each number before it goes on a slide.
+- **Best use of Naïve:** a coordinator with a roster, board cards as hand-offs, the Solver on a
+  Naïve Computer, budgets, and schedules for new packs every few hours.
+
+### Risks
+
+1. **Level quality.** A solver tells us whether a level is beatable and how hard it is, not
+   whether it's fun. Keep the rules simple (a grid, colors, move limit, one goal) so the solver
+   stays fast and right.
+2. **Players by Sunday.** Option B needs real players. Use our own posts, the hackathon room, and
+   the phones for marketing.
+3. **Studio format.** Every studio stores levels differently. For the B2B pitch, deliver levels in
+   our documented JSON format plus playable previews, and offer custom format conversion later.
+4. **Research limits.** Phones may play other companies' games only to study them. Don't copy
+   their levels or art, and follow each game's terms.
+
+### Decision
+
+Decide by **2:30 PM**. Until then, build what both ideas need:
+
+- the Naïve Team with a CEO coordinator, and the activity log
+- the company heartbeat screen
+- a Mobilerun phone that can open a game and report what it sees
+- AgentMail and Stripe set up in test mode
+
+If we pivot, the streaming plan below stays as the backup.
+
 ## How the company runs
 
 ```

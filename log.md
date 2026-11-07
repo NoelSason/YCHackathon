@@ -20,6 +20,19 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 13:30 PT · Noel (Claude Code) · branch `main`
+
+**What:** Added "Possible pivot: autonomous level design for puzzle games" to `README.md`: why it
+might be stronger, three ways to run it (B2B studio, our own agent-run game, or both;
+recommended: both), the agent flow, what changes for each person, how it scores, risks, and a
+2:30 PM decision point. Added a pivot note to `AGENTS.md`.
+**Why:** The team discussed pivoting (recording: `~/Desktop/Parking.m4a`, transcribed locally,
+only a few sentences captured).
+**Files:** `README.md`, `AGENTS.md`.
+**State:** Docs only. Not decided.
+**Next / heads-up:** **Everyone:** decide by 2:30 PM. Until then, build only the pieces both plans
+need (listed under "Decision" in the README).
+
 ### 2026-11-07 13:14 PT · Noel (Claude Code) · branch `main`
 
 **What:** Added the team's winner research to "How we win" in `README.md`: the official brief

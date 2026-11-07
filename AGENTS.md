@@ -12,6 +12,11 @@ the product, and handle day-to-day operations.
   clip the highlights, post the clips from real phones, and run the business.
 - **Full plan:** `README.md` has the agents, each person's plan, the timeline, and the risks.
   Read it before starting work.
+- **Possible pivot (decision by 2:30 PM Sat):** autonomous level design for puzzle games. See
+  "Possible pivot" in `README.md`. Until the team decides, build only what both plans need:
+  the Naïve Team and activity log, the heartbeat screen, a Mobilerun phone that can open and
+  play a game, and AgentMail and Stripe in test mode. Never copy another company's game, levels,
+  or art. Our game and its levels are original.
 
 ## Team and ownership
 
