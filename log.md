@@ -20,6 +20,29 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 15:55 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Demo centerpiece ready: a judge becomes a customer on stage.**
+- **"Become a customer" QR on the demo stage** (`DEMO_JOIN_URL`). A judge scans it, enters any Google Play puzzle game,
+  and within about 30 s gets an email with that game's real review evidence and free levels. The feed shows each
+  agent step.
+- **`business/live.sh`** runs the business server on Noel's laptop behind a Cloudflare quick tunnel. It writes
+  `DEMO_JOIN_URL`, `BUSINESS_MCP_URL`, and `PUBLIC_BASE_URL` into `.env` and keeps the laptop awake. It's running now.
+- **Separate email caps:** signup welcomes no longer count against the 20-a-day cold-outreach cap
+  (`INBOUND_DAILY_CAP`, default 200).
+- **`docs/demo-script.md` is now the full run of show**: 3 minutes, the night-before checklist, the decisions Noel owes,
+  and what to do if something breaks.
+**Files:** `business/`, `demo/src/server.ts`, `demo/public/index.html`, `demo/README.md`, `docs/demo-script.md`.
+**State:** 53 business tests and 6 demo tests pass. The tunnel serves `/join` and `/health` publicly, and
+`./demo.sh --check` passes.
+**Next / heads-up:**
+- **Everyone:** the signup page URL changes whenever `live.sh` restarts. It's in `.env` as `DEMO_JOIN_URL`.
+- **Max:** `DEMO_PLAY_URL` feeds both the "Play it yourself" QR and the free-levels link in every welcome email.
+- **Abhinav:** if you run `npm run setup` in `platform/naive`, `BUSINESS_MCP_URL` in `.env` now points at the live
+  business server. The bearer goes in the vault.
+
+---
+
 ### 2026-11-07 15:40 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Live signup → audit → email in 30 seconds, verified for real.** The QR page (`GET /join`) takes a

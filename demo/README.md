@@ -22,6 +22,7 @@ Keys on the stage: **F** full screen, **D** setup details (only you see them).
 | The team | Each agent's count and latest action. A dot pulses while an agent acted in the last 45 s. |
 | What the agents are doing | The log, newest first. Decisions show Saw / Why / Expected / Result. Step-ins are amber. |
 | Phone playtest | A screenshot of the Mobilerun phone about once a second, fetched by the server |
+| Become a customer | A QR code for `DEMO_JOIN_URL`: the signup page. Someone enters their game, and the agents audit its reviews and email them live. |
 | Play it yourself | A QR code for `DEMO_PLAY_URL` |
 | Studios | `studios` counts by stage, plus paid `payments` (test and live shown separately) |
 
@@ -35,7 +36,8 @@ Nothing is typed in. Without a log the stage says so and shows the setup details
 | `DEMO_ACTIVITY_TABLES` | Which log tables to read, as `table:time_column`, comma-separated | `activity_log:ts,decisions:ts` |
 | `DEMO_STEPIN_TABLES` | Tables where every row is a human step-in | `interventions:ts` |
 | `MOBILERUN_API_KEY`, `MOBILERUN_DEVICE_ID` | The phone panel. It only reads screenshots; it never provisions or resets a device. | (none) |
-| `DEMO_PLAY_URL` | The QR code | (none) |
+| `DEMO_PLAY_URL` | The "Play it yourself" QR code | (none) |
+| `DEMO_JOIN_URL` | The "Become a customer" QR code. `business/live.sh` sets it. | (none) |
 | `DEMO_REPLAY_SECONDS` | How long a replay takes to play its newest 40 events | `90` |
 | `DEMO_PORT` | Port | `4545` |
 

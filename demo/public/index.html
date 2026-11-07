@@ -205,6 +205,10 @@
       <h2><span class="live-tag" id="phone-live">LIVE</span> Phone playtest</h2>
       <div class="phone-wrap"><div class="phone" id="phone"><div class="off">Phone not connected</div></div></div>
     </section>
+    <section class="panel" id="join-panel" hidden>
+      <h2>Become a customer</h2>
+      <div class="qr"><img id="join-qr" alt="QR code to sign up for free levels"><p>Scan, enter your game, and watch our agents audit it live<small id="join-url"></small></p></div>
+    </section>
     <section class="panel" id="qr-panel" hidden>
       <h2>Play it yourself</h2>
       <div class="qr"><img id="qr" alt="QR code to play a level"><p>Play a level our agents made<small id="qr-url"></small></p></div>
@@ -395,6 +399,7 @@ async function boot() {
   $("feed-n").textContent = state.stats.agentActions + state.stats.stepIns ? "newest first" : "";
   if (state.phone) startPhone();
   else $("phone-live").hidden = true;
+  if (state.joinUrl) { $("join-panel").hidden = false; $("join-qr").src = "/api/join-qr.svg"; $("join-url").textContent = state.joinUrl.replace(/^https?:\/\//, ""); }
   if (state.playUrl) { $("qr-panel").hidden = false; $("qr").src = "/api/qr.svg"; $("qr-url").textContent = state.playUrl.replace(/^https?:\/\//, ""); }
   // Open the setup details automatically when there's nothing to show yet.
   let autoHealth = state.mode === "live" && !state.events.length;

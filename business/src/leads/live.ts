@@ -117,6 +117,7 @@ export async function runLiveSignup(ctx: ToolContext, lead: Lead, gameTitle: str
   const record = await sendOutreach(fresh, draft, {
     store: ctx.store,
     dailyCap: ctx.config.OUTREACH_DAILY_CAP,
+    inboundDailyCap: ctx.config.INBOUND_DAILY_CAP,
     postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS,
     extraAllowedNumbers,
     sender: ctx.mail,

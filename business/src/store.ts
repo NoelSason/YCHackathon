@@ -21,7 +21,8 @@ export interface Store {
   setStage(id: string, stage: PipelineStage): Promise<Lead | null>;
 
   addOutreach(input: Omit<OutreachRecord, "id" | "createdAt">): Promise<OutreachRecord>;
-  countSentSince(sinceIso: string): Promise<number>;
+  /** Sent first emails since a time. `inbound` counts only signups; otherwise only cold outreach. */
+  countSentSince(sinceIso: string, inbound?: boolean): Promise<number>;
   /** Records a studio's reply as it arrives, so the Sender can answer that exact message later. */
   addInboundEmail(input: { leadId: string; subject: string; summary: string; externalId: string | null }): Promise<void>;
   lastInboundMessageId(leadId: string): Promise<string | null>;
@@ -96,8 +97,12 @@ export class MemoryStore implements Store {
     return record;
   }
 
-  async countSentSince(sinceIso: string): Promise<number> {
-    return this.outreach.filter((o) => o.status === "sent" && o.createdAt >= sinceIso).length;
+  async countSentSince(sinceIso: string, inbound = false): Promise<number> {
+    return this.outreach.filter((o) => {
+      if (o.status !== "sent" || o.createdAt < sinceIso) return false;
+      const isInbound = this.leads.get(o.leadId)?.source === "inbound_form";
+      return inbound ? isInbound : !isInbound;
+    }).length;
   }
 
   async addInboundEmail(input: { leadId: string; subject: string; summary: string; externalId: string | null }): Promise<void> {
@@ -230,8 +235,12 @@ export class PlatformStore implements Store {
     return { ...input, id: String(r[0]!.id), createdAt: iso(r[0]!.ts) };
   }
 
-  async countSentSince(sinceIso: string): Promise<number> {
-    const r = await this.q(`select count(*)::int as n from emails where direction = 'out' and ts >= $1`, [sinceIso]);
+  async countSentSince(sinceIso: string, inbound = false): Promise<number> {
+    const r = await this.q(
+      `select count(*)::int as n from emails e left join studios s on s.studio_id = e.studio_id
+       where e.direction = 'out' and e.ts >= $1 and (coalesce(s.source, '') = 'inbound_qr') = $2`,
+      [sinceIso, inbound],
+    );
     return Number(r[0]?.n ?? 0);
   }
 

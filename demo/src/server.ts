@@ -44,6 +44,8 @@ function makeFeed(): Feed {
 const feed = makeFeed();
 const phone = new PhoneView(env.MOBILERUN_API_KEY, env.MOBILERUN_DEVICE_ID);
 const playUrl = env.DEMO_PLAY_URL ?? null;
+/** The signup page ("Become a customer"): the business server's /join, usually behind a tunnel. */
+const joinUrl = env.DEMO_JOIN_URL ?? null;
 const company = env.COMPANY_NAME ?? "Level Studio";
 
 // ---- State ----------------------------------------------------------------------------------
@@ -82,6 +84,7 @@ function snapshot(limit = 150) {
     health: health(),
     phone: phone.configured,
     playUrl,
+    joinUrl,
   };
 }
 
@@ -168,6 +171,17 @@ const server = createServer(async (req, res) => {
         }
         res.writeHead(200, { "content-type": "image/png", "cache-control": "no-store" });
         res.end(png);
+        return;
+      }
+      case "/api/join-qr.svg": {
+        if (!joinUrl) {
+          res.writeHead(404);
+          res.end();
+          return;
+        }
+        const svg = await QRCode.toString(joinUrl, { type: "svg", margin: 1, color: { dark: "#0b0d10", light: "#ffffff" } });
+        res.writeHead(200, { "content-type": "image/svg+xml", "cache-control": "max-age=60" });
+        res.end(svg);
         return;
       }
       case "/api/qr.svg": {

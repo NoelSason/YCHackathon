@@ -9,6 +9,8 @@ import { numbersIn, type OutreachDraft } from "./compose.js";
 export interface GuardContext {
   store: Store;
   dailyCap: number;
+  /** Separate, higher cap for people who signed up and asked for the email. */
+  inboundDailyCap?: number;
   postalAddress: string | undefined;
   /** Numbers allowed outside `draft.facts`, such as those in the price, sample URL, or address. */
   extraAllowedNumbers: string[];
@@ -34,7 +36,11 @@ export async function checkOutreach(lead: Lead, draft: OutreachDraft, ctx: Guard
   if (unverified.length > 0) return `Email states numbers with no source: ${[...new Set(unverified)].join(", ")}.`;
 
   const since = new Date((ctx.now ?? new Date()).getTime() - 24 * 60 * 60 * 1000).toISOString();
-  if ((await ctx.store.countSentSince(since)) >= ctx.dailyCap) return `Daily cap of ${ctx.dailyCap} emails reached.`;
+  const inbound = lead.source === "inbound_form";
+  const cap = inbound ? (ctx.inboundDailyCap ?? 200) : ctx.dailyCap;
+  if ((await ctx.store.countSentSince(since, inbound)) >= cap) {
+    return `Daily cap of ${cap} ${inbound ? "signup welcome" : "outreach"} emails reached.`;
+  }
 
   return null;
 }

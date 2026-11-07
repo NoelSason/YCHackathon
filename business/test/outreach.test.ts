@@ -91,6 +91,18 @@ describe("checkOutreach", () => {
   });
 });
 
+describe("separate caps", () => {
+  it("doesn't count signup welcomes against the cold-outreach cap", async () => {
+    const { store, lead } = await setup();
+    const signup = await store.upsertLead({ company: "Fan", appId: null, contactName: null, email: "fan@x.example", source: "inbound_form", stage: "found", reason: null, sampleUrl: null, crmContactId: null });
+    for (let i = 0; i < 3; i++) {
+      await store.addOutreach({ leadId: signup.id, to: "fan@x.example", subject: "s", body: "b", status: "sent", blockedReason: null, providerMessageId: `m${i}` });
+    }
+    expect(await checkOutreach(lead, draftFor(lead), ctx(store))).toBeNull(); // cold cap is 2, but 0 cold sent
+    expect(await store.countSentSince(new Date(0).toISOString(), true)).toBe(3);
+  });
+});
+
 describe("sendOutreach", () => {
   it("only drafts when sending is off", async () => {
     const { store, lead } = await setup();
