@@ -20,82 +20,121 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
-### 2026-11-07 14:56 PT · Max (Codex) · branch `game-integration`
+### 2026-11-07 15:25 PT · Abhinav (Claude) · branch `main`
 
-**What:** Added a unified route/design/evaluate/implement/verify skill workflow and a small
-config-driven interpreter that emits ordered skill and interface packets. Programmatic operations
-are declared in config and gated on runtime tool availability.
-**Why:** Let the agent plan at a high level, use the game's domain skill for solving details, then
-create levels through the right adapter or editor path.
-**Files:** `games/skill-routing.json`, `games/skill_router.py`, `games/router/`,
-`games/implementation/`, `docs/skill-routing-plan.md`, `docs/agent-plan.md`, `games/README.md`,
-`README.md`, `AGENTS.md`, `log.md`.
-**State:** Partly works. Routes and skill contracts are in place; no adapter, MCP tools, or editor
-runtime is connected in this checkout. Tests were not run.
-**Next / heads-up:** Abhinav/Pinara: connect match-3 adapter tools and mark the config availability
-only after they work. Noel: attach Mobilerun MCP for the Geometry Dash editor route.
+**What:** `npm run vault` in `platform/naive`: stores the platform MCP bearer in a Naïve vault as a
+`static_bearer` credential keyed to the MCP URL (idempotent; `ROTATE=1` replaces it).
+**Why:** Naïve rejects inline auth headers on `mcp_servers`; the vault is the supported path.
+**Files:** `platform/naive/src/vault.ts`, `platform/naive/package.json`, `.env.example`, `README.md`.
+**State:** Typechecks against the SDK. Not run yet.
+**Next / heads-up:** Abhinav: `npm run vault` → `npm run setup` → `npm run approval-test`.
 
-### 2026-11-07 14:50 PT · Max (Codex) · branch `game-integration`
+### 2026-11-07 15:15 PT · Abhinav (Claude) · branch `main`
 
-**What:** Removed the BetterEdit skill and added a Mobilerun-assisted workflow for the official
-Geometry Dash editor guide. The workflow saves local drafts and limits phone checks to visual/load
-sanity checks.
-**Why:** Use the official editor guide as requested and avoid relying on an archived editor mod.
-**Files:** `games/editors/betteredit/`, `games/editors/geometry-dash/`, `games/README.md`,
-`AGENTS.md`, `README.md`, `log.md`.
-**State:** Partly works. Official guide and Mobilerun Cloud Quickstart were reviewed; no Mobilerun
-tools or user device are connected here, so no phone task was run.
-**Next / heads-up:** Use an existing authorized Mobilerun device only. Do not provision/reset it;
-do not publish or upload a level. Remote taps do not verify exact gameplay timing.
+**What:** **The platform is live.** Neon Function `platform` on branch `production`:
+`https://br-broad-violet-bem8cpy5-platform.compute.c-9.us-east-2.aws.neon.tech`
+(`/health`, `POST /events`, `/games/:id/schema`, `/mcp` with bearer). Smoke test passed against
+it from Abhinav's laptop: all 20 tools, save → solve (queued) → decision → metrics.
+**Why:** Pinara's agents and Max's games now have a real URL to point at.
+**Files:** none (deploy + verification).
+**State:** Works. Cold start after idle is a few seconds.
+**Next / heads-up:** **Pinara / Noel:** MCP URL is the one above + `/mcp`; the bearer is in
+Abhinav's `.env` (ask, don't commit). **Max:** POST player events to `/events` on that host.
+Abhinav next: vault the bearer in Naïve, `npm run setup`, approval test.
 
-### 2026-11-07 14:45 PT · Max (Codex) · branch `game-integration`
+### 2026-11-07 15:13 PT · Pinara (Claude Code) · branch `main`
 
-**What:** Added a BetterEdit editor-only skill and documented its archived status, dependencies,
-license, and separation from the rhythm-runner product integration.
-**Why:** Add the requested level-editor workflow while keeping our own adapter, solver, assets, and
-music requirements distinct.
-**Files:** `games/editors/betteredit/`, `games/README.md`, `AGENTS.md`, `README.md`, `log.md`.
-**State:** Partly works. Repository docs were reviewed; no installed editor, mod environment, level
-format, or runtime playtest was available.
-**Next / heads-up:** Use only with a user-provided compatible setup; BetterEdit is archived and
-requires its listed Geode dependencies. Do not bundle the mod or Geometry Dash content.
+**What:** Added `docs/open-source-options.md` with checked picks for the games and a proposal for
+the third one:
+- houseki's Gem Swap engine for match-3 and Parkway for the board game, both MIT.
+- A proposal to replace the rhythm runner with PuzzleScript plus an exact BFS solver.
+- Free art and music with their licenses, helper libraries, a Mobilerun plan, and a don't-use list.
 
-### 2026-11-07 14:36 PT · Max (Codex) · branch `game-integration`
+**Why:** So we build on licensed, checked code instead of searching, and so the third game is
+decided on facts.
+**Files:** `docs/open-source-options.md`.
+**State:** Research only. Licenses were read from LICENSE files, and the key repo claims were
+spot-checked with `gh`. Nothing was cloned or run.
+**Next / heads-up:**
+- **Team:** decide PuzzleScript vs. the rhythm runner. The master plan's package table says the
+  runner is cut first, but its cut order lists it last.
+- **Max:** do 1-hour spikes on houseki and Parkway before committing. Draw match-3 tiles as DOM
+  elements so the phone agent can read them.
+- **Noel:** for an API key, the Mobilerun MCP URL is `https://api.mobilerun.ai/v1/mcp`, not the
+  OAuth URL in `CLAUDE.md`. Mobilerun agent steps cost about 0.5 credits each, so 1,500 credits is
+  about 3,000 steps.
 
-**What:** Added an editor-only platformer level authoring skill; documented that the game remains
-outside the product integration scope and any ROM must be user-supplied separately.
-**Why:** Support original custom-level creation with the requested editor while preserving the
-three-game product plan and avoiding bundled third-party content.
-**Files:** `games/platformer/SKILL.md`, `games/platformer/README.md`, `games/README.md`, `AGENTS.md`,
-`README.md`, `log.md`.
-**State:** Partly works. Skill workflow is documented, but the editor format and its UI workflow
-have not been tested against a running game/editor instance.
-**Next / heads-up:** Keep this as a skill only. If executing an authoring task, use a user-provided
-environment and save through the editor; never package a ROM or original game assets.
+### 2026-11-07 15:20 PT · Abhinav (Claude) · branch `main`
 
-### 2026-11-07 14:35 PT · Max (Codex) · branch `game-integration`
+**What:** Platform now deploys as a **Neon Function** instead of Render (`platform/mcp/src/fn.ts`,
+declared in `platform/mcp/neon.ts`; `render.yaml` removed). Same 20 tools and routes
+(`/mcp`, `POST /events`, `/games/:id/schema`, `/health`) as a web-standard fetch handler; the
+Express server stays for local dev. The MCP endpoint answers in JSON mode (stateless).
+**Why:** Render asked for a card. Neon Functions is covered by the Neon credits, gives a public HTTPS
+URL next to the database, injects `DATABASE_URL`, and deploys with `neon deploy --env .env`.
+**Files:** `platform/mcp/src/fn.ts`, `platform/mcp/neon.ts`, `platform/README.md`, `platform/naive/.env.example`.
+**State:** Typechecks. Smoke test passed against the fetch handler served locally on a local
+Postgres (health, events, 401 without bearer, schema, all tool calls). **Not deployed yet.**
+**Next / heads-up:** Abhinav runs `neon deploy --env .env` from `platform/mcp`, then the smoke
+test against the invocation URL, then the Naïve setup. **Max:** the games POST events to
+`https://<invocation_url>/events`; CORS is open.
 
-**What:** Added a game catalog and evaluated the requested Super-Mario-Bros.-Remastered-Public
-repository as a reference-only platformer candidate.
-**Why:** Capture its level-editor potential while keeping the current three-game scope and
-third-party IP restrictions clear.
-**Files:** `games/README.md`, `games/platformer/README.md`, `AGENTS.md`, `README.md`, `log.md`.
-**State:** Partly works. Repository description and license were reviewed; its level schema and
-headless simulation support were not audited.
-**Next / heads-up:** Team: changing the scope to adopt this game requires a separate decision and
-rights review. Do not bundle its ROM, game assets, levels, or branding.
+### 2026-11-07 14:55 PT · Abhinav (Claude) · branch `main`
 
-### 2026-11-07 14:34 PT · Max (Codex) · branch `game-integration`
+**What:** Platform verified against Neon. `neon deploy` on project `raspy-bread-00151777`, branch
+`production`; `npm run migrate:dev` applied `platform/db/schema.sql`; `npm run smoke` passed from
+Abhinav's laptop against the local server on Neon: all 20 tools listed, save_level → solve_level
+(queued) → log_decision → resolve_decision → get_company_metrics.
+**Why:** Proves the schema, the MCP server, and the database together before anyone builds on them.
+**Files:** none (verification only).
+**State:** Works locally on Neon. Not yet deployed to a public URL, so Naïve can't attach it yet.
+**Next / heads-up:** Render deploy next (`platform/render.yaml`), then vault the bearer in Naïve
+and run `platform/naive` setup + approval test. **Pinara:** `solver_runs` rows are queueing in Neon
+now; your harness can be pointed at `DATABASE_URL` from `platform/mcp/.env.local` (ask Abhinav).
 
-**What:** Added the match-3 Naïve design skill and integration notes in `games/match3/`, and
-documented the directory. The archived CandyCrushLevelEditor is recorded as reference only.
-**Why:** Give the Designer and Tuner a consistent match-3 workflow while keeping one authoritative
-schema and rules implementation in the future adapter.
-**Files:** `games/match3/`, `AGENTS.md`, `README.md`, `log.md`.
-**State:** Partly works. Skill and docs are in place; this checkout has no game implementation,
-adapter, schema, or Naïve credentials/CLI configuration to wire or publish them against.
-**Next / heads-up:** Max: add the game adapter and its schema here, then align the skill examples
-and publish/pin `game-match3` for the Designer and Tuner. Do not create a second copy of game rules.
+### 2026-11-07 14:58 PT · Abhinav (Claude) · branch `main`
+
+**What:** Naïve Team as code (`platform/naive/`): `npm run setup` creates/updates the seven
+roster agents (designer, tuner, playtest, research, sales_reader, sales_sender, finance) and the
+CEO coordinator with the board and the roster pinned, with each platform MCP tool allow-listed
+by name per agent and budgets from `docs/agent-plan.md`; creates the CEO (hourly), Research (4h),
+and Finance (3h) cron deployments **disabled**. `npm run approval-test` runs the step-1 approval
+probe and prints the verdict. `npm run kill -- on|off` is the kill switch / 6 PM switch-on and
+logs a step-in. `platform/render.yaml` deploys the MCP server on Render and runs the migration
+at boot.
+**Why:** The backbone packages (Team setup, approval test, kill switch, cron) need a Naïve key and
+network access this cloud session doesn't have (Neon and Naïve APIs are blocked by its egress
+policy), so they're scripts Abhinav runs from his laptop.
+**Files:** `platform/naive/`, `platform/render.yaml`, `platform/mcp/package.json`.
+**State:** Typechecks against the real SDK types (`@usenaive-sdk/managed-agents` 0.12.3). **Not
+run yet**: needs the MCP server deployed, the vault bearer set, then `setup` and `approval-test`.
+**Next / heads-up:** **Abhinav:** deploy (Render blueprint), vault the bearer, run setup, run the
+approval test, write the verdict here. **Pinara:** your agents' prompts and allow-lists live in
+`platform/naive/src/roster.ts`; edit there, then `npm run setup` re-applies. **Noel:** add the
+Mobilerun MCP server and email tool names to `playtest` and `sales_sender` in `roster.ts` when
+known.
+
+### 2026-11-07 14:40 PT · Abhinav (Claude) · branch `main`
+
+**What:** Platform v1. `platform/CONTRACTS.md` has the three contracts due at 3:00 PM: how a
+game adapter plugs in (`games/<game_id>/adapter/index.ts`, default export with `schema`,
+`validate`, `simulate`, `solve?`, `bots`, `level_url`; player events `POST /events`), the full
+MCP tool list (20 tools, inputs/outputs/permissions), and the activity log, decision record, and
+step-in log fields. `platform/db/schema.sql` has every table. `platform/mcp/` is the MCP server
+(Streamable HTTP, bearer auth) with all 20 tools implemented against Postgres, a `stub` game so
+agents can be built before real adapters land, and `POST /events`.
+**Why:** Unblocks Pinara (agents and Solver harness), Noel (business tools), and Max (adapter shape).
+**Files:** `platform/CONTRACTS.md`, `platform/README.md`, `platform/db/schema.sql`, `platform/mcp/`, `AGENTS.md` (repo layout).
+**State:** Works. Typechecks (strict). Smoke test passed against a local Postgres: schema applied,
+event ingested, save_level → solve_level (queued) → log_decision → resolve → get_company_metrics.
+Not yet: deployed to Render, pointed at Neon, Stripe call (placeholder link), spend ledgers in `get_spend`.
+**Next / heads-up:** **Pinara:** `solve_level` only inserts a `solver_runs` row with `status='queued'`;
+your harness claims rows (`claimed_by`, `started_at`) and writes `results`/`solvable`/`min_moves`.
+Tool names are final unless you object by 3:00. **Naïve defaults MCP tools to `ask`**: every tool
+each agent uses must be `allow` by name in that agent's `tools.configs`. **Max:** adapter shape in
+CONTRACTS §1; `simulate`/`solve` must run in Node with no DOM. **Noel:** `crm_*`, `record_email`,
+`create_payment_link`, `get_spend` are yours to extend; Stripe is a placeholder until a key exists.
+**Everyone:** human actions (kill switch, step-ins) are not MCP tools; they write to `interventions`.
 
 ### 2026-11-07 14:19 PT · Noel (Claude Code) · branch `main`
 
