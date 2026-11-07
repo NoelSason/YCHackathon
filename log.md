@@ -20,6 +20,37 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 13:14 PT · Noel (Claude Code) · branch `main`
+
+**What:** Added the team's winner research to "How we win" in `README.md`: the official brief
+("not a demo of one … making, selling, shipping, earning"), six patterns from 16 YC hackathon
+winners, and "demo the company's history, not the software." Applied it to our plan:
+- **New revenue loop:** clip-first outreach. Clip a small streamer's stream, email them the
+  clips with a Stripe link, then deliver on a schedule.
+- **Ops becomes the CEO coordinator** of a Naïve Team (roster + company board + per-tool
+  policies). Checked in the Naïve docs.
+- **New demo outline** that opens with the result, plus a "company heartbeat" main screen.
+- **Timeline:** the company switches on at 6 PM Saturday. Hands off from 2 AM. Feature freeze at
+  breakfast.
+**Why:** The brief asks for earning, and our streaming channel had no way to earn in 22 hours.
+**Files:** `README.md`, `AGENTS.md`.
+**State:** Docs only. The per-event winner details came from the pasted research and weren't
+re-checked.
+**Next / heads-up:** **Abhinav + Teammate 4:** structure the agents as a Naïve Team with Ops as
+coordinator. **Max:** the clip job must work on other streamers' recordings early, since the
+revenue loop depends on it.
+
+### 2026-11-07 13:06 PT · Noel (Claude Code) · branch `main`
+
+**What:** Researched what wins YC-hosted hackathons and added "How we win" to `README.md`: the
+event's judging, winner patterns, judge advice, YC pitch rules, a criteria-to-owner table, and a
+3-minute demo outline. Added a short "prefer whatever moves these" list to `AGENTS.md`.
+**Why:** So everyone's agents choose work that scores, not just work that's interesting.
+**Files:** `README.md`, `AGENTS.md`.
+**State:** Docs only. No official rubric or weights are published. Sources are linked.
+**Next / heads-up:** Demos are 2–4 minutes, and the top 8–10 teams demo again on the main stage.
+**Teammate 4** owns the demo script and the numbers screen.
+
 ### 2026-11-07 12:58 PT · Noel (Claude Code) · branch `main`
 
 **What:** Fourth teammate added. They own business ops: the Ops agent, spend tracking, sponsors

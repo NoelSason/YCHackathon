@@ -65,6 +65,24 @@ That has direct engineering consequences:
   live run that might fail on stage.
 - Keep a way to replay or show past runs if the live demo breaks.
 
+The full criteria, research, and demo outline are in "How we win" in `README.md`. When choosing
+what to build next, prefer whatever moves one of these:
+
+- **Autonomy:** fewer human step-ins, and a longer unattended run.
+- **Numbers:** anything that produces a real, measured figure for the demo (hours, clips, views,
+  decisions, spend).
+- **Visible output:** something a judge can see or click, over something we'd have to explain.
+- **Sponsor depth:** Naïve, Mobilerun, and Monid used centrally, not as a token call.
+- **Demo reliability:** removing a place the 3-minute demo could stall beats adding a feature.
+
+- **Earning:** the brief says "making, selling, shipping, earning." The clip-first outreach loop
+  to human streamers, ending in a Stripe payment, is how we earn. Work on it is high priority.
+- **Decisions:** the CEO (Ops) agent changes strategy from results and logs the reason.
+
+The demo shows the company's history since we stopped touching it, not what the software could
+do. Don't build anything that only shows up in a slide. Never fake or inflate a number. Keep
+outreach small, personal, and honest: no spam, and no claims the agent can't back up.
+
 ## Hard requirement: the Naïve SDK
 
 Every team must build its company with the Naïve SDK. Don't replace it with a hand-rolled agent
