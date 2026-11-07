@@ -20,7 +20,7 @@ the product, and handle day-to-day operations.
 | **Noel** | iOS research and mobile automation with Mobilerun: the Research and Publisher agents |
 | **Max** | Video generation: the Clipper pipeline (highlights, clips, captions, thumbnails) |
 | **Abhinav** | The Naïve SDK agents (Streamer, Chat), and the platform everything runs on (hosting, deployment, storage, the job queue, the activity log) |
-| **Teammate 4** (_name TBD_) | Business ops: the Ops agent, sponsors and sales, spend tracking, the demo dashboard |
+| **Teammate 4** (_name TBD_) | Business ops: the Ops agent (on Naïve), spend tracking, sponsors and sales, the demo dashboard and script |
 
 Rules for agents:
 

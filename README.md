@@ -27,7 +27,7 @@ Every step-in is logged.
   Clipper (video pipeline) ── finds highlights, cuts vertical clips, captions
                                │
                                ▼
-  Publisher ── uploads to YouTube through Monid; posts to TikTok and Instagram on phones
+  Publisher (Mobilerun phones) ── posts clips in the YouTube, TikTok, Instagram apps
                                │
                                ▼
   Ops agent ── reads views and follows, updates the plan, emails sponsors,
@@ -41,7 +41,7 @@ Every step-in is logged.
 | Agent | Built on | Job | Owner |
 |---|---|---|---|
 | Research | Mobilerun (iOS) | Finds trending games, formats, and clip styles by using the real apps. Writes a short brief the Ops agent can act on. | Noel |
-| Publisher | Monid (YouTube) + Mobilerun (iOS) | Uploads clips to YouTube through Monid, and posts to TikTok and Instagram in the mobile apps. Reads back views and likes. | Noel |
+| Publisher | Mobilerun (iOS) | Posts finished clips in the YouTube, TikTok, and Instagram apps. Reads back views and likes, with Monid's YouTube data tools as a cross-check. | Noel |
 | Clipper | Video pipeline | Watches the stream recording, picks highlights, cuts 9:16 clips with captions, and makes thumbnails and intros. | Max |
 | Streamer | Naïve SDK | Plays the game on stream with a consistent persona. | Abhinav |
 | Chat | Naïve SDK | Reads stream chat, replies in persona, takes requests, and moderates. | Abhinav |
@@ -59,15 +59,16 @@ Goal: the Best Mobile Automation prize, plus the company's eyes and distribution
 1. Get one Mobilerun Agent task working on a cloud iPhone, such as "open TikTok, search
    `<game>`, report the top five videos with view counts."
 2. Build the **Research agent**. It produces a structured brief: trending games, clip formats
-   that perform, and posting times. The Ops agent reads this brief.
+   that perform, and posting times. The Ops agent reads this brief. Use phones for what only the
+   apps show (the For You feed, trending sounds), and Monid's YouTube and TikTok data tools for
+   bulk numbers. They're cheaper and faster than scrolling.
 3. Build the **Publisher agent**. It takes a clip file and caption and posts it.
-   - **YouTube (Shorts and full videos): use Monid.** Run
-     `monid discover -q "upload video to youtube"`, then `monid inspect` the endpoint before you
-     use it. Not verified yet: no Monid key was set up when this plan was written. Check whether
-     it needs the channel's sign-in, and what each upload costs.
-   - **TikTok and Instagram: use Mobilerun phones.** Their posting APIs are limited, so the phone
-     is the reliable path and the Best Mobile Automation story.
-   - If Monid has no working YouTube upload, fall back to the YouTube app on a Mobilerun phone.
+   - **All three apps (YouTube, TikTok, Instagram): use Mobilerun phones.** Start with YouTube
+     Shorts. Posting from the phone is also the Best Mobile Automation story.
+   - **Monid can't upload.** Checked on Nov 7: its YouTube tools only read data (video details,
+     search, transcripts, channel videos). Use them for research and for reading back views.
+   - **Fallback for YouTube:** the official YouTube Data API upload, which needs the channel's
+     sign-in and has a daily upload quota. Check the current quota before relying on it.
 4. Add **metrics read-back**: the agent reopens posted clips and records views and likes for Ops.
 5. Reuse one logged-in device per app account. Don't reset devices.
 
@@ -79,11 +80,13 @@ Goal: turn hours of stream into a steady flow of clips worth posting.
    captions out.
 2. Add **highlight detection** with chat spikes, audio peaks, and a model pass over the transcript
    or frames.
-3. Add **generated assets**: intro stinger, thumbnail, and title options.
+3. Add **generated assets**: intro stinger, thumbnail, and title options. Monid offers video
+   generation models (for example Kling and Wan) at roughly $0.04–$0.20 per clip. Check
+   `monid inspect` for the current price before running them in a loop.
 4. Expose the pipeline as one job the agents can call: "clip this recording" in, a list of clip
    files with suggested captions out. Agree on the job's input and output with Abhinav early.
-5. Optional: offer the same pipeline to human streamers as a paid service. That's the Ops
-   agent's product to sell.
+5. Make the clip job usable on any streamer's recording, not only ours. Teammate 4 sells it as a
+   service.
 
 ### Abhinav: Naïve SDK agents and the platform
 
@@ -99,21 +102,29 @@ Goal: the backbone. Agents run, the stream goes live, and everything is logged.
    Observability and Audit logs if they cover this.
 5. Wire in the other agents: give Noel's and Max's work a stable way to receive jobs and report
    results.
+6. Help Teammate 4 set up the Ops agent on the Naïve SDK, using the same patterns as Streamer
+   and Chat.
 
-### Teammate 4: business ops and the demo
+### Teammate 4 (_name TBD_): business ops and the demo
 
 Goal: make it a company, not only a pipeline, and make the demo show it.
 
-1. Build the **Ops agent** on the Naïve SDK: a daily plan (what to stream, when, and the budget),
-   built from the Research brief and the metrics.
-2. **Sponsors and sales:** an AgentMail inbox the agent uses to find and email sponsors and human
+1. Build the **Ops agent** on the Naïve SDK. It reads the Research brief and the metrics, picks
+   the next stream and its budget, and logs why. Start small and grow it.
+2. **Spend tracking:** cost per stream across the model, Mobilerun, and Monid, against revenue.
+   Take it from the cost field in the activity log.
+3. **Sponsors and sales:** an AgentMail inbox the Ops agent uses to email sponsors and human
    streamers, HubSpot to track them, and a Stripe payment link for the clipping service. Use
    Stripe test mode until the team agrees to go live.
-3. **Spend tracking:** total cost per stream across the model, Mobilerun, and Monid, against
-   revenue.
-4. **Demo dashboard:** live stream, recent clips, the activity log, the intervention list, and
-   the numbers.
-5. Own the demo script and the backup recording.
+4. **Demo dashboard:** live stream, recent clips, the activity log, the step-ins, and the numbers.
+   Check first whether the Naïve Studio already shows enough.
+5. Own the demo script and the backup recording. Record the backup on Sunday morning.
+
+### If we're behind, cut in this order
+
+If Saturday at 8:00 PM arrives without an end-to-end loop, cut in this order: the custom
+dashboard, sales and outreach, the Chat agent, then Instagram publishing. Keep Research →
+Stream → Clip → Post → Ops decision.
 
 ## Timeline
 

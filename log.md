@@ -20,7 +20,36 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
-### 2026-11-07 13:00 PT · Noel (Claude Code) · branch `main`
+### 2026-11-07 12:58 PT · Noel (Claude Code) · branch `main`
+
+**What:** Fourth teammate added. They own business ops: the Ops agent, spend tracking, sponsors
+and sales, and the demo dashboard and script. Abhinav goes back to the platform plus Streamer and
+Chat.
+**Why:** The team is four people again, and this takes the heaviest load off Abhinav.
+**Files:** `README.md`, `AGENTS.md`.
+**State:** Docs only. The new teammate's name is still TBD.
+**Next / heads-up:** **Teammate 4:** put your name in `AGENTS.md` (Team and ownership) and
+`README.md` (agents table and your plan section).
+
+### 2026-11-07 12:56 PT · Noel (Claude Code) · branch `main`
+
+**What:** Plan changed to fit three people and what Monid can actually do.
+- Monid key added from `.env`. The account has $20 signup credit (`MONID-SIGNUP`, already
+  redeemed).
+- **Monid can't upload to YouTube.** Every YouTube result only reads data. The Publisher now posts
+  to YouTube, TikTok, and Instagram from Mobilerun phones, with the YouTube Data API as the
+  fallback. Monid is for research, view counts, and Max's video generation models.
+- **The team is three people.** Removed teammate 4. Abhinav takes the Ops agent, Max takes sales
+  as a stretch goal, and Noel takes the demo script. Added a cut order for scope.
+- Corrected the times on the three entries below. They were written ahead of the clock.
+**Why:** The plan was built on two wrong assumptions: a fourth teammate, and Monid uploading
+to YouTube.
+**Files:** `README.md`, `AGENTS.md`, `log.md`.
+**State:** Docs only. Monid's search was tested live. No run was charged.
+**Next / heads-up:** **Abhinav:** you now own Streamer, Chat, Ops, and the platform. Read the cut
+order in `README.md`.
+
+### 2026-11-07 12:48 PT · Noel (Claude Code) · branch `main`
 
 **What:** Publisher plan now uploads to YouTube through Monid. TikTok and Instagram stay on
 Mobilerun phones, and the YouTube app on a phone is the fallback.
@@ -29,7 +58,7 @@ Mobilerun phones, and the YouTube app on a phone is the fallback.
 **State:** Unverified. Monid's YouTube endpoint hasn't been found or tested yet (no API key yet).
 **Next / heads-up:** Noel checks the endpoint with `monid discover` once the key is added.
 
-### 2026-11-07 12:55 PT · Noel (Claude Code) · branch `main`
+### 2026-11-07 12:46 PT · Noel (Claude Code) · branch `main`
 
 **What:** Added `README.md` with the idea (autonomous streaming studio with clipping), the six
 agents, each person's plan, the timeline, demo metrics, and risks. Updated `AGENTS.md` to point
@@ -41,7 +70,7 @@ to it and added a fourth ownership row for business ops.
 stream?) decides the architecture. Pick a path by 3:00 PM. **Everyone:** agree on the shared
 contracts at 3:00 PM. **Teammate 4:** put your name in `AGENTS.md` and `README.md`.
 
-### 2026-11-07 12:45 PT · Noel (Claude Code) · branch `main`
+### 2026-11-07 12:44 PT · Noel (Claude Code) · branch `main`
 
 **What:** Added "Team and ownership" to `AGENTS.md`. Noel: iOS research and Mobilerun. Max: video
 generation. Abhinav: Naïve SDK agents and the platform.
