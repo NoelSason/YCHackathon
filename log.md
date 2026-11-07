@@ -20,6 +20,15 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 15:25 PT · Abhinav (Claude) · branch `main`
+
+**What:** `npm run vault` in `platform/naive`: stores the platform MCP bearer in a Naïve vault as a
+`static_bearer` credential keyed to the MCP URL (idempotent; `ROTATE=1` replaces it).
+**Why:** Naïve rejects inline auth headers on `mcp_servers`; the vault is the supported path.
+**Files:** `platform/naive/src/vault.ts`, `platform/naive/package.json`, `.env.example`, `README.md`.
+**State:** Typechecks against the SDK. Not run yet.
+**Next / heads-up:** Abhinav: `npm run vault` → `npm run setup` → `npm run approval-test`.
+
 ### 2026-11-07 15:15 PT · Abhinav (Claude) · branch `main`
 
 **What:** **The platform is live.** Neon Function `platform` on branch `production`:

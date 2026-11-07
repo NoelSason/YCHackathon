@@ -7,7 +7,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "setup": "node --env-file=.env --import tsx src/setup-team.ts",
     "approval-test": "node --env-file=.env --import tsx src/approval-test.ts",
-    "kill": "node --env-file=.env --import tsx src/kill-switch.ts"
+    "kill": "node --env-file=.env --import tsx src/kill-switch.ts",
+    "vault": "node --env-file=.env --import tsx src/vault.ts"
   },
   "dependencies": {
     "@usenaive-sdk/managed-agents": "^0.12.3",

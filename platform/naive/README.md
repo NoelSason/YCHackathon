@@ -5,6 +5,7 @@ Scripts that create and operate the company's agents on Naïve. Run them from a 
 
 | Command | What it does |
 |---|---|
+| `npm run vault` | Stores the MCP bearer in Naïve's vault keyed to `PLATFORM_MCP_URL` (run once, before setup). |
 | `npm run setup` | Creates or updates the seven roster agents and the CEO coordinator (board on, roster pinned), and creates the cron deployments **disabled**. Idempotent. Writes `team.json`. |
 | `npm run approval-test` | The test from `docs/agent-plan.md` step 1: runs a probe agent that calls two allow-listed platform tools and prints whether the session paused for approval. |
 | `npm run kill -- off <reason>` | Kill switch: pauses every deployment and blocks publishing. Logs a step-in. |
@@ -12,7 +13,7 @@ Scripts that create and operate the company's agents on Naïve. Run them from a 
 
 The roster, prompts, allow-listed tools, budgets, and cron schedules are in `src/roster.ts`.
 
-**Before `setup`:** the MCP server must be deployed (see `platform/render.yaml`) and its bearer
+**Before `setup`:** the MCP server must be deployed (`platform/README.md`) and `npm run vault` run once.
 token stored in Naïve's vault as a `static_bearer` credential keyed to the server URL. Naïve
 rejects inline `Authorization` headers on `mcp_servers`, so the script sets none.
 
