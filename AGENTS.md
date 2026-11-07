@@ -8,15 +8,15 @@ An entry for the **Naïve Autonomous Company Hackathon** at YC (560 20th St., Sa
 Nov 7–8, 2026. The goal is a company that agents run end to end: they find customers, deliver
 the product, and handle day-to-day operations.
 
-- **Company:** an autonomous streaming studio. Agents pick a game, play it live, talk with chat,
-  clip the highlights, post the clips from real phones, and run the business.
-- **Full plan:** `README.md` has the agents, each person's plan, the timeline, and the risks.
-  Read it before starting work.
-- **Possible pivot (decision by 2:30 PM Sat):** autonomous level design for puzzle games. See
-  "Possible pivot" in `README.md`. Until the team decides, build only what both plans need:
-  the Naïve Team and activity log, the heartbeat screen, a Mobilerun phone that can open and
-  play a game, and AgentMail and Stripe in test mode. Never copy another company's game, levels,
-  or art. Our game and its levels are original.
+- **Company:** an autonomous level studio for puzzle games. Agents design match-3 levels, test
+  each one hundreds of times with bot players, tune its difficulty, playtest it on real phones,
+  ship it to our own game, and sell the same service to game studios.
+- **Decided Nov 7, ~1:45 PM:** the team dropped the earlier streaming idea completely. Don't build
+  anything for streaming, chat, or clipping streams.
+- **Full plan:** `README.md` has the agents, the sponsor-tool map, each person's plan, the
+  timeline, and the risks. Read it before starting work.
+- **Original work only.** Our game, its name, art, rules, and levels are our own. Never copy
+  another company's game, levels, or art. Phones may play other games only to study them.
 
 ## Team and ownership
 

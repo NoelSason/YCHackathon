@@ -1,249 +1,204 @@
-# Autonomous streaming studio
+# Autonomous level studio (working name)
 
 An entry for the Naïve Autonomous Company Hackathon (YC, Nov 7–8, 2026).
 
-**The company:** a live-streaming channel that agents run. Agents pick the game, play it on
-stream, talk with chat, cut the best moments into short clips, post those clips to TikTok, Reels,
-and Shorts from real phones, and run the business around it: budget, schedule, sponsors, and
-what to stream next.
+**In one sentence:** an agent-run company that makes levels for puzzle games. Its agents design
+each level, test it hundreds of times, tune its difficulty, playtest it on real phones, ship it,
+and sell the same service to game studios.
 
-**What a human does:** sets the budget and the guardrails, and steps in when something breaks.
-Every step-in is logged.
+**What a human does:** sets the goal, the budget, and the guardrails, and steps in when something
+breaks. Every step-in is logged.
 
-## Possible pivot: autonomous level design for puzzle games
+**Ground rule:** we build our **own original match-3 game**, with our own name, art, and rules.
+Candy Crush and its peers are examples of the customer, not something we copy. Never reuse
+another game's levels, art, or names.
 
-**Status: under discussion, Sat Nov 7, 1:27 PM. Decide by 2:30 PM.** Until then, build only
-the pieces that work for both ideas (listed under "Decision").
+## The company
 
-**The idea:** puzzle games like Candy Crush need a steady stream of new levels. Studios keep
-level designers producing them by hand, then tune each one so it's hard but beatable. An agent
-company could do that work: design levels, playtest them, tune their difficulty, and deliver
-them.
+We run two things at once, and each makes the other stronger.
 
-From the team's recording (transcribed locally; it caught only a few sentences): "level design
-automation", and "automating their business … for different streams."
+1. **Our own puzzle game, run entirely by agents.** It's an original match-3 web game that plays
+   well on phones. Agents ship a new level pack every few hours, then tune difficulty from real
+   player data. Players can buy hint packs or level packs through Stripe.
+2. **A level studio for game companies.** Agents find puzzle games whose players are asking for
+   more levels or complaining about difficulty. They make sample levels for that game's genre
+   *before* reaching out, and sell a pilot pack.
 
-**Ground rule:** we build our **own original match-3 game**: our name, art, and rules. Candy
-Crush and similar games are examples of the customer, not something we copy. Don't reuse their
-levels, art, or names in our product.
+The pitch to a studio: "Our agents have run this game's levels since Saturday. Here's the data.
+We'll do the same for yours."
 
-### Why it might be the stronger idea
+## Why this can win
 
-- **It removes our biggest risk.** The streaming plan depends on getting an agent's gameplay
-  onto a live stream, which nobody has proven yet. Level design needs no streaming
-  infrastructure.
-- **It's checkable work with numbers.** Each level can be played thousands of times by a solver
-  bot, giving a measured win rate. "Target 40% win rate, measured 38%" is the kind of proof
-  winners show.
-- **The demo has a clear before and after.** A level starts at a 3% win rate, so it's too hard.
-  The agent changes it. Now it's at 41%. Then a real phone plays it.
-- **It's a plain B2B story for the YC interview:** "We make game levels for puzzle studios. Our
-  agents design, test, and tune them."
-- **Mobilerun has a real job.** "Test apps" is one of Mobilerun's own example uses.
+- **Checkable numbers.** Every level gets a measured win rate from hundreds of simulated plays.
+  "Target 40%, measured 38%" is the kind of proof winners show.
+- **A visible state change.** A level starts at a 3% win rate, so it's too hard. The agent retunes
+  it to 41%, and a real phone plays it.
+- **A plain business.** "We make game levels for puzzle studios" works for judges and for a YC
+  interview.
+- **A real job for phones.** Mobilerun lists testing apps as one of its own example uses.
+- **Lower risk than our earlier streaming idea.** It needs no live video infrastructure.
 
-### Three ways to run it
-
-**A. Level studio for game companies (B2B).** Agents find puzzle studios and indie developers,
-make sample levels in their style before contacting them, pitch, and deliver packs.
-- Pro: the largest market story.
-- Con: studios don't buy overnight. In 22 hours, expect replies or a letter of intent, not
-  payment. Each studio's level format is different.
-
-**B. Our own puzzle game, run entirely by agents.** We ship an original match-3 web game (playable
-on phones). Agents design a new level pack every few hours, playtest and tune it, publish it,
-read real player data (where players quit, win rates), and adjust. Hints or level packs sell
-through Stripe.
-- Pro: fully autonomous, earns from real players, and builds a history to demo.
-- Con: we need players by Sunday, so marketing has to work fast.
-
-**C. Both (recommended).** Run B as the live proof and the history, and sell A to studios:
-"our agents have run this game's levels since Saturday. Here's the data. We'll do the same for
-yours." It's the same structure as the streaming plan, where our own channel was the showcase
-and the clipping service earned.
-
-### How the company would run (option C)
-
-```
-Research (Mobilerun phones) ── plays top puzzle games' live levels and records each
-     │                         mechanic, difficulty curve, and move limit (research only)
-     ▼
-Designer (Naïve) ── writes new levels as JSON: grid, pieces, blockers, goal, move limit
-     ▼
-Solver (Naïve Computer) ── plays each level thousands of times, measures win rate and moves left
-     ▼
-Tuner (Naïve) ── adjusts levels until each hits its target difficulty on a curve
-     ▼
-Playtester (Mobilerun phone) ── plays the shipped level in the real mobile browser, catches
-     │                          visual and touch bugs, and records a clip
-     ▼
-Publisher ── ships the pack to our game. Max's pipeline turns playtest recordings into trailers
-     ▼
-CEO / Ops (Naïve) ── reads player data, changes the curve, pitches studios with sample packs
-                     and data, runs Stripe, and logs every decision
-```
-
-### What changes for each person
-
-| Person | Streaming plan | Level-design plan |
-|---|---|---|
-| Noel | Research and posting on phones | **Research** (play top puzzle games on phones, record mechanics and difficulty) and the **Playtester** (play our levels on real phones, flag bugs, record) |
-| Max | Clipper and video generation | **Marketing video**: level trailers and "watch the agent play" clips from playtest recordings. Generated tile art and backgrounds in our own style. |
-| Abhinav | Naïve agents and platform | **Naïve Team** (Designer, Tuner, CEO), the **game engine and level format**, the **Solver**, and the platform |
-| Teammate 4 | Ops, sales, demo | **CEO/Ops**: player metrics, studio outreach with sample packs, Stripe, the heartbeat screen, the demo |
-
-### How it wins
-
-- **Autonomy:** the agents decide each level's difficulty and the curve from player data. We
-  only set "keep players at about a 40% win rate on level 1–20."
-- **Numbers:** levels generated, the share that passed the solver, target vs. measured difficulty,
-  real players, completion rates, cost per level, revenue, and step-ins.
-- **Best Mobile Automation:** real phones doing research on live games, and playtesting our own.
-  Both are jobs only a phone can do.
-- **People's choice:** a QR code on stage. The audience plays a level the agents generated a
-  minute ago, and the CEO retunes it live from their results.
-- **Unicorn:** studios already pay people to make levels. Bottom-up math for the slide: studios ×
-  levels per month × price per level. Find real sources for each number before it goes on a slide.
-- **Best use of Naïve:** a coordinator with a roster, board cards as hand-offs, the Solver on a
-  Naïve Computer, budgets, and schedules for new packs every few hours.
-
-### Risks
-
-1. **Level quality.** A solver tells us whether a level is beatable and how hard it is, not
-   whether it's fun. Keep the rules simple (a grid, colors, move limit, one goal) so the solver
-   stays fast and right.
-2. **Players by Sunday.** Option B needs real players. Use our own posts, the hackathon room, and
-   the phones for marketing.
-3. **Studio format.** Every studio stores levels differently. For the B2B pitch, deliver levels in
-   our documented JSON format plus playable previews, and offer custom format conversion later.
-4. **Research limits.** Phones may play other companies' games only to study them. Don't copy
-   their levels or art, and follow each game's terms.
-
-### Decision
-
-Decide by **2:30 PM**. Until then, build what both ideas need:
-
-- the Naïve Team with a CEO coordinator, and the activity log
-- the company heartbeat screen
-- a Mobilerun phone that can open a game and report what it sees
-- AgentMail and Stripe set up in test mode
-
-If we pivot, the streaming plan below stays as the backup.
+Full research on judging and past winners: `docs/how-to-win.md`.
 
 ## How the company runs
 
 ```
-        ┌──────────── Research (Mobilerun phones) ────────────┐
-        │  Scroll TikTok, Twitch, YouTube apps: what's        │
-        │  trending, what clips perform, what competitors do  │
-        └──────────────────────┬──────────────────────────────┘
-                               ▼
-  Ops agent (Naïve) ── decides what to stream, when, and the budget
-                               │
-                               ▼
-  Streamer agent (Naïve) ── plays the game live ──► stream ◄── Chat agent (Naïve)
-                               │                               reads and replies to chat
-                               ▼
-  Clipper (video pipeline) ── finds highlights, cuts vertical clips, captions
-                               │
-                               ▼
-  Publisher (Mobilerun phones) ── posts clips in the YouTube, TikTok, Instagram apps
-                               │
-                               ▼
-  Ops agent ── reads views and follows, updates the plan, emails sponsors,
-               sells clipping to human streamers
-                               │
-                               └──────► back to Research
+            ┌────────────────── CEO (Naïve coordinator) ──────────────────┐
+            │ goal: "Keep players at the target difficulty curve, ship a   │
+            │ pack every 3 hours, and win studio pilots, under $X per day" │
+            └───┬─────────────┬──────────────┬──────────────┬─────────────┘
+                │ board cards │              │              │
+                ▼             ▼              ▼              ▼
+         Market Research   Designer ──► Solver ──► Tuner ──► Playtester
+         (Monid, Apify,    (writes        (plays each  (adjusts    (Mobilerun iPhone
+          Naïve Data,       level JSON)    level 500×,  until it    and Android: plays
+          Mobilerun)                       measures     hits its    the shipped level,
+                │                          win rate)    target)     catches bugs, records)
+                │                                                         │
+                ▼                                                         ▼
+         Sales (AgentMail, HubSpot, Stripe)                   Publisher (game on Vercel,
+         finds studios, sends sample packs,                    trailers, social posts)
+         answers replies, closes pilots                                   │
+                │                                                         ▼
+                └────────────► CEO reads player data, sales, and spend, ◄─┘
+                               changes the plan, and logs why
 ```
 
-## The agents
+## Agents
 
-| Agent | Built on | Job | Owner |
+| Agent | Job | Built on | Owner |
 |---|---|---|---|
-| Research | Mobilerun (iOS) | Finds trending games, formats, and clip styles by using the real apps. Writes a short brief the Ops agent can act on. | Noel |
-| Publisher | Mobilerun (iOS) | Posts finished clips in the YouTube, TikTok, and Instagram apps. Reads back views and likes, with Monid's YouTube data tools as a cross-check. | Noel |
-| Clipper | Video pipeline | Watches the stream recording, picks highlights, cuts 9:16 clips with captions, and makes thumbnails and intros. | Max |
-| Streamer | Naïve SDK | Plays the game on stream with a consistent persona. | Abhinav |
-| Chat | Naïve SDK | Reads stream chat, replies in persona, takes requests, and moderates. | Abhinav |
-| Ops | Naïve SDK | Runs the business: picks what to stream, sets the schedule, tracks spend against budget, emails sponsors, sells clipping, and decides what to change from the numbers. | Teammate 4 |
+| **CEO** | Sets each pack's difficulty curve, schedules work, reallocates budget, and decides what to change from player data and sales results. Logs every decision with its reason. | Naïve Team coordinator, company board, cron | Teammate 4 |
+| **Designer** | Writes new levels as JSON (grid, pieces, blockers, goal, move limit) for a requested difficulty and mechanic | Naïve agent, OpenAI or OpenRouter model | Abhinav |
+| **Solver** | Plays each level hundreds of times with bot players. Reports the win rate, moves left, and attempts per win. | Code on a Naïve Computer (or a Render worker) | Abhinav |
+| **Tuner** | Changes the move limit, colors, and blockers until the level hits its target. Rejects levels that never get there. | Naïve agent + Solver | Abhinav |
+| **Playtester** | Plays shipped levels on real phones: checks that they load, that touch works, and that nothing breaks. Records the play. | Naïve agent driving Mobilerun phones over MCP | Noel |
+| **Market Research** | Plays top puzzle games on phones to study their mechanics and difficulty. Mines app reviews for "need more levels" and "level too hard." Builds the studio target list. | Mobilerun, Monid, Apify, Naïve Data | Noel |
+| **Sales** | Emails studios a sample pack made for their genre, answers replies, tracks the deal, and sends a payment link | AgentMail, HubSpot, Stripe | Teammate 4 |
+| **Publisher** | Ships packs to the live game. Turns playtest recordings into trailers and posts them. | Vercel, Naïve Media, Naïve Social | Max |
+
+## Sponsor tools: what each one does for us
+
+Every tool has one clear job in the main loop. None of them is decoration.
+
+| Tool | Its job | Why it matters for judging | Owner |
+|---|---|---|---|
+| **Naïve** | Runs the company. The CEO coordinator and its team, board cards as hand-offs, budgets on every agent, per-tool allow/ask/deny, cron for "new pack every 3 hours," a Computer for the Solver, Media for trailers and art, and Social for posting | Required, and competes for Best use of Naïve | Abhinav (setup), Teammate 4 (CEO) |
+| **Mobilerun** | Cloud iPhones and Androids. Playtests our levels in a real mobile browser, researches top puzzle games, and records gameplay. A live phone view goes in the dashboard (`@mobilerun/react`). | Best Mobile Automation, and a live "the agent is playing right now" moment on stage | Noel |
+| **Monid** | App Store and Google Play reviews and top charts. Finds games whose players want more levels. Hunter.io lookups for studio contacts. Video models for trailers. | Turns "find customers" into a measurable pipeline | Noel, Max |
+| **Apify** | Bulk scraping: the full puzzle category on Google Play, studio websites, and itch.io puzzle games | Builds the target list at scale | Noel |
+| **AgentMail** | The sales inbox: sends sample packs to studios, receives replies, and keeps threads | The "selling" in "making, selling, shipping, earning" | Teammate 4 |
+| **HubSpot** | Studio pipeline: found → sample made → emailed → replied → pilot paid → delivered | Shows a company, not a script | Teammate 4 |
+| **Stripe** | Payment links for studio pilot packs, and hint or level packs in our game. Test mode until the team agrees to go live. | The "earning." A real payment beats any dashboard number. | Teammate 4 |
+| **OpenAI / OpenRouter** | Models. A strong model for level design and sales replies, cheap models for sorting thousands of reviews. Route through Naïve's model proxy where we can, so spend shows up in one ledger. | Unit economics: cost per level | Abhinav |
+| **Vercel** | Hosts the game (phone-friendly web app) and the company heartbeat dashboard | Judges and the audience can play it from a QR code | Max (game), Teammate 4 (dashboard) |
+| **Neon** | Postgres for levels, solver results, player sessions, the activity log, and sales state. $250 in credits. | The durable history the demo replays | Abhinav |
+| **Render** | A worker that runs Solver batches if a Naïve Computer is too slow or costly for hundreds of plays per level. Pick one by 3:00 PM. | Throughput: levels tested per hour | Abhinav |
+| **Luxor** | Stretch. Train a small model overnight that predicts difficulty from a level's layout, skipping most simulation. King's research found a learned model can beat simulation-only bots at predicting how hard a level feels to people. | A strong technical story if time allows. Skip it otherwise. | Abhinav |
+
+### Our credits
+
+| Provider | What we have | Use it for |
+|---|---|---|
+| Naïve | $250, Pro plan free through Nov 30 | Agent models, Computer time, media, data runs |
+| Mobilerun | 1,500 credits, 30,240 minute units (Android 1/min, iOS 2/min), 10 GB proxy traffic. Access ends 72 hours after claiming. | **All phones.** Use Mobilerun, not Naïve's phones. |
+| Neon | $250 | The database |
+| Monid | $20 signup credit | Reviews, charts, contacts, video models |
+
+**Phones: use Mobilerun directly, not Naïve's phones.** Naïve's phones bill $0.08 per iPhone-minute
+to the $250 Naïve balance, so one iPhone running overnight costs about $38. Mobilerun's minute
+units cover far more than 72 hours of iPhone time. Naïve agents still drive the phones: add
+Mobilerun's MCP server (`https://cloud.mobilerun.ai/api/mcp`) to the agent as an MCP toolset.
+Claim the Mobilerun credits when we're ready to use them, because the 72 hours start then.
+
+## How level generation works
+
+The research is clear on what works. Exact solving doesn't: Candy Crush is NP-hard. Studios and
+researchers measure difficulty by **simulating play with bots** and comparing the results to real
+player data.
+
+1. **Simple, deterministic rules.** An 8×8 grid, 4–6 colors, a move limit, one goal per level
+   (collect N of a color, or clear marked tiles), and a few blocker types. A seeded random number
+   generator makes every result reproducible.
+2. **One engine, used everywhere.** A single TypeScript rules package runs in the web game, the
+   Solver, and the Playtester's checks, so they can never disagree about the rules.
+3. **Designer.** A model proposes levels as JSON for a requested difficulty and mechanic. Code
+   validates every level against the schema before anything else runs.
+4. **Solver.** Bot players with different styles (random, greedy, and a light tree search) play
+   each level hundreds of times. Output: win rate, average moves left, and attempts per win.
+   Researchers use bot "personas" that imitate different human play styles for this.
+5. **Tuner.** Adjusts the move limit and layout until the level lands within a few points of its
+   target win rate. Levels that can't get there are thrown out and counted.
+6. **Difficulty curve.** The CEO sets a target per level and mixes easier and harder levels.
+   Studios flag long runs of levels at nearly the same difficulty as a design problem.
+7. **Real player data closes the loop.** The game records attempts, wins, quits, and moves left.
+   The CEO compares the planned curve with actual results and retunes. Playrix describes this
+   practice, and one studio recommends "attempts per level" over pass rate as the measure.
+8. **Keep the first few levels hand-checked.** Generated levels are often too easy, impossible, or
+   dull, which is why studios hand-design the levels that teach the game. We hand-check our first
+   five and let agents make the rest.
 
 ## Team plan
 
 The Team and ownership section in `AGENTS.md` has the same split. Each person works in their own
 directory.
 
-### Noel: research and publishing on phones (Mobilerun)
+### Abhinav: the game engine, the level pipeline, and the platform
 
-Goal: the Best Mobile Automation prize, plus the company's eyes and distribution.
+1. **First 90 minutes:** the rules engine and the level JSON schema. Everyone else depends on
+   them, so publish the schema in `log.md` as soon as it's stable.
+2. The **Solver**, with bot players and win-rate measurement, on a Naïve Computer or Render.
+3. The **Designer** and **Tuner** agents on the Naïve SDK.
+4. The **platform:** Neon tables (levels, solver runs, player events, activity log, sales), the
+   Naïve Team setup that the CEO coordinates, and budgets on every agent.
+5. Stretch: the Luxor difficulty model.
 
-1. Get one Mobilerun Agent task working on a cloud iPhone, such as "open TikTok, search
-   `<game>`, report the top five videos with view counts."
-2. Build the **Research agent**. It produces a structured brief: trending games, clip formats
-   that perform, and posting times. The Ops agent reads this brief. Use phones for what only the
-   apps show (the For You feed, trending sounds), and Monid's YouTube and TikTok data tools for
-   bulk numbers. They're cheaper and faster than scrolling.
-3. Build the **Publisher agent**. It takes a clip file and caption and posts it.
-   - **All three apps (YouTube, TikTok, Instagram): use Mobilerun phones.** Start with YouTube
-     Shorts. Posting from the phone is also the Best Mobile Automation story.
-   - **Monid can't upload.** Checked on Nov 7: its YouTube tools only read data (video details,
-     search, transcripts, channel videos). Use them for research and for reading back views.
-   - **Fallback for YouTube:** the official YouTube Data API upload, which needs the channel's
-     sign-in and has a daily upload quota. Check the current quota before relying on it.
-4. Add **metrics read-back**: the agent reopens posted clips and records views and likes for Ops.
-5. Reuse one logged-in device per app account. Don't reset devices.
+### Max: the game players see, its look, and the video
 
-### Max: video generation and clipping
+1. **The playable web game** on Vercel, using Abhinav's engine. It must feel good on a phone,
+   because judges and the audience will play it from a QR code.
+2. **Art direction:** an original tile set, backgrounds, and a name and logo, using Naïve image
+   generation. This competes for Best design.
+3. **Telemetry:** the game sends attempt, win, quit, and moves-left events to Neon.
+4. **Trailers:** turn Mobilerun playtest recordings into short "watch the agent play" clips with
+   Naïve Media (clips and captions) or Monid's video models. Post them through Naïve Social.
+5. A **level-pack page** for each new pack, so the Sales agent can link studios to a playable
+   sample.
 
-Goal: turn hours of stream into a steady flow of clips worth posting.
+### Noel: phones and market research (Mobilerun, Monid, Apify)
 
-1. Cut one good clip from a sample gameplay recording, end to end: input video in, 9:16 clip with
-   captions out.
-2. Add **highlight detection** with chat spikes, audio peaks, and a model pass over the transcript
-   or frames.
-3. Add **generated assets**: intro stinger, thumbnail, and title options. Monid offers video
-   generation models (for example Kling and Wan) at roughly $0.04–$0.20 per clip. Check
-   `monid inspect` for the current price before running them in a loop.
-4. Expose the pipeline as one job the agents can call: "clip this recording" in, a list of clip
-   files with suggested captions out. Agree on the job's input and output with Abhinav early.
-5. Make the clip job usable on any streamer's recording, not only ours. Teammate 4 sells it as a
-   service.
+1. **First hour:** get a Mobilerun iPhone that a Naïve agent controls over MCP. It opens our game
+   in Safari, plays one move, and takes a screenshot.
+2. **The Playtester agent:** plays each shipped level on an iPhone and an Android, checks that it
+   loads and touch works, flags bugs, and saves a recording. On Android, Chrome can be driven
+   directly, which lets the agent read the game's state for exact results.
+3. **Competitor research:** the agent plays top puzzle games on phones and records their mechanics,
+   move limits, and difficulty patterns for the Designer. Research only: never copy levels or art.
+4. **Market research:** use Monid and Apify to pull App Store and Google Play reviews for puzzle
+   games and find the ones whose players ask for more levels or complain about difficulty
+   spikes. That's the Sales agent's target list, with a reason for each studio.
+5. Keep one logged-in device per account, and don't reset devices.
 
-### Abhinav: Naïve SDK agents and the platform
+### Teammate 4 (_name TBD_): the CEO, sales, money, and the demo
 
-Goal: the backbone. Agents run, the stream goes live, and everything is logged.
-
-1. **First, before anything else:** prove a Naïve agent can play a game and get video onto a
-   stream. This is the riskiest piece of the project (see Risks).
-2. Build the **Streamer agent** and the **Chat agent** on the Naïve SDK, each with a budget cap.
-3. Stand up the **platform**: hosting, the database, file storage for recordings and clips, and
-   the job queue that connects Streamer → Clipper → Publisher.
-4. Own the **activity log**. Every agent writes an entry for each decision and action: time,
-   agent, action, reason, result, cost, and whether a human stepped in. Use Naïve's
-   Observability and Audit logs if they cover this.
-5. Wire in the other agents: give Noel's and Max's work a stable way to receive jobs and report
-   results.
-6. Help Teammate 4 set up the Ops agent on the Naïve SDK, using the same patterns as Streamer
-   and Chat.
-
-### Teammate 4 (_name TBD_): business ops and the demo
-
-Goal: make it a company, not only a pipeline, and make the demo show it.
-
-1. Build the **Ops agent** on the Naïve SDK. It reads the Research brief and the metrics, picks
-   the next stream and its budget, and logs why. Start small and grow it.
-2. **Spend tracking:** cost per stream across the model, Mobilerun, and Monid, against revenue.
-   Take it from the cost field in the activity log.
-3. **Sponsors and sales:** an AgentMail inbox the Ops agent uses to email sponsors and human
-   streamers, HubSpot to track them, and a Stripe payment link for the clipping service. Use
-   Stripe test mode until the team agrees to go live.
-4. **Demo dashboard:** live stream, recent clips, the activity log, the step-ins, and the numbers.
-   Check first whether the Naïve Studio already shows enough.
-5. Own the demo script and the backup recording. Record the backup on Sunday morning.
+1. **The CEO agent:** a Naïve Team coordinator with the other agents as its roster. Each run, it
+   reads player data, solver results, sales, and spend, then decides the next pack's curve, which
+   studios to pitch, and where the budget goes. It logs every decision with its reason.
+2. **Sales loop:** the target list from Noel → a sample pack in the studio's genre → a personal
+   AgentMail message with a playable link and a Stripe pilot link → replies → HubSpot stages.
+   Keep it small: twenty real, personal emails, no spam.
+3. **Stripe:** pilot-pack payment links and in-game hint packs. Test mode until the team agrees to
+   go live.
+4. **Heartbeat dashboard:** levels made, the share that passed the solver, target vs. measured
+   difficulty, players, sessions, studios emailed, replies, payments, spend, cost per level, and
+   human step-ins, with a live phone view and the activity log underneath.
+5. **The demo script and the backup recording.**
 
 ### If we're behind, cut in this order
 
-If Saturday at 8:00 PM arrives without an end-to-end loop, cut in this order: the custom
-dashboard, sales and outreach, the Chat agent, then Instagram publishing. Keep Research →
-Stream → Clip → Post → Ops decision.
+If 8:00 PM Saturday arrives without a full loop, cut in this order: Luxor, trailers and social
+posts, Android playtesting, in-game purchases, then competitor research on phones. Always keep
+Design → Solve → Tune → Ship → Playtest on a phone → CEO decision → Sales email.
 
 ## Timeline
 
@@ -251,239 +206,90 @@ Hacking runs from 1:00 PM Saturday to **11:00 AM Sunday, the code freeze**.
 
 | When | Milestone |
 |---|---|
-| Sat 1:00–3:00 PM | **Spikes.** Each person proves their riskiest piece works at all (above, step 1). |
-| Sat 3:00 PM | **Contracts.** Agree on the activity log fields, the clip job's input and output, file storage, and environment variable names. Write them in `log.md`. |
-| Sat 3:00–6:00 PM | Build v1 in each area. |
-| **Sat 6:00 PM** | **Switch the company on, even if it's partial.** The clip-first outreach loop sends its first real, personal messages before dinner. A rough loop with real activity beats a polished one with none. |
-| **Sat 8:00 PM** | **First full loop:** research → stream → clip → post → outreach → CEO decision. |
-| Sat 8:00 PM–2:00 AM | Fix what broke. Add guardrails, budget caps, and kill switches. Give the CEO room to reallocate. |
-| **Sun 2:00 AM–8:00 AM** | **Hands off. The company runs unattended.** This is the history the demo shows. Log every step-in. |
+| Sat now–3:00 PM | **Spikes.** Engine and schema (Abhinav). A phone a Naïve agent controls (Noel). First tile set and game shell (Max). The Naïve Team skeleton and a first review scan (Teammate 4). |
+| Sat 3:00 PM | **Contracts.** Agree on the level JSON, solver results, player events, the activity log, and environment variable names. Write them in `log.md`. Choose Naïve Computer or Render for the Solver. |
+| Sat 3:00–6:00 PM | First 20 levels generated, solved, and tuned. The game is playable on phones at a public URL. |
+| **Sat 6:00 PM** | **Switch the company on.** The CEO ships the first pack on cron, and Sales sends its first personal emails. |
+| **Sat 8:00 PM** | **Full loop:** design → solve → tune → ship → phone playtest → player data → CEO decision → sales. |
+| Sat 8:00 PM–2:00 AM | Fix what broke. Add budget caps and kill switches. Get real people playing (the room, our posts). |
+| **Sun 2:00–8:00 AM** | **Hands off.** Packs ship every 3 hours, the CEO retunes from player data, and Sales answers replies. Log every step-in. |
 | Sun 8:00–10:00 AM | **Feature freeze at breakfast.** Read the overnight log, fix the worst failure, check every demo path, and record a backup. |
-| Sun 10:00–11:00 AM | Rehearse. No new features. |
+| Sun 10:00–11:00 AM | Rehearse. |
 | **Sun 11:00 AM** | **Code freeze.** Judging begins. |
 
-## How we win
+## The demo (3 minutes)
 
-Researched on Nov 7, 2026. Sources are listed at the end of this section. Neither Naïve nor YC
-has published a scoring rubric or weights, so the event's own statements rank first and the
-general advice ranks below them.
-
-### 1. What this event says it judges (highest weight)
-
-- **Autonomy.** "Judges look at how much of the company runs without you." That's the main score.
-- **Proof that the company actually operated.** Show what the agents delivered, what they decided,
-  and where we stepped in. Show it, don't describe it.
-- **Format.** A live demo of **2–4 minutes** to a small panel. The **top 8–10 teams demo again on
-  the main stage.** Plan one 3-minute demo that works in both rounds.
-- **Prize tracks.** 1st to 3rd overall (1st gets a guaranteed YC interview), Most autonomous company,
-  Most likely to become a unicorn, Best use of Naïve, People's choice, Best design, and Best
-  Mobile Automation (Mobilerun). Most track definitions aren't published.
-- **Mobile track.** Mobilerun: "demonstrating a working end-to-end workflow, not just an agent
-  that explains what it would do."
-
-### 2. What recent winners of YC-hosted hackathons had in common
-
-- **Numbers, not claims.** Winners of YC's Sep 2026 hackathon reported measured results, such as
-  "cost per ticket fell 66% across 400 tickets" and "0/30 → 29/30 on held-out changes."
-- **Deep use of the sponsor stack.** At that event, 90 of 91 submissions used a sponsor tool, and
-  every grand-prize winner built on one. Using a sponsor's tool is the baseline. Winning takes
-  using it centrally and well.
-- **Output judges can check themselves.** Judging rewards visible output: judges "could assess
-  the output directly rather than relying on credentials or theoretical explanations."
-- **Outside attention counts.** A winning project's post drew about 382,000 views. Real views on
-  our clips are evidence a judge can't argue with.
-
-### 3. What judges say in general
-
-- A simple project with a clear, confident demo beats a complex one with a confusing demo.
-- Cut features to keep the demo short. Remove every place it could stall, and pre-load data.
-- Be plain about what works and what doesn't. Judges notice when you talk around missing pieces.
-- Keep a recorded backup of the same demo.
-- Judges revisit repos. A README with a screenshot, a live link, and the numbers settles ties.
-
-### 4. YC's pitch rules (from YC's Demo Day guide)
-
-- **First sentence: what we do, in plain words.** For example: "We're a gaming channel that runs
-  itself. Agents pick the game, stream it, clip it, post it, and run the business."
-- **Don't bury the lead.** Open with the best real number we have.
-- **Three or four points at most**, then repeat them at the end.
-- **No exaggeration.** YC calls exaggeration a "fatal error." Say "we have zero revenue" if
-  that's true.
-- **No jargon.** "Agents" is fine. "Multi-agent orchestration substrate" isn't.
-- For "Most likely to become a unicorn," show bottom-up math (how many customers, how much each
-  pays), not "the creator economy is $X billion."
-
-### 5. The official brief, and what 16 YC hackathon winners did
-
-From Naïve's hackathon page (checked Nov 7):
-
-> **Build an autonomous company. Not a demo of one.** … By demo time it should be operating
-> without you: **making, selling, shipping, earning.**
-
-The brief lists "a media channel" as an example market, so our idea fits the brief. It also
-describes the shape: "A CEO and a team, each with its own computer, inbox, money and the web.
-You set the goal; they make the calls."
-
-Team research on 16 winners of YC-hosted hackathons (Browser Use, Conversational AI, Voice
-Agents, AgentMail, Agentic Payments, RL, Greptile, Own Your Intelligence, and others) found six
-patterns. The per-event details came from that research and weren't re-checked here.
-
-1. **The idea fits in one sentence.** "Two browser agents fight each other." "Talk to your
-   security cameras."
-2. **The demo shows a state change.** Something gets found, fixed, generated, sent, bought, or
-   deployed on screen.
-3. **The agent acts instead of advising.** It updates the CRM, sends the email, posts the clip.
-4. **There's evidence.** Traces, counts, and before-and-after numbers, not "imagine if."
-5. **Sponsor tools make the magic moment.** Each integration is a working part of one workflow,
-   not a badge.
-6. **The team plays to the judging.** They pick the tracks they can win and split the work early.
-
-Their formula: **clarity × autonomy × real-world consequence × proof.** Technical difficulty
-makes a good project better, but it isn't the foundation. One reported rubric (Browser Use, Feb
-2026) weighted impact at 40%, and creativity, technical difficulty, and the demo at 20% each.
-
-**The core principle: don't demo the software. Demo the company's history since we stopped
-touching it.**
-
-| Other teams say | We show |
-|---|---|
-| "Our agents could find an audience." | The streams, with viewer counts |
-| "Our agents could make content." | The clips they cut and posted, with views |
-| "Our agents could sell." | The email thread with a streamer, and the Stripe payment |
-| "Our agents run autonomously." | The hours of decisions they made while we slept |
-
-### 6. How we close the "earning" gap
-
-A streaming channel makes and ships content, but it won't earn real money from ads or sponsors
-in 22 hours. The research's strongest point is that a **service business** can earn within the
-event. It finds customers, does the work *before* asking, and sells the finished result.
-
-**We already have that service: clipping for human streamers.** Make it the revenue loop.
-
-1. **Find:** the Research agent finds small streamers with recent recordings and no clip
-   channel, using Monid's Twitch and YouTube data tools, Naïve's Social data, or Apify.
-2. **Make it first:** the Clipper cuts 3 clips from one of their recent streams *before* we
-   contact them.
-3. **Pitch:** the Ops agent emails them from an AgentMail inbox: "I clipped your stream from
-   Tuesday. Here are 3 clips, ready to post. Want this for every stream? $X a month." It
-   includes a Stripe payment link, and the clips are the proof.
-4. **Close and deliver:** replies arrive in the inbox, the agent answers, payment comes through
-   Stripe, and new streams get clipped and delivered on a schedule.
-5. **Track:** each streamer moves through HubSpot stages: found → clipped → contacted → replied
-   → paid → delivered.
-
-Our own channel becomes the showcase and the marketing ("we do this for our own stream"), and
-the clipping service brings in the money. Keep the volume small and every message personal.
-Twenty real messages beat five hundred spam ones, and spam can break platform rules and email
-law. Their stream is their content: send the sample clips only to them, privately, and never
-post a streamer's clips anywhere until they've agreed.
-
-**Run the agents as a Naïve Team.** Naïve supports a coordinator agent with a roster of
-specialists, delegation, and a shared company board, with allow, ask, or deny set on each tool.
-Make the Ops agent the **CEO coordinator**. Research, Streamer, Chat, Clipper, and Publisher are
-its roster, and board cards are the hand-offs. Docs: Team (https://usenaive.ai/docs/team/overview.md),
-Company board (https://usenaive.ai/docs/team/board.md), and Policies
-(https://usenaive.ai/docs/concepts/policies.md).
-
-**Give the CEO real decisions to make,** and log the reasons. For example:
-
-> 02:14: Shifted outreach from Valorant streamers (0 replies of 9) to Minecraft streamers (3 of
-> 7). Moved the next $5 of clip budget with it.
-
-That one log entry answers the judges' question "what did the agents decide?" better than any
-UI.
-
-### What this means for us
-
-| Criterion | What we do | Owner |
-|---|---|---|
-| Making, selling, shipping, earning | The clip-first outreach loop to human streamers, ending in a real Stripe payment | Teammate 4, Max |
-| Agent decisions | The CEO (Ops) reallocates budget and targets from results, and logs why | Teammate 4 |
-| Autonomy | Run unattended overnight (1–8 AM). Keep the intervention count low and honest. | Everyone |
-| Proof of operation | Activity log with decisions and reasons. Clips posted with real views. | Abhinav, Noel |
-| Numbers | Hours streamed, clips posted, views, decisions made, spend, step-ins. Put them on one screen. | Teammate 4 |
-| Best use of Naïve | Streamer, Chat, and Ops all on the Naïve SDK, with budgets, Skills, and Observability, used the way the docs intend | Abhinav |
-| Best Mobile Automation | Research and posting really happen on phones, end to end, with a live phone view in the demo | Noel |
-| People's choice | During the demo, put a QR code on screen so the audience can join the stream chat and watch the Chat agent answer them live | Abhinav, Teammate 4 |
-| Best design | Clips that look good: captions, thumbnails, a consistent channel identity | Max |
-| Unicorn | One slide of bottom-up math for the clipping service and the channel model | Teammate 4 |
-| Demo quality | A 3-minute script, rehearsed twice, with a recorded backup | Teammate 4 |
-
-### 3-minute demo outline
-
-Open with the result, not the architecture. Everyone in the room built a multi-agent system
-on Naïve.
+Open with the result, not the architecture.
 
 1. **0:00–0:20: the result.** "At 2:00 AM we stopped touching this company. Since then its agents
-   streamed N hours, posted N clips that got N views, pitched N streamers, closed N, collected
-   $N, and spent $N doing it. We stepped in N times." Use only real numbers.
-2. **0:20–1:30: one customer, end to end.** Click through a real timeline: Research finds the
-   streamer → Clipper cuts their clips → the email goes out → their reply → the Stripe payment →
-   the delivered clips.
-3. **1:30–2:00: one decision we didn't make.** Show the CEO's log entry that changed strategy,
-   and the numbers behind it.
-4. **2:00–2:30: the live part.** The stream is running and the Chat agent answers the
-   audience (QR code on screen). A Mobilerun iPhone posts a clip live.
-5. **2:30–3:00: why it's a company.** "If we leave it running when we walk offstage, tomorrow it
-   will have found more customers, done more work, and changed its own plan. We only set the
-   goal and the budget." Then the list of human step-ins, honestly.
+   designed N levels, tested each 500 times, shipped N packs, retuned N levels from what N players
+   did, emailed N studios, and spent $N. We stepped in N times." Real numbers only.
+2. **0:20–1:10: one level's life.** The Designer's draft → the Solver says 3%, too hard → the Tuner
+   gets it to 41% → a phone plays it → players' real win rate → the CEO's retune.
+3. **1:10–1:40: one decision we didn't make.** The CEO's log entry that changed the plan, and the
+   numbers behind it. For example: "Levels 30–40 lost 60% of players. Eased the curve and moved the
+   hard level from 34 to 38."
+4. **1:40–2:20: the live part.** A QR code on screen. The audience plays a level the agents made a
+   minute ago, while a Mobilerun iPhone plays it on the big screen. The CEO retunes it from the
+   room's results.
+5. **2:20–3:00: the business.** The studio pipeline and any replies or payments. Bottom-up math:
+   studios × levels per month × price per level, with a source for every number. "If we leave it
+   running, tomorrow it will have shipped more levels, learned from more players, and pitched more
+   studios. We set the goal and the budget." Then the list of step-ins, honestly.
 
-The main screen is a **company heartbeat**: revenue, streamers found, clips made, emails sent,
-replies, payments, deliveries, views, agent spend, margin, and human step-ins. Agent activity
-goes underneath, expandable. Judges don't want to watch tokens scroll.
-
-### Sources
-
-- [Naïve: Autonomous Companies Hackathon](https://usenaive.ai/hackathon): judging focus, demo
-  format, tracks
-- [Mobilerun: Give your autonomous company a phone](https://mobilerun.ai/blog/posts/autonomous-company-hackathon-naive-mobilerun):
-  mobile track
-- [c0mpiled: YC Own Your Intelligence Hackathon, Sep 2026](https://www.compiled.sh/articles/yc-own-your-intelligence-hackathon):
-  winners and patterns
-- [Iterate: From hackathon winner to Y Combinator in 74 days](https://iterate.inc/blog/from-hackathon-winner-to-y-combinator-in-74-days):
-  visible output and public reception. These were not YC-hosted events.
-- [YC: A guide to Demo Day presentations](https://www.ycombinator.com/blog/guide-to-demo-day-pitches/):
-  pitch rules
-- [JetBrains: How to win a hackathon, notes from the judging table](https://blog.jetbrains.com/ai/2026/06/how-to-win-a-hackathon-notes-from-the-judging-table/)
-  and [Devpost: advice from five judges](https://info.devpost.com/blog/hackathon-judging-tips):
-  general demo advice. The JetBrains page blocked direct fetching, so its points come from search
-  summaries.
-- [Reskilll: how to win a hackathon](https://blogs.reskilll.com/how-to-win-hackathon-2026-complete-playbook/):
-  the README-as-tiebreaker point. This is a vendor blog.
-
-## What the demo has to show
-
-Judges score how much of the company runs without us. By 11:00 AM Sunday, we want real numbers
-for:
-
-- Hours streamed with no human at the controls
-- Clips cut and clips published, with their views
-- Decisions the Ops agent made, and why (from the activity log)
-- Sponsor and customer emails sent, and replies
-- Total spend, and revenue (zero is an honest answer)
-- **Every human intervention, and why.** Fewer is better, but hiding them is worse.
+The main screen is the **heartbeat** dashboard. Agent activity goes underneath, expandable.
 
 ## Risks
 
-1. **Getting an agent's gameplay onto a live stream.** This is the riskiest piece. Nobody has
-   checked yet whether a Naïve Computer (a sandbox with an optional browser) can run a game and
-   send video out. Fallbacks, in order:
-   - a browser game in the Naïve Computer, sent out with `ffmpeg`
-   - a mobile game on a Mobilerun phone, using the phone's screen as the stream
-   - recorded "sessions" posted as videos instead of a true live stream
+1. **Naïve's approval rules can stop the overnight run.** Sending email, `mobile`, `data_run`,
+   `generate_video`, and `social.post` all **ask a human by default.** A person's API key can set
+   most of them to `allow`, but an agent can't set `generate_video` to `allow` itself. Worse: once
+   a chat reads people's data (such as an inbound email), every send, phone action, and MCP call in
+   that chat asks *each time, even at `allow`.* **Abhinav and Teammate 4 test this in the first
+   hours.** A likely fix is to keep reading replies and sending actions in separate chats. Every
+   approval we click overnight is a step-in judges count. Source: Naïve docs, Tools → Permission
+   policies.
+2. **Level quality.** A solver measures difficulty, not fun. Keep the rules simple, hand-check the
+   first levels, and let player data catch dull ones.
+3. **Players by Sunday.** The game needs real players for the data loop. Use the hackathon room,
+   our own posts, and a QR code at our table.
+4. **Studios buy slowly.** Expect replies or a letter of intent, not a payment, in 22 hours. The
+   in-game purchase is our faster path to a real dollar.
+5. **Format mismatch.** Every studio stores levels differently. Deliver our documented JSON plus
+   playable previews, and offer conversion as part of a pilot.
+6. **Research limits.** Phones play other companies' games only to study them. Follow each game's
+   terms, and never copy levels or art.
+7. **Spend.** Cap every Naïve agent's budget and set a daily limit in Monid. Phone minutes bill the
+   Naïve balance directly if we ever use Naïve's phones, so we don't.
 
-   Decide by 3:00 PM Saturday.
-2. **Platform rules.** Twitch, YouTube, and TikTok have rules about automated accounts and
-   AI-generated content, and some require an AI-content label. Use test accounts, label AI
-   content, and read each platform's rules before going public.
-3. **Spend.** Agents running overnight can burn credits. Set a budget cap on every Naïve agent and
-   a daily limit in Monid and Mobilerun.
-4. **Phone flakiness.** App updates, captchas, and login checks can stop the Publisher. Keep a
-   human-posted fallback, and log it as an intervention if it's used.
+## Sources for the level-generation approach
+
+- [Gudmundsson et al., Human-Like Playtesting with Deep Learning (King, 2018)](https://gwern.net/doc/reinforcement-learning/imitation-learning/2018-gudmundsson.pdf):
+  learned models vs. MCTS bots for predicting Candy Crush level difficulty
+- [Predicting Game Difficulty and Engagement Using AI Players (2021)](https://arxiv.org/pdf/2107.12061):
+  reinforcement learning combined with tree-search bots
+- [Automated Playtesting of Matching Tile Games (2019)](https://arxiv.org/pdf/1907.06570):
+  bot personas that imitate human play styles
+- [Difficulty Modelling in Mobile Puzzle Games (2024)](https://arxiv.org/pdf/2401.17436):
+  combining player analytics with simulated data
+- [Improving Conditional Level Generation using Automated Validation (2024)](https://arxiv.org/pdf/2409.06349):
+  difficulty-conditioned match-3 generation checked by bot playthroughs
+- [Walsh, Candy Crush is NP-hard](https://www.semanticscholar.org/paper/Candy-Crush-is-NP-hard-Walsh/9affceb3e2f5fc492106ea0065039be67a720dac)
+- [Playrix: creating levels and elements for match-3 games](https://gameworldobserver.com/2019/09/27/playrix-levels-elements-match-3):
+  planned vs. actual difficulty curves
+- [Room 8 Studio: the state of tile-puzzle level design](https://room8studio.com/news/smart-casual-the-state-of-tile-puzzle-games-level-design-part-1/):
+  attempts per level, 40–80 levels a month in live ops (one vendor's figure), and why studios
+  hand-design teaching levels
+- Naïve docs: [Mobile device](https://usenaive.ai/docs/computer/mobile.md),
+  [Tools and permissions](https://usenaive.ai/docs/capabilities/tools.md),
+  [Team](https://usenaive.ai/docs/team/overview.md)
+- Mobilerun docs: [index](https://docs.mobilerun.ai/llms.txt), including Browser Automation and
+  Embed a device stream
 
 ## Docs
 
 - Agent instructions and rules: `AGENTS.md` (Claude Code reads it through `CLAUDE.md`)
+- How to win: `docs/how-to-win.md`
 - What each push did: `log.md`
 - Naïve SDK: https://vetta.sh/docs/llms.txt
 - Mobilerun: https://docs.mobilerun.ai/llms.txt
