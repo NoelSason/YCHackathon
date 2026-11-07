@@ -1,8 +1,14 @@
+import { createHash } from "node:crypto";
 import { AgentMailClient } from "agentmail";
 import type { Store } from "../store.js";
 import type { Lead, OutreachRecord } from "../types.js";
 import type { OutreachDraft } from "./compose.js";
 import { checkOutreach, type GuardContext } from "./guard.js";
+
+/** A stable, provider-safe idempotency key (hex only), so a retry never sends twice. */
+export function idempotencyKey(...parts: string[]): string {
+  return createHash("sha256").update(parts.join("|")).digest("hex").slice(0, 40);
+}
 
 export interface MailSender {
   send(args: { to: string; subject: string; text: string; idempotencyKey: string }): Promise<{ messageId: string }>;
@@ -69,7 +75,7 @@ export async function sendOutreach(lead: Lead, draft: OutreachDraft, opts: SendO
   }
 
   const { messageId } = await opts.sender.send({
-    to, subject: draft.subject, text: draft.body, idempotencyKey: `first-touch:${lead.id}`,
+    to, subject: draft.subject, text: draft.body, idempotencyKey: idempotencyKey("first-touch", lead.id),
   });
   const record = await opts.store.addOutreach({ ...base, status: "sent", blockedReason: null, providerMessageId: messageId });
   await opts.store.setStage(lead.id, "emailed");

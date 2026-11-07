@@ -7,6 +7,8 @@ import { AgentMailSender } from "./outreach/send.js";
 import { handleInboundReply, parseAgentMailEvent, verifySvixSignature } from "./outreach/inbound.js";
 import { handleStripeWebhook, stripeClient } from "./billing/stripe.js";
 import { intakeLead } from "./leads/intake.js";
+import { runLiveSignup } from "./leads/live.js";
+import { joinPage } from "./leads/join-page.js";
 import { mobilerunClient } from "./mobile/playtest.js";
 import { naiveClient, startSession } from "./naive.js";
 import { buildMcpServer } from "./mcp/server.js";
@@ -18,7 +20,8 @@ import type { ToolContext } from "./mcp/tools.js";
  *   POST /mcp                 the business MCP server (Bearer BUSINESS_MCP_TOKEN), stateless JSON mode
  *   POST /webhooks/stripe     payments → deliveries
  *   POST /webhooks/agentmail  replies → opt-outs, stage changes, and the Sales Reader
- *   POST /leads               the table QR form
+ *   GET  /join                the QR signup page
+ *   POST /leads               the table QR form; starts the live audit and welcome email
  *   GET  /health              which integrations are configured (booleans only)
  */
 export type Handler = (request: Request) => Promise<Response>;
@@ -105,8 +108,23 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       return json(200, { received: true, outcome: outcome.kind });
     }
 
+    if (request.method === "GET" && (url.pathname === "/join" || url.pathname === "/")) {
+      return new Response(joinPage(config.COMPANY_NAME), { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
     if (request.method === "POST" && url.pathname === "/leads") {
-      const result = await intakeLead(JSON.parse(await readBody(request)), ctx.store);
+      const body = JSON.parse(await readBody(request)) as Record<string, unknown>;
+      const result = await intakeLead(body, ctx.store);
+      if (result.ok) {
+        // Research and the welcome email run in the background so the form answers right away.
+        const game = typeof body.game === "string" && body.game.trim() ? body.game.trim() : null;
+        void runLiveSignup(ctx, result.lead, game).catch((err) =>
+          ctx.store.logActivity({
+            at: new Date().toISOString(), agent: "sales-sender", action: `live signup failed for ${result.lead.company}`,
+            why: err instanceof Error ? err.message.slice(0, 200) : "unknown error", result: null, costUsd: null, human: false,
+          }),
+        );
+      }
       return json(result.ok ? 201 : 400, result.ok ? { ok: true } : { ok: false, error: result.error });
     }
 

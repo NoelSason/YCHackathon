@@ -140,6 +140,15 @@ export function buildMcpServer(ctx: ToolContext): McpServer {
   );
 
   server.registerTool(
+    "recent_activity",
+    {
+      description: "Read the newest business activity log lines: what each agent did, why, and the result.",
+      inputSchema: { limit: z.number().int().min(1).max(200).optional() },
+    },
+    async (args) => json(await ctx.store.listActivity(args.limit ?? 30)),
+  );
+
+  server.registerTool(
     "log_activity",
     {
       description: "Write one line to the company activity log: what you did, why, and the result.",

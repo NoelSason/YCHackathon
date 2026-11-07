@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MemoryStore } from "../src/store.js";
 import { composeOutreach, numbersIn } from "../src/outreach/compose.js";
 import { checkOutreach, isOptOut } from "../src/outreach/guard.js";
-import { sendOutreach, type MailSender } from "../src/outreach/send.js";
+import { idempotencyKey, sendOutreach, type MailSender } from "../src/outreach/send.js";
 import { handleInboundReply, verifySvixSignature, parseAgentMailEvent } from "../src/outreach/inbound.js";
 import { createHmac } from "node:crypto";
 import type { Lead, Target } from "../src/types.js";
@@ -105,7 +105,8 @@ describe("sendOutreach", () => {
     const sender: MailSender = { async send(a) { calls.push(a.idempotencyKey); return { messageId: "msg_1" }; }, async reply() { return { messageId: "r" }; } };
     const record = await sendOutreach(lead, draftFor(lead), { ...ctx(store), sender, sendingEnabled: true, agent: "test" });
     expect(record.status).toBe("sent");
-    expect(calls).toEqual([`first-touch:${lead.id}`]);
+    expect(calls).toEqual([idempotencyKey("first-touch", lead.id)]);
+    expect(calls[0]).toMatch(/^[0-9a-f]{40}$/);
     expect((await store.getLead(lead.id))!.stage).toBe("emailed");
     expect((await store.listActivity()).some((a) => a.action.includes("outreach sent"))).toBe(true);
   });

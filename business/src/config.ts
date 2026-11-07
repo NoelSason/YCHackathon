@@ -45,6 +45,11 @@ const EnvSchema = z.object({
   COMPANY_NAME: z.string().default("Level AI"),
   COMPANY_POSTAL_ADDRESS: z.string().optional(),
   PUBLIC_BASE_URL: z.string().default("http://localhost:8787"),
+  /** A playable level to send with welcome emails. Falls back to DEMO_PLAY_URL (Max's hosted game). */
+  SAMPLE_PLAY_URL: z.string().optional(),
+  DEMO_PLAY_URL: z.string().optional(),
+  /** Send the welcome email to people who sign up at our table. They opted in on the form. */
+  INBOUND_AUTO_REPLY: z.enum(["0", "1"]).default("1"),
 
   // Server
   PORT: z.coerce.number().int().positive().default(8787),

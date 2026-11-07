@@ -9,35 +9,54 @@ import type { ReviewSignal, SignalKind } from "../types.js";
  */
 const PATTERNS: Record<SignalKind, RegExp[]> = {
   too_easy: [
-    /\b(way |far |too |so )?too easy\b/,
+    /\b(way |far |too |so )?too easy\b(?! to (lose|fail|die))/,
     /\bimpossible to fail\b/,
     /\b(can'?t|cannot|couldn'?t|not possible to|don'?t think it'?s possible to) (ever )?fail\b/,
     /\bno (real )?challenge\b/,
-    /\btakes? (too|so|way too) long (for the levels )?to (get|become|be|actually prove)\b/,
+    /\btakes? (too|so|way too) long (for the levels )?to (get|become|be|actually prove) (hard|harder|challenging|difficult|interesting|a challenge)\b/,
     /\b(first|early) (few )?(\d+|dozen|levels?).{0,40}(easy|boring|half asleep|impossible to fail)\b/,
     /\bstupid easy\b/,
   ],
   too_hard: [
     /\b(way |far |so )?too hard\b/,
+    /\btoo easy to (lose|fail|die)\b/,
     /\bimpossible (level|to (beat|pass|win|complete))\b/,
-    /\bstuck on (level )?\d+/,
-    /\b(level|lvl) \d+.{0,40}(impossible|too hard|can'?t (beat|pass))\b/,
+    /\b(level|lvl) \d+ (is|was) (literally |actually |quite literally |physically )*impossible\b/,
+    /\b(level|lvl) \d+.{0,40}(impossible|too hard)\b/,
     /\bdifficulty spike\b/,
-    /\b(pay|buy|spend).{0,30}to (win|pass|beat|continue)\b/,
+    /\bimpossible (to beat |to pass )?without (paying|power[- ]?ups?|boosters?|spending)\b/,
+    /\b(have to|need to|must|forced to|make you) (pay|buy|spend).{0,30}to (win|pass|beat) (the |a |this )?level\b/,
   ],
   wants_more_levels: [
-    /\b(need|want|wish|add|give us|please|more) (more |new )+levels?\b/,
-    /\bmore levels\b/,
+    /\b(need|want|wish (there were|for)|add|give us|please add) (more |new )+levels?\b/,
+    /\bmore levels,? please\b/,
     /\b(ran|run|running) out of levels\b/,
     /\b(finished|completed|beat) (all|every) (the )?levels\b/,
     /\bwaiting for (new|more) levels\b/,
   ],
   repetitive: [
-    /\b(repetitive|repetitious)\b/,
+    /\b(levels?|puzzles?|gameplay) (are|is|get|gets|feel|feels|become|becomes) (so |very |too |really )?(repetitive|repetitious)\b/,
+    /\b(repetitive|repetitious) (levels?|puzzles?|gameplay)\b/,
     /\b(every|all the) levels? (is|are|feel|feels|look|looks) the same\b/,
-    /\bsame (level|levels|thing) over and over\b/,
+    /\bsame (level|levels) over and over\b/,
   ],
 };
+
+/** Praise or negation ("not too hard", "aren't too hard", "not impossible") isn't a complaint. */
+const NEGATED = [
+  /\b(not|isn'?t|aren'?t|wasn'?t|weren'?t|never|neither|is not|are not) (being )?(too|that|so|very|overly|super|really) (easy|hard|difficult)\b/g,
+  /\b(not|isn'?t|aren'?t|wasn'?t|never) (being )?impossible\b/g,
+  /\bnor too (easy|hard|difficult)\b/g,
+  /\b(easy|hard) but not too (easy|hard)\b/g,
+];
+
+/** Weaker "I'm stuck" signals. These count only when the review doesn't blame ads, crashes, or the screen. */
+const STUCK = [/\bstuck on (level |lvl )?\d+/, /\b(level|lvl) ?\d+.{0,40}can'?t (beat|pass)\b/];
+
+/** Sentences about other games ("some games are way too easy") don't describe this game. */
+const OTHER_GAMES = /\b(other|some|most|many|these|those|similar) games\b/;
+/** Ads, crashes, and connection trouble can block a level, but that's not level design. */
+const TECHNICAL = /\b(ads?|adds|ad not ready|resolution|crash(es|ing)?|glitch(es|y)?|bugs?|freez(e|es|ing)|won'?t load|internet|offline|connection|lag(gy)?)\b/;
 
 const SIGNAL_ORDER: SignalKind[] = ["too_easy", "too_hard", "wants_more_levels", "repetitive"];
 
@@ -61,17 +80,23 @@ export function excerpt(text: string, max = 140): string {
   return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), max - 20)).trimEnd()}…`;
 }
 
-/** Praise like "not too hard" or "not too easy either" isn't a complaint, so it's removed first. */
-const NEGATED = [
-  /\b(not|isn'?t|wasn'?t|never|neither) (too|that|so|very|overly|super) (easy|hard|difficult)\b/g,
-  /\bnor too (easy|hard|difficult)\b/g,
-  /\b(easy|hard) but not too (easy|hard)\b/g,
-];
-
 export function classifyReview(text: string): SignalKind[] {
-  let t = text.toLowerCase();
-  for (const re of NEGATED) t = t.replace(re, " ");
-  return SIGNAL_ORDER.filter((kind) => PATTERNS[kind].some((re) => re.test(t)));
+  const found = new Set<SignalKind>();
+  const lower = text.toLowerCase();
+  const reviewIsTechnical = TECHNICAL.test(lower);
+  for (const raw of lower.split(/(?<=[.!?\n])\s+/)) {
+    if (OTHER_GAMES.test(raw)) continue;
+    let t = raw;
+    for (const re of NEGATED) t = t.replace(re, " ");
+    const technical = TECHNICAL.test(t);
+    for (const kind of SIGNAL_ORDER) {
+      // A level that's "impossible" because an ad won't load is a technical problem, not difficulty.
+      if (technical && (kind === "too_hard" || kind === "repetitive")) continue;
+      if (PATTERNS[kind].some((re) => re.test(t))) found.add(kind);
+    }
+    if (!technical && !reviewIsTechnical && !OTHER_GAMES.test(t) && STUCK.some((re) => re.test(t))) found.add("too_hard");
+  }
+  return SIGNAL_ORDER.filter((k) => found.has(k));
 }
 
 export function extractSignals(reviews: RawReview[]): ReviewSignal[] {

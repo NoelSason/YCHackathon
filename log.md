@@ -20,6 +20,32 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 15:40 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Live signup → audit → email in 30 seconds, verified for real.** The QR page (`GET /join`) takes a
+studio's game. The agents then read that game's newest Google Play reviews through Monid, find what players complain
+about, and email the evidence plus free levels from `levelai@agentmail.to`. Each step writes an `activity_log` row, so
+the demo stage shows it happening. A real run took 30 s and reached Noel's Gmail.
+- **Fixed:** AgentMail rejected our idempotency keys (`first-touch:<id>`), so keys are now hex hashes.
+- **Research is more honest:** fixed all 11 false-positive patterns found by hand (negations like "aren't too hard",
+  other games, ads and crashes, "more levels" meaning access, "pay to win"). Each one has a test.
+- **New tool:** `recent_activity` (read the business log).
+- **New doc:** `docs/business-targets.md` lists 7 studios to pitch, each with a hand-checked reason and a public
+  contact source.
+- **Deploy prep:** `business/` can deploy as a Neon Function like the platform (`npm run deploy`). Research
+  (Monid CLI) and the draft step don't work in a function, so for the demo the business server runs on Noel's laptop
+  behind a tunnel.
+- **Live data:** Neon now has the business additions (`business/src/db/schema.sql`, additive). The platform smoke
+  test passes against the deployed MCP server. `./demo.sh --check` passes: database, log tables, phone.
+**Files:** `business/`, `docs/business-targets.md`, `log.md`.
+**State:** 52 business tests and the typecheck pass. Live signup verified end to end with real Monid, AgentMail, and
+Gmail (in-memory store, so no test rows in Neon).
+**Next / heads-up:** **Abhinav:** the deployed platform's `save_level` returns `http://localhost:3000/...` URLs (the
+game base URL isn't set on the function), and the smoke test's sample level fails `validate_level`. **Max:** the
+welcome email links `DEMO_PLAY_URL` as "free levels", so send it to me when it's live.
+
+---
+
 ### 2026-11-07 15:30 PT · Abhinav (Claude) · branch `main`
 
 **What:** **Naïve Team created** with `npm run setup`: designer, tuner, playtest, research,

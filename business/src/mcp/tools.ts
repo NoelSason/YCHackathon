@@ -8,7 +8,7 @@ import type { MonidRunner } from "../research/monid.js";
 import { findTargets } from "../research/targets.js";
 import { composeOutreach, type OutreachDraft } from "../outreach/compose.js";
 import { checkOutreach, checkReply } from "../outreach/guard.js";
-import { sendOutreach, type MailSender } from "../outreach/send.js";
+import { idempotencyKey, sendOutreach, type MailSender } from "../outreach/send.js";
 import { createPaymentLink } from "../billing/stripe.js";
 import { readMonid, summarize, type SpendSource } from "../finance/snapshot.js";
 import { runPlan } from "../mobile/playtest.js";
@@ -30,6 +30,11 @@ export interface ToolContext {
 }
 
 const targetsByApp = new Map<string, Target>();
+
+/** Lets other flows (like a live signup) hand research to the outreach tools. */
+export function rememberTarget(t: Target): void {
+  targetsByApp.set(t.appId, t);
+}
 const drafts = new Map<string, { leadId: string; draft: OutreachDraft; extraAllowed: string[] }>();
 
 const usd = (n: number): string => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
@@ -200,7 +205,7 @@ export async function toolSendReply(
     await ctx.store.logActivity({ at, agent: "sales-sender", action: `reply drafted for ${lead.company}`, why: "sending is turned off (OUTREACH_SEND=0)", result: "draft only", costUsd: null, human: false });
     return { status: "drafted", reason: null };
   }
-  const sent = await ctx.mail.reply({ messageId, text: body, idempotencyKey: `reply:${lead.id}:${messageId}` });
+  const sent = await ctx.mail.reply({ messageId, text: body, idempotencyKey: idempotencyKey("reply", lead.id, messageId) });
   await ctx.store.addOutreach({ leadId: lead.id, to: lead.email ?? "", subject: "Re:", body, status: "sent", blockedReason: null, providerMessageId: sent.messageId });
   if (link && lead.stage === "replied") await ctx.store.setStage(lead.id, "pilot_offered");
   await ctx.store.logActivity({ at, agent: "sales-sender", action: `replied to ${lead.company}`, why: null, result: `message ${sent.messageId}`, costUsd: null, human: false });

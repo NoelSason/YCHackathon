@@ -26,6 +26,37 @@ describe("classifyReview", () => {
     expect(classifyReview("not too easy, but way too hard after level 40")).toContain("too_hard");
   });
 
+  it("ignores the 11 false-positive patterns found by hand on Nov 7", () => {
+    const none = [
+      "the puzzles aren't too hard",
+      "balanced with not being too easy or hard",
+      "Some games are way too easy.",
+      "it's not impossible to win now",
+      "not like other games where you have to buy coins to beat levels",
+      "takes too long to get through the 20 ads/events",
+      "the same repetitive adds over and over again",
+      "glitches and repetitive crashes",
+      "the repetitive, interupting ads",
+      "it won't let me play any more levels",
+      "you need internet to access more levels",
+      "can play again for a few more levels",
+      "Pay to win game",
+      "'ad not ready' for days. Stuck on level 294",
+      "resolution on phone is bad..lvl 29 I cant pass",
+    ];
+    for (const q of none) expect(classifyReview(q), q).toEqual([]);
+    expect(classifyReview("levels are too easy to lose")).toEqual(["too_hard"]);
+  });
+
+  it("still catches the real complaints from the same run", () => {
+    expect(classifyReview("Lvl 136 is impossible. I've tried it every way")).toContain("too_hard");
+    expect(classifyReview("Spent about 2 hours trying to clear level 4. it is physically impossible to beat.")).toContain("too_hard");
+    expect(classifyReview("super fun until you get to the level where it's impossible to beat without paying for power ups")).toContain("too_hard");
+    expect(classifyReview("level 376 is actually quite literally impossible without using a single power-up")).toContain("too_hard");
+    expect(classifyReview("the levels get repetitive after a while")).toContain("repetitive");
+    expect(classifyReview("please add more levels")).toContain("wants_more_levels");
+  });
+
   it("ignores ad and price complaints, which we can't fix", () => {
     expect(classifyReview("ads after literally every level")).toEqual([]);
     expect(classifyReview("$40 to remove ads is crazy")).toEqual([]);
