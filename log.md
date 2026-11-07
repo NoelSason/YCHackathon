@@ -20,6 +20,15 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 13:00 PT · Noel (Claude Code) · branch `main`
+
+**What:** Publisher plan now uploads to YouTube through Monid. TikTok and Instagram stay on
+Mobilerun phones, and the YouTube app on a phone is the fallback.
+**Why:** Monid may give a simpler, more reliable YouTube path than driving the app.
+**Files:** `README.md`.
+**State:** Unverified. Monid's YouTube endpoint hasn't been found or tested yet (no API key yet).
+**Next / heads-up:** Noel checks the endpoint with `monid discover` once the key is added.
+
 ### 2026-11-07 12:55 PT · Noel (Claude Code) · branch `main`
 
 **What:** Added `README.md` with the idea (autonomous streaming studio with clipping), the six

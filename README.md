@@ -27,7 +27,7 @@ Every step-in is logged.
   Clipper (video pipeline) ── finds highlights, cuts vertical clips, captions
                                │
                                ▼
-  Publisher (Mobilerun phones) ── posts clips in the TikTok, Instagram, YouTube apps
+  Publisher ── uploads to YouTube through Monid; posts to TikTok and Instagram on phones
                                │
                                ▼
   Ops agent ── reads views and follows, updates the plan, emails sponsors,
@@ -41,7 +41,7 @@ Every step-in is logged.
 | Agent | Built on | Job | Owner |
 |---|---|---|---|
 | Research | Mobilerun (iOS) | Finds trending games, formats, and clip styles by using the real apps. Writes a short brief the Ops agent can act on. | Noel |
-| Publisher | Mobilerun (iOS) | Posts finished clips with captions and hashtags in the mobile apps. Reads back views and likes. | Noel |
+| Publisher | Monid (YouTube) + Mobilerun (iOS) | Uploads clips to YouTube through Monid, and posts to TikTok and Instagram in the mobile apps. Reads back views and likes. | Noel |
 | Clipper | Video pipeline | Watches the stream recording, picks highlights, cuts 9:16 clips with captions, and makes thumbnails and intros. | Max |
 | Streamer | Naïve SDK | Plays the game on stream with a consistent persona. | Abhinav |
 | Chat | Naïve SDK | Reads stream chat, replies in persona, takes requests, and moderates. | Abhinav |
@@ -60,8 +60,14 @@ Goal: the Best Mobile Automation prize, plus the company's eyes and distribution
    `<game>`, report the top five videos with view counts."
 2. Build the **Research agent**. It produces a structured brief: trending games, clip formats
    that perform, and posting times. The Ops agent reads this brief.
-3. Build the **Publisher agent**. It takes a clip file and caption and posts it in one app first
-   (TikTok or YouTube Shorts), then the others.
+3. Build the **Publisher agent**. It takes a clip file and caption and posts it.
+   - **YouTube (Shorts and full videos): use Monid.** Run
+     `monid discover -q "upload video to youtube"`, then `monid inspect` the endpoint before you
+     use it. Not verified yet: no Monid key was set up when this plan was written. Check whether
+     it needs the channel's sign-in, and what each upload costs.
+   - **TikTok and Instagram: use Mobilerun phones.** Their posting APIs are limited, so the phone
+     is the reliable path and the Best Mobile Automation story.
+   - If Monid has no working YouTube upload, fall back to the YouTube app on a Mobilerun phone.
 4. Add **metrics read-back**: the agent reopens posted clips and records views and likes for Ops.
 5. Reuse one logged-in device per app account. Don't reset devices.
 
