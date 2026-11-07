@@ -215,4 +215,9 @@ After a pull, read the new entries at the top of `log.md` before you start work.
 
 ## Repo layout
 
-_TBD. Document the directories here as they're created._
+- `games/` — integration and skill catalog; `games/match3/` holds the match-3 skill and adapter
+  notes; `games/platformer/` and `games/editors/` hold editor-only skills, not product game
+  integrations. `games/router/` and `games/implementation/` define the common skill flow;
+  `games/skill-routing.json` and `games/skill_router.py` resolve configured routes.
+- `games/match3/` — match-3 integration notes and the Naïve level-design skill. The game adapter
+  and implementation should live here when added.

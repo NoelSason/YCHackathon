@@ -20,6 +20,83 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 14:56 PT · Max (Codex) · branch `game-integration`
+
+**What:** Added a unified route/design/evaluate/implement/verify skill workflow and a small
+config-driven interpreter that emits ordered skill and interface packets. Programmatic operations
+are declared in config and gated on runtime tool availability.
+**Why:** Let the agent plan at a high level, use the game's domain skill for solving details, then
+create levels through the right adapter or editor path.
+**Files:** `games/skill-routing.json`, `games/skill_router.py`, `games/router/`,
+`games/implementation/`, `docs/skill-routing-plan.md`, `docs/agent-plan.md`, `games/README.md`,
+`README.md`, `AGENTS.md`, `log.md`.
+**State:** Partly works. Routes and skill contracts are in place; no adapter, MCP tools, or editor
+runtime is connected in this checkout. Tests were not run.
+**Next / heads-up:** Abhinav/Pinara: connect match-3 adapter tools and mark the config availability
+only after they work. Noel: attach Mobilerun MCP for the Geometry Dash editor route.
+
+### 2026-11-07 14:50 PT · Max (Codex) · branch `game-integration`
+
+**What:** Removed the BetterEdit skill and added a Mobilerun-assisted workflow for the official
+Geometry Dash editor guide. The workflow saves local drafts and limits phone checks to visual/load
+sanity checks.
+**Why:** Use the official editor guide as requested and avoid relying on an archived editor mod.
+**Files:** `games/editors/betteredit/`, `games/editors/geometry-dash/`, `games/README.md`,
+`AGENTS.md`, `README.md`, `log.md`.
+**State:** Partly works. Official guide and Mobilerun Cloud Quickstart were reviewed; no Mobilerun
+tools or user device are connected here, so no phone task was run.
+**Next / heads-up:** Use an existing authorized Mobilerun device only. Do not provision/reset it;
+do not publish or upload a level. Remote taps do not verify exact gameplay timing.
+
+### 2026-11-07 14:45 PT · Max (Codex) · branch `game-integration`
+
+**What:** Added a BetterEdit editor-only skill and documented its archived status, dependencies,
+license, and separation from the rhythm-runner product integration.
+**Why:** Add the requested level-editor workflow while keeping our own adapter, solver, assets, and
+music requirements distinct.
+**Files:** `games/editors/betteredit/`, `games/README.md`, `AGENTS.md`, `README.md`, `log.md`.
+**State:** Partly works. Repository docs were reviewed; no installed editor, mod environment, level
+format, or runtime playtest was available.
+**Next / heads-up:** Use only with a user-provided compatible setup; BetterEdit is archived and
+requires its listed Geode dependencies. Do not bundle the mod or Geometry Dash content.
+
+### 2026-11-07 14:36 PT · Max (Codex) · branch `game-integration`
+
+**What:** Added an editor-only platformer level authoring skill; documented that the game remains
+outside the product integration scope and any ROM must be user-supplied separately.
+**Why:** Support original custom-level creation with the requested editor while preserving the
+three-game product plan and avoiding bundled third-party content.
+**Files:** `games/platformer/SKILL.md`, `games/platformer/README.md`, `games/README.md`, `AGENTS.md`,
+`README.md`, `log.md`.
+**State:** Partly works. Skill workflow is documented, but the editor format and its UI workflow
+have not been tested against a running game/editor instance.
+**Next / heads-up:** Keep this as a skill only. If executing an authoring task, use a user-provided
+environment and save through the editor; never package a ROM or original game assets.
+
+### 2026-11-07 14:35 PT · Max (Codex) · branch `game-integration`
+
+**What:** Added a game catalog and evaluated the requested Super-Mario-Bros.-Remastered-Public
+repository as a reference-only platformer candidate.
+**Why:** Capture its level-editor potential while keeping the current three-game scope and
+third-party IP restrictions clear.
+**Files:** `games/README.md`, `games/platformer/README.md`, `AGENTS.md`, `README.md`, `log.md`.
+**State:** Partly works. Repository description and license were reviewed; its level schema and
+headless simulation support were not audited.
+**Next / heads-up:** Team: changing the scope to adopt this game requires a separate decision and
+rights review. Do not bundle its ROM, game assets, levels, or branding.
+
+### 2026-11-07 14:34 PT · Max (Codex) · branch `game-integration`
+
+**What:** Added the match-3 Naïve design skill and integration notes in `games/match3/`, and
+documented the directory. The archived CandyCrushLevelEditor is recorded as reference only.
+**Why:** Give the Designer and Tuner a consistent match-3 workflow while keeping one authoritative
+schema and rules implementation in the future adapter.
+**Files:** `games/match3/`, `AGENTS.md`, `README.md`, `log.md`.
+**State:** Partly works. Skill and docs are in place; this checkout has no game implementation,
+adapter, schema, or Naïve credentials/CLI configuration to wire or publish them against.
+**Next / heads-up:** Max: add the game adapter and its schema here, then align the skill examples
+and publish/pin `game-match3` for the Designer and Tuner. Do not create a second copy of game rules.
+
 ### 2026-11-07 14:19 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Master plan locked in: `docs/master-plan.md`.** It's the source of truth for roles,

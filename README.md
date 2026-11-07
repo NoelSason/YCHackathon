@@ -159,6 +159,18 @@ Everything depends on this, so Max and Abhinav agree on it by **3:00 PM** and wr
 | Events | Sends attempt, win, quit, and moves-used to our API | CEO, dashboard |
 | `SKILL.md` | The rules and level format, written for an agent | Designer (as a Naïve skill) |
 
+The match-3 skill and integration notes live in [`games/match3/`](games/match3/). The skill uses
+the active adapter schema and simulation tools rather than defining a second level format.
+An editor-only platformer authoring skill is available in [`games/platformer/`](games/platformer/SKILL.md);
+it does not add a fourth game to the product.
+The official Geometry Dash Editor workflow is documented in
+[`games/editors/geometry-dash/`](games/editors/geometry-dash/SKILL.md). It uses Mobilerun for
+bounded editor and visual-check tasks and remains separate from our rhythm-runner adapter.
+
+The unified agent skill workflow and config-based route interpreter are documented in
+[`docs/skill-routing-plan.md`](docs/skill-routing-plan.md). The router selects the domain skill and
+implementation path; programmatic tools are used only when connected and declared available.
+
 ### Max: game integration
 
 1. **By 2:45 PM:** check each of the three repos against the rules above: license, copied art or
