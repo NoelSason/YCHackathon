@@ -20,6 +20,16 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:10 PT · Abhinav (Claude) · branch `main`
+
+**What:** Fixed `approval-test` events page size (Naïve caps `limit` at 100). Second probe
+(`ses_2cxbawayev51zaga2qjbzkxw6z`): NOT REACHED again. `npm run setup` re-applied all eight agents.
+**Why:** The vault credential still isn't stored: the new API key also lacks the `admin` scope.
+**Files:** `platform/naive/src/approval-test.ts`.
+**State:** Blocked on a Naïve credential with the `admin` scope (or a CLI login) to run `vault`.
+**Next / heads-up:** Abhinav: get an admin-scoped key or `naive login --email --password`, then
+vault → approval-test.
+
 ### 2026-11-07 16:05 PT · Abhinav (Claude) · branch `main`
 
 **What:** `approval-test` now prints the probe session's events (tool.*, message.completed, and

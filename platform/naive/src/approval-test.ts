@@ -61,7 +61,7 @@ const verdict =
 console.log("\n" + verdict);
 
 // Diagnostics: what the session actually did. Tool events and anything that looks like an error.
-const ev = await naive.sessions.events(session.id, { limit: 200 });
+const ev = await naive.sessions.events(session.id, { limit: 100 });
 const interesting = ev.data.filter((e) =>
   e.type.startsWith("tool.") || e.type === "message.completed" || e.type === "session.retrying" || e.type === "session.degraded" || e.type === "budget.exceeded" || JSON.stringify(e.data).toLowerCase().includes("error"),
 );
