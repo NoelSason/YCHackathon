@@ -20,6 +20,19 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 15:15 PT · Abhinav (Claude) · branch `main`
+
+**What:** **The platform is live.** Neon Function `platform` on branch `production`:
+`https://br-broad-violet-bem8cpy5-platform.compute.c-9.us-east-2.aws.neon.tech`
+(`/health`, `POST /events`, `/games/:id/schema`, `/mcp` with bearer). Smoke test passed against
+it from Abhinav's laptop: all 20 tools, save → solve (queued) → decision → metrics.
+**Why:** Pinara's agents and Max's games now have a real URL to point at.
+**Files:** none (deploy + verification).
+**State:** Works. Cold start after idle is a few seconds.
+**Next / heads-up:** **Pinara / Noel:** MCP URL is the one above + `/mcp`; the bearer is in
+Abhinav's `.env` (ask, don't commit). **Max:** POST player events to `/events` on that host.
+Abhinav next: vault the bearer in Naïve, `npm run setup`, approval test.
+
 ### 2026-11-07 15:13 PT · Pinara (Claude Code) · branch `main`
 
 **What:** Added `docs/open-source-options.md` with checked picks for the games and a proposal for
