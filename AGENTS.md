@@ -8,24 +8,26 @@ An entry for the **Naïve Autonomous Company Hackathon** at YC (560 20th St., Sa
 Nov 7–8, 2026. The goal is a company that agents run end to end: they find customers, deliver
 the product, and handle day-to-day operations.
 
-- **Company:** an autonomous level studio for puzzle games. Agents design match-3 levels, test
-  each one hundreds of times with bot players, tune its difficulty, playtest it on real phones,
-  ship it to our own game, and sell the same service to game studios.
+- **Company:** an autonomous level studio for puzzle games. Any game plugs in through an adapter.
+  Agents design levels, test each one hundreds of times with bot players or exact solvers, tune
+  the difficulty, playtest on real phones, and ship. We run six forked open-source games as our
+  first customers and sell the same service to studios. We don't build a game.
 - **Decided Nov 7, ~1:45 PM:** the team dropped the earlier streaming idea completely. Don't build
   anything for streaming, chat, or clipping streams.
 - **Full plan:** `README.md` has the agents, the sponsor-tool map, each person's plan, the
   timeline, and the risks. Read it before starting work.
-- **Original work only.** Our game, its name, art, rules, and levels are our own. Never copy
-  another company's game, levels, or art. Phones may play other games only to study them.
+- **Games: open source only.** Fork only open-source games whose license allows it, and keep their
+  credit and license files. Never recreate a commercial game, and never use art copied from one.
+  The levels the agents make are new. Phones may play other companies' games only to study them.
 
 ## Team and ownership
 
 | Person | Owns |
 |---|---|
-| **Noel** | Phones and market research: the Playtester and Market Research agents (Mobilerun, Monid, Apify) |
-| **Max** | The playable web game (Vercel), its art and look, player telemetry, and trailers (Naïve Media, Monid video models), plus the Publisher |
-| **Abhinav** | The rules engine and level schema, the Solver, the Designer and Tuner agents (Naïve SDK), and the platform (Neon, the Naïve Team setup, Render if used, the activity log) |
-| **Teammate 4** (_name TBD_) | The CEO agent (Naïve Team coordinator), the Sales agent (AgentMail, HubSpot, Stripe), spend tracking, the heartbeat dashboard, and the demo |
+| **Max** | Game integration: picks and forks the six games, writes each game's adapter (schema, validate, simulate or solve, load by URL, events, `SKILL.md`), and hosts the games |
+| **Noel** | Mobile integration: Mobilerun phones driven by Naïve agents (playtests, phone research, the live view), plus the demo script |
+| **Abhinav** | The platform: Neon, the API offered to agents as one MCP server, the Solver harness, Stripe, AgentMail, and HubSpot plumbing, and the heartbeat dashboard |
+| **Pinara** | The agents: the Naïve Team (CEO, Designer, Tuner, Playtest Lead, Research, Sales), skills, budgets, permissions, cron, and the decision log. Plan: `docs/agent-plan.md` |
 
 Rules for agents:
 
@@ -33,9 +35,10 @@ Rules for agents:
   edit anything.
 - **Stay in that person's area.** Changes to another person's area need your user's explicit
   go-ahead. Write them in `log.md` under "Next / heads-up" and name the owner.
-- **Shared contracts go through Abhinav's area.** The rules engine and the level JSON schema are
-  used by the game, the Solver, and the Playtester, so all three must import the same package.
-  Never reimplement the rules. Before you change a shared interface (agent tools, API
+- **Shared contracts:** the game adapter (Max ↔ Abhinav), the MCP tool list (Abhinav ↔ Pinara),
+  and the playtest tools (Noel ↔ Pinara). They're defined in `README.md` and `docs/agent-plan.md`
+  and recorded in `log.md`. The Solver and the browser game must use the same adapter code for a
+  game. Never write a second copy of a game's rules. Before you change a shared interface (agent tools, API
   routes, environment variable names, the database schema), check `log.md` for that interface
   and keep it backward compatible, or flag the break in the log.
 - **Put each area in its own directory** so people don't edit the same files. List the

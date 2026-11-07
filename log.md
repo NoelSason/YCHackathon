@@ -20,6 +20,26 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 13:55 PT · Noel (Claude Code) · branch `main`
+
+**What:** Plan reworked for the four of us and for six open-source games.
+- **We don't build a game.** The product is the platform. Six forked open-source puzzle games are
+  the first customers. Added rules for picking them (license, no ripped art, levels as data, rules
+  that run headless, mixed genres).
+- **Owners:** Max: game integration (adapters). Noel: mobile integration. Abhinav: the platform
+  (Neon, MCP tools, Solver harness, payments and email plumbing, dashboard). **Pinara**: the agents.
+- **New `docs/agent-plan.md`** for Pinara: the team, card types, CEO loop, decision record,
+  approval test, skills per game, budgets, checks, milestones, and kill switch.
+- **Phone integration:** agents write a JSON plan, and the Mobilerun agent carries it out inside a
+  studio's own app, so studios need no code. Noel builds the plan runner.
+- Naïve marketplace templates to check: AI Automation Agency and Security Testing Agency.
+**Why:** Team discussion. Building our own game was out of scope.
+**Files:** `README.md`, `docs/agent-plan.md`, `AGENTS.md`.
+**State:** Docs only.
+**Next / heads-up:** **Max + Abhinav:** agree on the game adapter by 3:00 PM. **Abhinav + Pinara:**
+agree on the MCP tool list by 3:00 PM. **Noel + Pinara:** agree on the plan and result shapes by
+3:00 PM. **Six games is ambitious:** get two working end to end first.
+
 ### 2026-11-07 13:46 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Full pivot to the autonomous level studio. The streaming plan is gone.**
