@@ -12,6 +12,27 @@ the product, and handle day-to-day operations.
 - **Customer and offer:** _TBD._
 - **What the agents do:** _TBD. List each agent, its job, its tools, and its budget._
 
+## Team and ownership
+
+| Person | Owns |
+|---|---|
+| **Noel** | iOS research and mobile automation with Mobilerun |
+| **Max** | Video generation |
+| **Abhinav** | The Naïve SDK agents, and the platform everything runs on (hosting, deployment, shared infrastructure) |
+
+Rules for agents:
+
+- **Know who you're working for.** If it isn't clear which teammate you're helping, ask before you
+  edit anything.
+- **Stay in that person's area.** Changes to another person's area need your user's explicit
+  go-ahead. Write them in `log.md` under "Next / heads-up" and name the owner.
+- **Shared contracts go through Abhinav's area.** Video generation and mobile automation plug into
+  the Naïve agents and the platform. Before you change a shared interface (agent tools, API
+  routes, environment variable names, the database schema), check `log.md` for that interface
+  and keep it backward compatible, or flag the break in the log.
+- **Put each area in its own directory** so people don't edit the same files. List the
+  directories under "Repo layout" once they exist.
+
 ## Deadlines
 
 | When (Pacific) | What |

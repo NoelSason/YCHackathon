@@ -20,6 +20,29 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 12:45 PT · Noel (Claude Code) · branch `main`
+
+**What:** Added "Team and ownership" to `AGENTS.md`. Noel: iOS research and Mobilerun. Max: video
+generation. Abhinav: Naïve SDK agents and the platform.
+**Why:** So every teammate's agent knows whose area it's in and flags cross-area changes.
+**Files:** `AGENTS.md`.
+**State:** Docs only.
+**Next / heads-up:** Each owner adds their directory to "Repo layout" in `AGENTS.md` when they
+create it.
+
+### 2026-11-07 12:40 PT · Noel (Claude Code) · branch `main`
+
+**What:** Added the Monid skill (v0.1.9) to the repo so every teammate's Claude Code gets it.
+Monid is a sponsor tool: one CLI that gives access to hundreds of data and scraping endpoints.
+**Why:** Agents should check Monid before anyone writes a scraper or data integration by hand.
+**Files:** `.claude/skills/monid/SKILL.md`.
+**State:** CLI installed and `monid setup` run on Noel's machine. No API key added yet, so
+nothing has run through Monid.
+**Next / heads-up:** Each teammate installs the CLI (`npm install -g @monid-ai/cli@latest`),
+creates an account at https://app.monid.ai/?aid=hacks for the signup credit, and adds their own
+key with `monid keys add -k <key> -l main`. Never commit a Monid key. Runs spend the account's
+balance.
+
 ### 2026-11-07 12:32 PT · Noel (Claude Code) · branch `main`
 
 **What:** Repo setup. Added `AGENTS.md`, `CLAUDE.md`, this log, a pre-push hook that blocks
