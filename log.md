@@ -20,6 +20,24 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 15:30 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Naïve Team created** with `npm run setup`: designer, tuner, playtest, research,
+sales_reader, sales_sender, finance, and the CEO coordinator (board on, roster pinned), each with
+platform MCP tools allow-listed by name and daily budgets. Cron deployments created **disabled**:
+CEO hourly (`dep_8hq07mr0wrxz240r96fhggmxt1`), Research every 4h, Finance every 3h. Ids in
+`platform/naive/team.json`. First approval probe (`ses_2grj3v1g3crmfp7052b6yq00hb`) ended with
+`end_turn`, no approval card.
+**Why:** Package 6 in the master plan.
+**Files:** `platform/naive/team.json`.
+**State:** Agents and deployments exist. **Approval verdict is provisional:** `npm run vault`
+failed (`API key is missing the admin scope`), so the agents have no bearer for the platform yet
+and the probe may not have reached it. Checking `activity_log` for the probe's row; fixing with an
+admin-scoped key.
+**Next / heads-up:** **Pinara:** the agents exist; edit prompts in `platform/naive/src/roster.ts`
+and re-run `npm run setup`, don't edit them in the Studio or setup will overwrite. **Everyone:**
+deployments stay disabled until the 6:00 PM switch-on (`npm run kill -- on`).
+
 ### 2026-11-07 15:25 PT · Abhinav (Claude) · branch `main`
 
 **What:** `npm run vault` in `platform/naive`: stores the platform MCP bearer in a Naïve vault as a
