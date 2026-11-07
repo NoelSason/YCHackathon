@@ -20,6 +20,21 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 15:20 PT · Abhinav (Claude) · branch `main`
+
+**What:** Platform now deploys as a **Neon Function** instead of Render (`platform/mcp/src/fn.ts`,
+declared in `platform/mcp/neon.ts`; `render.yaml` removed). Same 20 tools and routes
+(`/mcp`, `POST /events`, `/games/:id/schema`, `/health`) as a web-standard fetch handler; the
+Express server stays for local dev. The MCP endpoint answers in JSON mode (stateless).
+**Why:** Render asked for a card. Neon Functions is covered by the Neon credits, gives a public HTTPS
+URL next to the database, injects `DATABASE_URL`, and deploys with `neon deploy --env .env`.
+**Files:** `platform/mcp/src/fn.ts`, `platform/mcp/neon.ts`, `platform/README.md`, `platform/naive/.env.example`.
+**State:** Typechecks. Smoke test passed against the fetch handler served locally on a local
+Postgres (health, events, 401 without bearer, schema, all tool calls). **Not deployed yet.**
+**Next / heads-up:** Abhinav runs `neon deploy --env .env` from `platform/mcp`, then the smoke
+test against the invocation URL, then the Naïve setup. **Max:** the games POST events to
+`https://<invocation_url>/events`; CORS is open.
+
 ### 2026-11-07 14:55 PT · Abhinav (Claude) · branch `main`
 
 **What:** Platform verified against Neon. `neon deploy` on project `raspy-bread-00151777`, branch

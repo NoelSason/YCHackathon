@@ -18,5 +18,17 @@ npm run dev              # :8787
 npm run smoke            # lists tools, saves a stub level, queues a solve, logs a decision
 ```
 
-Deploy target: Render (web service, `npm run build && npm start`). Naïve needs a public HTTPS URL
-and takes the bearer from its vault, keyed to that URL.
+## Deploy (Neon Functions, free with the Neon credits)
+
+The server also runs as a Neon Function (`mcp/src/fn.ts`, declared in `mcp/neon.ts`):
+
+```bash
+cd platform/mcp
+neon deploy --env .env      # prints the invocation_url
+neon functions get platform # shows it again
+curl https://<invocation_url>/health
+MCP_URL=https://<invocation_url>/mcp npm run smoke
+```
+
+`DATABASE_URL` is injected by Neon. `MCP_BEARER_TOKEN` and `GAMES_BASE_URL` are read from `.env`
+at deploy time. Naïve attaches `https://<invocation_url>/mcp` and takes the bearer from its vault.
