@@ -11,33 +11,91 @@ breaks. Every step-in is logged.
 
 ## The company
 
-- **The product is the platform, not a game.** Any puzzle game can plug in through a small
+- **The product is the platform, not a game.** Any casual game can plug in through a small
   adapter. We don't build a game.
-- **Six open-source games as our first customers.** We fork six existing open-source puzzle games,
-  connect each one to the platform, and let the agents make and ship levels for all six. Running
-  six different games proves the platform works for any game, which is the B2B pitch.
-- **Real studios as paying customers.** Agents find puzzle games whose players are asking for more
-  levels, make sample levels for that genre *before* reaching out, and sell a pilot pack.
+- **Three open-source games as our first customers,** one per genre: a match-3 puzzle game, a
+  rhythm runner, and a property-trading board game. We fork each one, connect it to the platform,
+  and let the agents make and ship new content for all three. Three very different genres on one
+  platform prove it works for any game, which is the B2B pitch.
+- **What "levels" means depends on the genre:** puzzle levels for match-3, obstacle courses timed
+  to music for the runner, and new boards and challenge scenarios for the board game. For the board
+  game the real product is **balance**: no player strategy or seat should win too often.
+- **Real studios as paying customers.** Agents find games whose players are asking for more levels
+  or complaining about difficulty, make sample content for that genre *before* reaching out, and
+  sell a pilot pack.
 
-The pitch to a studio: "Our agents have been making and tuning levels for six games since
-Saturday. Here's the data. Plug yours in."
+The pitch to a studio: "Our agents have been making and tuning content for three different games
+since Saturday. Here's the data. Plug yours in."
 
-### Rules for the six games
+## Our three games
 
-"Clone a game" here means **fork an open-source game whose license allows it.** It doesn't mean
-recreating a commercial game such as Candy Crush.
+The team found open-source versions of games like **Candy Crush, Geometry Dash, and Monopoly.**
+Those names describe the genre of each game. **We use the genre and mechanics, not the original
+game.**
 
-- **License:** MIT, Apache, BSD, or similar permissive licenses are best. If a license has
-  conditions (GPL, for example), follow them. Keep the original credit and license file.
-- **No ripped art:** many "Candy Crush clone" repos use art copied from the real game. Skip those,
-  or replace the art.
-- **Levels stored as data** (JSON or text), so agents can write them.
-- **Rules that run without the browser**, so the Solver can play them thousands of times in Node.
-- **Plays well on a phone browser**, for the playtests and the audience.
-- **Mix the genres.** Some puzzle types can be solved exactly by search, which gives exact numbers
-  such as "solvable, minimum 14 moves": Sokoban-style pushing, sliding blocks, connect-the-dots
-  paths, and nonograms. Match-3 can't be solved exactly, so its difficulty comes from simulated
-  play. Two match-3 games and four search-solvable games give both kinds of evidence.
+**Rules for every fork (non-negotiable):**
+
+- **License:** the repo's license must allow forking and modification, and we keep its credit and
+  license file. No license file means we can't use it.
+- **Not a copy of the original.** Candy Crush (King), Geometry Dash (RobTop), and Monopoly (Hasbro)
+  are trademarks, and their art, music, characters, levels, and boards are copyrighted. In our
+  product and demo, each game gets **its own name and its own art.** Our forks never use the
+  original game's name, logo, look, music, levels, or board (such as Monopoly's street names,
+  tokens, or card text). If a repo ships copied assets, replace them before anything is public.
+  In conversation, "a Candy Crush–style game" is fine for describing the genre.
+- **Music** for the rhythm runner must be royalty-free or CC0 with its license recorded. Many
+  Geometry Dash clones bundle the original game's songs. Never use those.
+- **Levels stored as data,** and **rules that run without the browser,** so the Solver can play
+  them thousands of times in Node. Check this before committing to a repo.
+
+### 1. Match-3 puzzle (Candy Crush–style)
+
+- **A level:** grid layout, colors, blockers, a goal (collect N of a color, clear marked tiles),
+  and a move limit.
+- **How hard is it:** bot players (random, greedy, light tree search) play it hundreds of times.
+  Measure the win rate, moves left, and attempts per win. Match-3 can't be solved exactly (Candy
+  Crush is NP-hard), so simulation is the standard method.
+- **Tuning:** the move limit, colors, and blockers, until the level is within a few points of its
+  target win rate.
+- **Phone playtest:** the Mobilerun agent plays it by tapping. Turn-based, so remote taps work.
+
+### 2. Rhythm runner (Geometry Dash–style)
+
+- **A level:** a timeline of obstacles (spikes, blocks, gaps, jump pads, speed or gravity changes)
+  placed on the beats of a royalty-free song.
+- **How hard is it:** the game runs frame by frame with fixed physics, so a **search solver** can
+  find whether any sequence of jumps clears the level. That gives an exact answer: possible or
+  impossible. Difficulty comes from **how many inputs it needs and how tight each timing window
+  is** (a jump that must land within 2 frames is much harder than one with 12). Bots with
+  human-like reaction delays then give a win rate.
+- **Tuning:** widen or tighten the timing windows, spacing, and speed until the level hits its
+  target. Every published level is proven possible.
+- **Making levels:** detect the song's beats, then let the Designer place obstacles on them.
+- **Phone playtest:** a cloud phone's taps arrive over the network, too late for frame-exact
+  jumps. So the phone **doesn't** play it by hand. The game runs a replay of the solver's winning
+  inputs on the phone, and the agent checks that it loads, renders, stays smooth, and matches what
+  the solver expected. The recording also makes a good trailer.
+
+### 3. Property-trading board game (Monopoly-style)
+
+- **"Levels" here:** new boards (properties, prices, rents, tile order, a theme) and **challenge
+  scenarios** ("start from this position, win within 15 turns").
+- **How hard or balanced is it:** AI players with different strategies (buy everything, save cash,
+  trade aggressively) play thousands of games. Measure the average game length, the share of
+  games that end within the time limit, the first-seat advantage, and how often each strategy
+  wins.
+- **Tuning:** prices and rents until no strategy wins more than its fair share, games end within a
+  target number of turns, and seat order doesn't matter much.
+- **Phone playtest:** turn-based, so the Mobilerun agent can play a full game.
+- **Why it matters for the pitch:** it shows the platform does game balance, not only puzzle
+  levels. Balance is work every multiplayer and board-game studio pays for.
+
+### The order to connect them
+
+Start with **match-3** (closest to the research, and phone-friendly), then the **board game**
+(simple turn-based simulation), then the **rhythm runner** (the physics solver is the most work, and
+the most impressive result). Two games running end to end by 6:00 PM beat three half-connected
+ones.
 
 ## Why this can win
 
@@ -45,7 +103,7 @@ recreating a commercial game such as Candy Crush.
   "minimum 14 moves, as requested" is the kind of proof winners show.
 - **A visible state change.** A level starts at a 3% win rate, so it's too hard. The agent retunes
   it to 41%, and a real phone plays it.
-- **Generality.** Six different games run on one platform, all live.
+- **Generality.** Three very different genres run on one platform, all live.
 - **A plain business.** "We make game levels for puzzle studios" works for judges and for a YC
   interview.
 - **A real job for phones.** Mobilerun lists testing apps as one of its own example uses.
@@ -78,7 +136,7 @@ Research on judging and past winners: `docs/how-to-win.md`. The agent design: `d
 
 | Person | Owns | Detail |
 |---|---|---|
-| **Max** | **Game integration** | Picks and forks the six games, writes each one's adapter, connects them to the platform, sends player events, and hosts them |
+| **Max** | **Game integration** | Forks the three games, gives each its own name and art, writes each one's adapter, connects them to the platform, sends player events, and hosts them |
 | **Noel** | **Mobile integration** | Mobilerun phones that Naïve agents control: playtesting, phone-based research, the live phone view, plus the demo script |
 | **Abhinav** | **The platform** | The database, the API and agent tools, the Solver harness, payments and email plumbing, and the heartbeat dashboard |
 | **Pinara** | **The agents** | The Naïve Team: CEO, Designer, Tuner, Playtest Lead, Research, and Sales, with their skills, budgets, permissions, schedules, and decision log. Full plan: `docs/agent-plan.md` |
@@ -100,11 +158,11 @@ Everything depends on this, so Max and Abhinav agree on it by **3:00 PM** and wr
 
 ### Max: game integration
 
-1. **By 2:45 PM:** pick the six games against the rules above, and check each license. Start with
-   the two easiest.
+1. **By 2:45 PM:** check each of the three repos against the rules above: license, copied art or
+   music, levels as data, and rules that run in Node. Replace any copied assets.
 2. **The adapter for game 1**, end to end: schema, validate, simulate (or solve), load by URL,
    events, and `SKILL.md`. This is the pattern for the other five.
-3. **Games 2–6**, each one on the same pattern. Host them all on Vercel under our domain.
+3. **Games 2 and 3** on the same pattern, in the order above. Host them all on Vercel under our domain.
 4. **Phone check:** each game loads and plays in mobile Safari and Chrome. Noel's playtests depend
    on it.
 5. Keep each game's original credit and license in its folder.
@@ -112,7 +170,7 @@ Everything depends on this, so Max and Abhinav agree on it by **3:00 PM** and wr
 ### Two ways a game connects
 
 1. **Adapter (deep integration).** The game's code plugs into the platform, as above. Used for our
-   six open-source games. It gives the fastest testing and exact numbers.
+   three open-source games. It gives the fastest testing and exact numbers.
 2. **Phone integration (no code from the studio).** Our agents write a **plan**, and the
    **Mobilerun agent carries it out inside the studio's own app** on a cloud phone. It installs the
    game, opens each level (by deep link, a debug level loader, or the game's own level editor),
@@ -147,7 +205,7 @@ A plan is structured, so the Mobilerun agent can follow it and its results can b
 
 Mobilerun has two ways to run this, and Noel picks per step. The **Agent** (Tasks API) takes a goal
 in plain words and decides the taps itself, which suits a studio app we've never seen. The
-**Phone** API (tap, swipe, screenshot) gives exact control, which suits our own six games. Default
+**Phone** API (tap, swipe, screenshot) gives exact control, which suits our own three games. Default
 to the Agent for studio apps.
 
 **Check early:** how to install a studio's build on a cloud phone. Android can install an APK file.
@@ -163,7 +221,7 @@ with the Mobilerun docs or the Mobilerun team before promising this to a studio.
    recording. On Android, Chrome can be driven directly, so the agent can read the game's state.
 3. **The plan runner (phone integration):** take a plan in the JSON shape above, send it to the
    Mobilerun Agent on a phone with the target app installed, and return structured results and the
-   recording. Prove it on one of our six games installed as an app or a home-screen web app, then
+   recording. Prove it on one of our three games installed as an app or a home-screen web app, then
    on any free puzzle app as a stand-in for a studio's game. Agree on the plan and result shapes
    with Pinara by 3:00 PM.
 4. **Phone research:** the agent plays top puzzle games on a phone and records mechanics and
@@ -203,14 +261,13 @@ The full plan is in `docs/agent-plan.md`. In short:
 
 ### If we're behind, cut in this order
 
-If 8:00 PM Saturday arrives without a full loop, cut in this order: Luxor, games 5 and 6, phone
-research on other games, Android playtests, in-game purchases, then games 3 and 4. Always keep at
-least two games running Design → Tune → Solve → Ship → Phone playtest → Player data → CEO
+If 8:00 PM Saturday arrives without a full loop, cut in this order: Luxor, phone research on other
+games, Android playtests, in-game purchases, then the rhythm runner. Always keep at least two games
+running Design → Tune → Solve → Ship → Phone playtest → Player data → CEO
 decision → Sales email.
 
-**Six games is ambitious.** Each adapter is real work, especially the headless `simulate`. Two
-games running end to end by 6:00 PM beat six half-connected ones. Add the rest only after the
-first two work.
+**Each adapter is real work,** especially the headless `simulate` and the rhythm runner's
+solver. Get two games working end to end before starting the third.
 
 ## Sponsor tools: what each one does for us
 
@@ -224,7 +281,7 @@ first two work.
 | **HubSpot** | Studio pipeline: found → sample made → emailed → replied → pilot paid → delivered | Abhinav (setup), Pinara (Sales agent) |
 | **Stripe** | Studio pilot-pack payment links, and hint packs in the games. Test mode until the team agrees to go live. | Abhinav |
 | **OpenAI / OpenRouter** | Models. A strong model for design and sales replies, a cheap one for sorting reviews. Route through Naïve's model proxy where possible, so all spend sits in one ledger. | Pinara |
-| **Vercel** | Hosts the six games and the dashboard | Max (games), Abhinav (dashboard) |
+| **Vercel** | Hosts the three games and the dashboard | Max (games), Abhinav (dashboard) |
 | **Neon** | Postgres for everything the demo replays | Abhinav |
 | **Render** | Solver worker, if a Naïve Computer is too slow or costly | Abhinav |
 | **Luxor** | Stretch: train a small model that predicts difficulty from a level's layout. King's research found a learned model can beat simulation-only bots at predicting how hard a level feels to people. | Abhinav |
@@ -279,12 +336,12 @@ Hacking runs from 1:00 PM Saturday to **11:00 AM Sunday, the code freeze**.
 
 | When | Milestone |
 |---|---|
-| Sat now–3:00 PM | **Spikes.** Max: six games picked and game 1's adapter started. Noel: a phone a Naïve agent controls. Abhinav: Neon tables and the first MCP tools. Pinara: the Naïve Team skeleton, approval rules tested, marketplace templates checked. |
+| Sat now–3:00 PM | **Spikes.** Max: three repos checked and the match-3 adapter started. Noel: a phone a Naïve agent controls. Abhinav: Neon tables and the first MCP tools. Pinara: the Naïve Team skeleton, approval rules tested, marketplace templates checked. |
 | Sat 3:00 PM | **Contracts.** The adapter interface, the MCP tool list, player events, the activity log, and environment variable names, all written in `log.md`. Naïve Computer or Render for the Solver. |
 | Sat 3:00–6:00 PM | Two games connected. Their first levels designed, solved, tuned, and playable on phones. |
 | **Sat 6:00 PM** | **Switch the company on.** The CEO ships the first packs on cron, and Sales sends its first personal emails. |
 | **Sat 8:00 PM** | **Full loop on two games:** design → tune → solve → ship → phone playtest → player data → CEO decision → sales. |
-| Sat 8:00 PM–2:00 AM | Games 3–6. Budget caps and kill switches. Get real people playing (the room, our posts). |
+| Sat 8:00 PM–2:00 AM | The third game (rhythm runner). Budget caps and kill switches. Get real people playing (the room, our posts). |
 | **Sun 2:00–8:00 AM** | **Hands off.** Packs ship on schedule, the CEO retunes from player data, and Sales answers replies. Log every step-in. |
 | Sun 8:00–10:00 AM | **Feature freeze at breakfast.** Read the overnight log, fix the worst failure, check every demo path, and record a backup. |
 | Sun 10:00–11:00 AM | Rehearse. |
@@ -295,7 +352,7 @@ Hacking runs from 1:00 PM Saturday to **11:00 AM Sunday, the code freeze**.
 Open with the result, not the architecture.
 
 1. **0:00–0:20: the result.** "At 2:00 AM we stopped touching this company. Since then its agents
-   designed N levels for six games, tested each one hundreds of times, shipped N packs, retuned N
+   designed N levels across three games, tested each one hundreds of times, shipped N packs, retuned N
    levels from what N players did, emailed N studios, and spent $N. We stepped in N times." Real
    numbers only.
 2. **0:20–1:10: one level's life.** The Designer's draft → the Solver says 3%, too hard → the Tuner
@@ -304,7 +361,7 @@ Open with the result, not the architecture.
    numbers behind it.
 4. **1:40–2:20: the live part.** A QR code on screen. The audience plays a level the agents made a
    minute ago, while a Mobilerun iPhone plays it on the big screen.
-5. **2:20–3:00: the business.** Six games on one platform, the studio pipeline, and any replies or
+5. **2:20–3:00: the business.** Three genres on one platform, the studio pipeline, and any replies or
    payments. Bottom-up math: studios × levels per month × price per level, with a source for every
    number. Then the list of step-ins, honestly.
 
@@ -315,7 +372,7 @@ Open with the result, not the architecture.
    them to `allow`. But once a chat reads people's data (such as an inbound email), every send,
    phone action, and MCP call in that chat asks *each time, even at `allow`.* Pinara tests this in
    the first hour. Every approval clicked overnight is a step-in judges count.
-2. **Six adapters is a lot.** See the cut order above.
+2. **Three adapters, one of them hard.** The rhythm runner's solver is the riskiest piece. See the cut order above.
 3. **Headless play.** Some open-source games mix rules with drawing code, so their rules won't run
    in Node. Check this before choosing a game.
 4. **Licenses and art.** Check every license. Skip any repo with art copied from a commercial game.
@@ -326,6 +383,7 @@ Open with the result, not the architecture.
 8. **Research limits.** Phones play other companies' games only to study them. Follow each game's
    terms, and never copy levels or art.
 9. **Spend.** Cap every Naïve agent's budget, and set a daily limit in Monid.
+10. **Trademarks and copied assets.** Our forks must have their own names, art, and music. Check every repo before anything goes public.
 
 ## Sources for the difficulty approach
 

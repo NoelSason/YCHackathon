@@ -10,21 +10,24 @@ the product, and handle day-to-day operations.
 
 - **Company:** an autonomous level studio for puzzle games. Any game plugs in through an adapter.
   Agents design levels, test each one hundreds of times with bot players or exact solvers, tune
-  the difficulty, playtest on real phones, and ship. We run six forked open-source games as our
-  first customers and sell the same service to studios. We don't build a game.
+  the difficulty, playtest on real phones, and ship. We run three forked open-source games as our
+  first customers (a match-3 puzzle game, a rhythm runner, and a property-trading board game) and sell
+  the same service to studios. We don't build a game.
 - **Decided Nov 7, ~1:45 PM:** the team dropped the earlier streaming idea completely. Don't build
   anything for streaming, chat, or clipping streams.
 - **Full plan:** `README.md` has the agents, the sponsor-tool map, each person's plan, the
   timeline, and the risks. Read it before starting work.
 - **Games: open source only.** Fork only open-source games whose license allows it, and keep their
-  credit and license files. Never recreate a commercial game, and never use art copied from one.
+  credit and license files. Our forks are "Candy Crush–style," "Geometry Dash–style," and
+  "Monopoly-style" in genre only. Never use those games' names, logos, art, music, levels, boards,
+  or card text, and replace any copied assets a repo ships with.
   The levels the agents make are new. Phones may play other companies' games only to study them.
 
 ## Team and ownership
 
 | Person | Owns |
 |---|---|
-| **Max** | Game integration: picks and forks the six games, writes each game's adapter (schema, validate, simulate or solve, load by URL, events, `SKILL.md`), and hosts the games |
+| **Max** | Game integration: forks the three games, gives each its own name and art, writes each game's adapter (schema, validate, simulate or solve, load by URL, events, `SKILL.md`), and hosts the games |
 | **Noel** | Mobile integration: Mobilerun phones driven by Naïve agents (playtests, phone research, the live view), plus the demo script |
 | **Abhinav** | The platform: Neon, the API offered to agents as one MCP server, the Solver harness, Stripe, AgentMail, and HubSpot plumbing, and the heartbeat dashboard |
 | **Pinara** | The agents: the Naïve Team (CEO, Designer, Tuner, Playtest Lead, Research, Sales), skills, budgets, permissions, cron, and the decision log. Plan: `docs/agent-plan.md` |

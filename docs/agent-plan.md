@@ -120,7 +120,7 @@ agents make real decisions.
 
 **Playtests run as plans.** The Playtest Lead never taps a screen itself. It writes a plan (which
 app, which levels, how many tries, what to report, what never to touch), and the Mobilerun agent
-carries it out inside the app on a cloud phone. The same plan format works for our six games and
+carries it out inside the app on a cloud phone. The same plan format works for our three games and
 for a studio's own app, so studios need no code to start. Validate the results against the plan:
 every planned level has a result, or a reason it's missing.
 
@@ -131,8 +131,16 @@ back to `tune` once. If it fails again, it's dropped and counted.
 
 A Naïve skill is a versioned `SKILL.md` attached to an agent and loaded only when needed. Max
 writes a `SKILL.md` for each game: the rules, the level format, what makes a level hard, and two
-example levels. Push each one as a Naïve skill (`naive skill push --slug game-<name> --file ...`)
-and attach all six to the Designer and the Tuner. Pin versions (`game-<name>@3`) once a game is
+example levels.
+
+The three skills differ in what a "level" is and how the Tuner judges it:
+
+| Game | A "level" | The Tuner's target |
+|---|---|---|
+| Match-3 | Grid, colors, blockers, goal, move limit | Win rate from bot plays, within a few points of target |
+| Rhythm runner | Obstacles timed to a song's beats | Proven possible by the solver, plus a target timing tightness and bot win rate |
+| Board game | A board (prices, rents, tile order, theme) or a challenge scenario | Balance: no strategy or seat wins far more than its share, and games end within a target number of turns | Push each one as a Naïve skill (`naive skill push --slug game-<name> --file ...`)
+and attach all three to the Designer and the Tuner. Pin versions (`game-<name>@3`) once a game is
 stable, so a skill edit can't change overnight behavior by surprise.
 
 ## Structured outputs
@@ -189,7 +197,7 @@ numbers hold or improve.
 | 2:15 PM | Marketplace templates checked. Base chosen. |
 | 2:45 PM | Approval rules tested and written in `log.md` |
 | 3:00 PM | Contracts agreed: the MCP tool list with Abhinav, the skill format with Max, and the playtest tool with Noel |
-| 4:30 PM | Designer and Tuner make one accepted level for game 1, end to end |
+| 4:30 PM | Designer and Tuner make one accepted level for the match-3 game, end to end |
 | 5:30 PM | The CEO runs on cron and writes its first real decision |
 | **6:00 PM** | **Switched on.** Packs on schedule, and Research and Sales running |
 | 8:00 PM | Full loop on two games, playtests included |

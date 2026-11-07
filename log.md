@@ -20,6 +20,21 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 13:57 PT · Noel (Claude Code) · branch `main`
+
+**What:** Six games became **three**, one per genre: match-3 (Candy Crush–style), a rhythm runner
+(Geometry Dash–style), and a property-trading board game (Monopoly-style). New "Our three games"
+section in `README.md`: what a level is in each genre, how difficulty is measured (bot win rates,
+an exact physics solver for the runner, strategy balance for the board game), tuning, and how each
+gets playtested on a phone. Updated `AGENTS.md` and `docs/agent-plan.md`.
+**Why:** The team found open-source versions of those three games.
+**Files:** `README.md`, `AGENTS.md`, `docs/agent-plan.md`.
+**State:** Docs only. Repos not checked yet.
+**Next / heads-up:** **Max:** check each repo's license and assets before building on it. Our
+forks need their own names, art, and music. Never ship Candy Crush, Geometry Dash, or Monopoly
+names, art, songs, levels, or boards. **Noel:** cloud-phone taps are too slow for the rhythm runner,
+so play it back from the solver's inputs instead of by hand.
+
 ### 2026-11-07 13:55 PT · Noel (Claude Code) · branch `main`
 
 **What:** Plan reworked for the four of us and for six open-source games.
