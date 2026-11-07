@@ -215,4 +215,5 @@ After a pull, read the new entries at the top of `log.md` before you start work.
 
 ## Repo layout
 
-_TBD. Document the directories here as they're created._
+- `platform/`: Abhinav. Neon schema, the MCP server, contracts. See `platform/README.md`.
+- `games/<game_id>/`: Max. One directory per game; adapter at `games/<game_id>/adapter/`.

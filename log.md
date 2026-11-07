@@ -20,6 +20,28 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 14:40 PT · Abhinav (Claude) · branch `main`
+
+**What:** Platform v1. `platform/CONTRACTS.md` has the three contracts due at 3:00 PM: how a
+game adapter plugs in (`games/<game_id>/adapter/index.ts`, default export with `schema`,
+`validate`, `simulate`, `solve?`, `bots`, `level_url`; player events `POST /events`), the full
+MCP tool list (20 tools, inputs/outputs/permissions), and the activity log, decision record, and
+step-in log fields. `platform/db/schema.sql` has every table. `platform/mcp/` is the MCP server
+(Streamable HTTP, bearer auth) with all 20 tools implemented against Postgres, a `stub` game so
+agents can be built before real adapters land, and `POST /events`.
+**Why:** Unblocks Pinara (agents and Solver harness), Noel (business tools), and Max (adapter shape).
+**Files:** `platform/CONTRACTS.md`, `platform/README.md`, `platform/db/schema.sql`, `platform/mcp/`, `AGENTS.md` (repo layout).
+**State:** Works. Typechecks (strict). Smoke test passed against a local Postgres: schema applied,
+event ingested, save_level → solve_level (queued) → log_decision → resolve → get_company_metrics.
+Not yet: deployed to Render, pointed at Neon, Stripe call (placeholder link), spend ledgers in `get_spend`.
+**Next / heads-up:** **Pinara:** `solve_level` only inserts a `solver_runs` row with `status='queued'`;
+your harness claims rows (`claimed_by`, `started_at`) and writes `results`/`solvable`/`min_moves`.
+Tool names are final unless you object by 3:00. **Naïve defaults MCP tools to `ask`**: every tool
+each agent uses must be `allow` by name in that agent's `tools.configs`. **Max:** adapter shape in
+CONTRACTS §1; `simulate`/`solve` must run in Node with no DOM. **Noel:** `crm_*`, `record_email`,
+`create_payment_link`, `get_spend` are yours to extend; Stripe is a placeholder until a key exists.
+**Everyone:** human actions (kill switch, step-ins) are not MCP tools; they write to `interventions`.
+
 ### 2026-11-07 14:19 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Master plan locked in: `docs/master-plan.md`.** It's the source of truth for roles,
