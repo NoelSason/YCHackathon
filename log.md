@@ -20,6 +20,28 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 15:13 PT · Pinara (Claude Code) · branch `main`
+
+**What:** Added `docs/open-source-options.md` with checked picks for the games and a proposal for
+the third one:
+- houseki's Gem Swap engine for match-3 and Parkway for the board game, both MIT.
+- A proposal to replace the rhythm runner with PuzzleScript plus an exact BFS solver.
+- Free art and music with their licenses, helper libraries, a Mobilerun plan, and a don't-use list.
+
+**Why:** So we build on licensed, checked code instead of searching, and so the third game is
+decided on facts.
+**Files:** `docs/open-source-options.md`.
+**State:** Research only. Licenses were read from LICENSE files, and the key repo claims were
+spot-checked with `gh`. Nothing was cloned or run.
+**Next / heads-up:**
+- **Team:** decide PuzzleScript vs. the rhythm runner. The master plan's package table says the
+  runner is cut first, but its cut order lists it last.
+- **Max:** do 1-hour spikes on houseki and Parkway before committing. Draw match-3 tiles as DOM
+  elements so the phone agent can read them.
+- **Noel:** for an API key, the Mobilerun MCP URL is `https://api.mobilerun.ai/v1/mcp`, not the
+  OAuth URL in `CLAUDE.md`. Mobilerun agent steps cost about 0.5 credits each, so 1,500 credits is
+  about 3,000 steps.
+
 ### 2026-11-07 15:20 PT · Abhinav (Claude) · branch `main`
 
 **What:** Platform now deploys as a **Neon Function** instead of Render (`platform/mcp/src/fn.ts`,
