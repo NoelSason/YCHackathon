@@ -1,0 +1,3 @@
+node_modules/
+# Exported runs can contain studio names and email details. Share them on purpose, not by accident.
+data/

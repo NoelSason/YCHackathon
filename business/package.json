@@ -1,0 +1,36 @@
+{
+  "name": "@levelstudio/business",
+  "private": true,
+  "type": "module",
+  "description": "Business ops for the level studio: outreach, CRM, billing, finance, and phone playtests, built for Naïve agents.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "mcp": "tsx src/mcp/server.ts",
+    "webhooks": "tsx src/server.ts",
+    "agents:plan": "tsx src/agents/create.ts",
+    "agents:apply": "tsx src/agents/create.ts --apply",
+    "research": "tsx src/research/cli.ts",
+    "smoke": "tsx src/smoke/business.ts",
+    "deploy": "npx -y neon@9.2.0 deploy --env ../.env"
+  },
+  "dependencies": {
+    "@mobilerun/sdk": "^6.1.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@neondatabase/serverless": "^1.2.0",
+    "@usenaive-sdk/managed-agents": "^0.12.3",
+    "agentmail": "^0.5.53",
+    "stripe": "^23.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@neon/config": "^1.13.0",
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

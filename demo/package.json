@@ -1,0 +1,23 @@
+{
+  "name": "@levelstudio/demo",
+  "private": true,
+  "type": "module",
+  "description": "The demo stage: one live screen that shows the company's agents working, from the real activity log.",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "check": "tsx src/server.ts --check",
+    "snapshot": "tsx src/snapshot.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0"
+  }
+}

@@ -99,6 +99,45 @@ Postgres (health, events, 401 without bearer, schema, all tool calls). **Not dep
 test against the invocation URL, then the Naïve setup. **Max:** the games POST events to
 `https://<invocation_url>/events`; CORS is open.
 
+### 2026-11-07 15:16 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Synced business ops with the platform, and set up Level AI.**
+- **Company name: Level AI.** Sales inbox `levelai@agentmail.to`. The postal address in the email footer is
+  set in `.env` (not committed).
+- **One set of tables.** Business ops now writes to the platform's tables: `studios`, `emails`, `payments`,
+  `activity_log`, and `interventions`. The `biz_leads`, `biz_outreach`, `biz_payments`, and `biz_activity`
+  tables are gone. `business/src/db/schema.sql` is now additive: four studio columns, three more stages
+  (`pilot_offered`, `lost`, `opted_out`), one payment row per Stripe event, opt-outs, and deliveries. It's
+  tested against the real platform schema in an in-process Postgres.
+- **One agent roster.** The business tools are attached to Abhinav's roster (`platform/naive/src/roster.ts`)
+  through a new `businessTools` list, and `setup-team.ts` adds the business MCP server when
+  `BUSINESS_MCP_URL` is set. Research, Sales Reader, Sales Sender, Finance, and Playtest now have real tools
+  for what their prompts already described: `find_targets` and `save_lead`; `record_reply`;
+  `draft_outreach`, `send_outreach`, and the new `send_reply`; `finance_snapshot`; and `run_playtest`.
+  My standalone `agents:apply` is disabled so it can't overwrite these.
+- **New `send_reply`** answers a studio in the same thread. It adds the legal footer, blocks any number
+  without a source, and respects opt-outs. Inbound replies are now saved to `emails` as they arrive.
+- **Demo stage** reads `studios` and `payments` for its pipeline panel.
+- Pulled Abhinav's three commits and resolved the conflicts in `AGENTS.md` and this log, keeping both sides.
+**Why:** Teammates' work and mine wrote to separate tables and separate agents with the same names.
+**Files:** `business/`, `platform/naive/src/roster.ts`, `platform/naive/src/setup-team.ts`,
+`demo/src/feeds.ts`, `demo/README.md`, `README.md`, `AGENTS.md`.
+**State:** 41 business tests, 6 demo tests, and all three typechecks pass. **Mobilerun works:** "Noel's
+iPhone" is ready, and `./demo.sh --check` shows live screenshots. **AgentMail works:** the key reads the inbox,
+which holds only the welcome email (nothing to answer). The key is inbox-scoped, so it can't read
+organization status or change labels. Nothing was sent. **Not done:** `DATABASE_URL` (Abhinav), `DEMO_PLAY_URL`
+(Max), a public URL for the business server, and the AgentMail webhook.
+**Next / heads-up:**
+- **Abhinav:** apply `business/src/db/schema.sql` after the platform schema (or add it to `migrate.ts`). I edited
+  `roster.ts` and `setup-team.ts` (additive: `businessTools`, a second MCP server). Look them over before
+  your next `npm run setup`. I removed `platform.create_payment_link` from `sales_sender`, because it lets the
+  agent pick the amount; `business.create_payment_link` uses the team's price. The business server's bearer
+  also goes in Naïve's vault, keyed to `BUSINESS_MCP_URL`.
+- **Pinara:** the research, sales, finance, and playtest prompts in `roster.ts` changed to name the business tools.
+- **Max:** the demo QR reads `DEMO_PLAY_URL`.
+
+---
+
 ### 2026-11-07 14:55 PT · Abhinav (Claude) · branch `main`
 
 **What:** Platform verified against Neon. `neon deploy` on project `raspy-bread-00151777`, branch
@@ -155,6 +194,66 @@ each agent uses must be `allow` by name in that agent's `tools.configs`. **Max:*
 CONTRACTS §1; `simulate`/`solve` must run in Node with no DOM. **Noel:** `crm_*`, `record_email`,
 `create_payment_link`, `get_spend` are yours to extend; Stripe is a placeholder until a key exists.
 **Everyone:** human actions (kill switch, step-ins) are not MCP tools; they write to `interventions`.
+
+### 2026-11-07 14:42 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Business ops, first working version: `business/`.**
+- **Research:** reads the top free puzzle games on Google Play and their newest reviews through
+  Monid, finds level-design complaints, and ranks studios with a checkable reason.
+- **Outreach:** writes the first email from that evidence, checks it (postal address, opt-out
+  line, daily cap of 20, one first email per lead, no number without a source), and sends through
+  AgentMail. Drafts only until `OUTREACH_SEND=1`.
+- **Replies:** Svix-verified AgentMail webhook, opt-outs, and a fresh Sales Reader session.
+- **CRM:** Naïve's own CRM, with our stages mapped onto its stages.
+- **Billing:** a Stripe payment link at the team's set price, and an idempotent webhook that queues
+  delivery. Live keys are refused unless allowed.
+- **Finance:** a snapshot that keeps real and test-mode revenue apart.
+- **Also:** the table QR lead form, the phone-playtest plan runner (Mobilerun Tasks API with a
+  structured result per level), and an 11-tool business MCP server.
+- **Five Naïve agents defined:** Research, Sales Sender, Sales Reader, Finance, and Playtest Lead.
+  Each denies built-in tools by default and has a budget.
+- `npm run smoke` covers the business rows of the demo checks. Also added `docs/demo-script.md`
+  (a draft) and `node_modules/` to `.gitignore`.
+**Why:** Business ops is my top priority in the master plan. The organizers said Stripe credits
+come later, so billing is kept minimal.
+**Files:** `business/`, `docs/demo-script.md`, `AGENTS.md` (repo layout), `.gitignore`.
+**State:** 35 tests and the typecheck pass. **A real Monid run worked** (8 games, about $0.01).
+Top target: Parking Loop (Loop Games), where 7 of 86 newest reviews say it's too easy. False
+positives found in that run ("not too hard") are fixed. The server ran locally: MCP auth, 11
+tools, and the lead form all checked. **Not verified yet:** AgentMail, Stripe, Naïve CRM and
+agent creation, Mobilerun, and Neon. Each needs keys or accounts we don't have yet (list in
+`business/README.md`). Nothing was sent, charged, or claimed.
+**Next / heads-up:**
+- **Abhinav:** my business tools are their own MCP server (`/mcp` in `business/src/server.ts`), not
+  part of the platform MCP. If you'd rather merge them, the tool names are the contract. The
+  `biz_` tables need `business/src/db/schema.sql` applied to Neon.
+- **Abhinav and Pinara:** the CEO's roster gets my five agents (`npm run agents:apply`).
+- **Team decisions needed:** the pilot price (`PILOT_PRICE_USD`), the company postal address for
+  emails (US email law), and whether Stripe goes live.
+
+---
+
+### 2026-11-07 14:45 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Demo stage: `./demo.sh` opens one full-screen live view of the company running.** It
+reads the activity log in Neon and shows: how long the company has run without a person, agent
+actions, decisions (with Saw / Why / Expected / Result), human step-ins, spend, each agent lighting
+up as it works, a live feed, the Mobilerun phone's screen about once a second, a QR code to play a
+level, and the studio pipeline. `--replay <file>` plays back a saved run (the backup), `--sample`
+rehearses the layout under a "SAMPLE DATA" banner, and `--check` is the "Live phone view"
+readiness check.
+**Why:** The demo needs to start with one command and show the automation without explaining it.
+Every number is counted from log rows, so nothing is typed in.
+**Files:** `demo.sh`, `demo/` (own `package.json`), `AGENTS.md` (repo layout).
+**State:** Works in sample and replay modes, checked in Chrome. 5 unit tests and the typecheck
+pass. **Live mode isn't verified against a real database yet:** no `DATABASE_URL` locally, and
+`biz_activity` isn't applied. The phone panel isn't verified against a real device either.
+**Next / heads-up:** The stage reads the shared `activity_log`, `decisions`, and `interventions`
+(step-ins) tables from `platform/db/schema.sql` by default, plus `biz_activity`. It needs only
+`DATABASE_URL` in the repo's `.env`. **Abhinav:** if `log_decision` also writes an `activity_log` row,
+tell me so the stage doesn't count decisions twice. **Max:** this is the demo-day stage, not the heartbeat dashboard. Reuse
+any of it (it's one HTML file plus `demo/src/events.ts`) or embed it. **Everyone:** don't present
+`--sample` as real.
 
 ### 2026-11-07 14:19 PT · Noel (Claude Code) · branch `main`
 
