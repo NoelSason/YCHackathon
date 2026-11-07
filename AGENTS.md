@@ -8,17 +8,19 @@ An entry for the **Naïve Autonomous Company Hackathon** at YC (560 20th St., Sa
 Nov 7–8, 2026. The goal is a company that agents run end to end: they find customers, deliver
 the product, and handle day-to-day operations.
 
-- **Company:** _TBD. Fill this in once the team picks the business._
-- **Customer and offer:** _TBD._
-- **What the agents do:** _TBD. List each agent, its job, its tools, and its budget._
+- **Company:** an autonomous streaming studio. Agents pick a game, play it live, talk with chat,
+  clip the highlights, post the clips from real phones, and run the business.
+- **Full plan:** `README.md` has the agents, each person's plan, the timeline, and the risks.
+  Read it before starting work.
 
 ## Team and ownership
 
 | Person | Owns |
 |---|---|
-| **Noel** | iOS research and mobile automation with Mobilerun |
-| **Max** | Video generation |
-| **Abhinav** | The Naïve SDK agents, and the platform everything runs on (hosting, deployment, shared infrastructure) |
+| **Noel** | iOS research and mobile automation with Mobilerun: the Research and Publisher agents |
+| **Max** | Video generation: the Clipper pipeline (highlights, clips, captions, thumbnails) |
+| **Abhinav** | The Naïve SDK agents (Streamer, Chat), and the platform everything runs on (hosting, deployment, storage, the job queue, the activity log) |
+| **Teammate 4** (_name TBD_) | Business ops: the Ops agent, sponsors and sales, spend tracking, the demo dashboard |
 
 Rules for agents:
 

@@ -20,6 +20,18 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 12:55 PT · Noel (Claude Code) · branch `main`
+
+**What:** Added `README.md` with the idea (autonomous streaming studio with clipping), the six
+agents, each person's plan, the timeline, demo metrics, and risks. Updated `AGENTS.md` to point
+to it and added a fourth ownership row for business ops.
+**Why:** One shared plan, so everyone's agents build toward the same loop.
+**Files:** `README.md`, `AGENTS.md`.
+**State:** Docs only. The plan's split for teammate 4 is a proposal.
+**Next / heads-up:** **Abhinav:** the streaming spike (can a Naïve agent get gameplay onto a
+stream?) decides the architecture. Pick a path by 3:00 PM. **Everyone:** agree on the shared
+contracts at 3:00 PM. **Teammate 4:** put your name in `AGENTS.md` and `README.md`.
+
 ### 2026-11-07 12:45 PT · Noel (Claude Code) · branch `main`
 
 **What:** Added "Team and ownership" to `AGENTS.md`. Noel: iOS research and Mobilerun. Max: video
