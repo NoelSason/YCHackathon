@@ -108,7 +108,8 @@ ones.
   interview.
 - **A real job for phones.** Mobilerun lists testing apps as one of its own example uses.
 
-Research on judging and past winners: `docs/how-to-win.md`. The agent design: `docs/agent-plan.md`.
+Who does what and when: `docs/master-plan.md`. Research on judging and past winners:
+`docs/how-to-win.md`. The agent design: `docs/agent-plan.md`.
 
 ## How the company runs
 
@@ -134,12 +135,14 @@ Research on judging and past winners: `docs/how-to-win.md`. The agent design: `d
 
 ## Who does what
 
-| Person | Owns | Detail |
-|---|---|---|
-| **Max** | **Game integration** | Forks the three games, gives each its own name and art, writes each one's adapter, connects them to the platform, sends player events, and hosts them |
-| **Noel** | **Mobile integration** | Mobilerun phones that Naïve agents control: playtesting, phone-based research, the live phone view, plus the demo script |
-| **Abhinav** | **The platform** | The database, the API and agent tools, the Solver harness, payments and email plumbing, and the heartbeat dashboard |
-| **Pinara** | **The agents** | The Naïve Team: CEO, Designer, Tuner, Playtest Lead, Research, and Sales, with their skills, budgets, permissions, schedules, and decision log. Full plan: `docs/agent-plan.md` |
+**The full plan, with times and backups, is in `docs/master-plan.md`.** In short:
+
+| Person | Owns |
+|---|---|
+| **Max** | Game integration (the three forks, adapters, hosting, player events), then the heartbeat dashboard |
+| **Pinara** | Level quality: the Solver harness, bot players, solvers, the Designer and Tuner agents, and evals |
+| **Abhinav** | The Naïve backbone: Neon, the MCP server, the Naïve Team setup, the CEO loop, and demo-readiness checks |
+| **Noel** | Business ops (outreach, finance, billing, CRM) as Naïve agents, then mobile playtests and the demo script |
 
 ### The shared contract: the game adapter
 
@@ -161,7 +164,7 @@ Everything depends on this, so Max and Abhinav agree on it by **3:00 PM** and wr
 1. **By 2:45 PM:** check each of the three repos against the rules above: license, copied art or
    music, levels as data, and rules that run in Node. Replace any copied assets.
 2. **The adapter for game 1**, end to end: schema, validate, simulate (or solve), load by URL,
-   events, and `SKILL.md`. This is the pattern for the other five.
+   events, and `SKILL.md`. This is the pattern for the other two.
 3. **Games 2 and 3** on the same pattern, in the order above. Host them all on Vercel under our domain.
 4. **Phone check:** each game loads and plays in mobile Safari and Chrome. Noel's playtests depend
    on it.
@@ -178,7 +181,7 @@ Everything depends on this, so Max and Abhinav agree on it by **3:00 PM** and wr
    first sale much easier.
 
 ```
-Pinara's Naïve agents                            Noel's Mobilerun integration
+Our Naïve agents                                 Noel's Mobilerun integration
 ┌──────────────────────────┐   plan (JSON)      ┌─────────────────────────────────────┐
 │ CEO / Playtest Lead      │ ─────────────────► │ Mobilerun Agent (Tasks API) on an    │
 │ "play levels 31–40 of    │                    │ iPhone or Android with the studio's  │
@@ -212,76 +215,28 @@ to the Agent for studio apps.
 On iPhone, installing an App Store or TestFlight build may need an Apple ID on the device. Confirm
 with the Mobilerun docs or the Mobilerun team before promising this to a studio.
 
-### Noel: mobile integration
+### Everyone else's tasks
 
-1. **First hour:** a Mobilerun iPhone that a Naïve agent controls through Mobilerun's MCP server.
-   It opens one of our games in Safari, plays a move, and takes a screenshot.
-2. **Playtest tools for Pinara's Playtest Lead agent:** open a level by URL, play it, and report
-   whether it loaded, whether touch works, whether it looks right, and the result, with a saved
-   recording. On Android, Chrome can be driven directly, so the agent can read the game's state.
-3. **The plan runner (phone integration):** take a plan in the JSON shape above, send it to the
-   Mobilerun Agent on a phone with the target app installed, and return structured results and the
-   recording. Prove it on one of our three games installed as an app or a home-screen web app, then
-   on any free puzzle app as a stand-in for a studio's game. Agree on the plan and result shapes
-   with Pinara by 3:00 PM.
-4. **Phone research:** the agent plays top puzzle games on a phone and records mechanics and
-   difficulty patterns for the Designer. Research only: never copy levels or art.
-5. **The live phone view** for the dashboard (`@mobilerun/react`), so the stage shows a phone
-   playing a level the agents just made.
-6. **The demo script and the backup recording.**
+Noel's, Abhinav's, and Pinara's tasks, with times, are in `docs/master-plan.md`. The agents are
+detailed in `docs/agent-plan.md`.
 
-### Abhinav: the platform
+### If we're behind
 
-1. **Neon tables:** games, levels, solver runs, packs, player events, the activity log (every agent
-   decision and action), human step-ins, studios, and payments.
-2. **The API, offered to agents as one MCP server.** It covers `list_games`, `validate_level`,
-   `solve_level`, `save_level`, `publish_pack`, `get_player_stats`, `get_company_metrics`,
-   `log_decision`, `create_payment_link`, and `crm_update`. Pinara's agents use these tools, and
-   Naïve gates each one with allow, ask, or deny.
-3. **The Solver harness:** runs any game's adapter hundreds of times per level, in parallel, on a
-   Naïve Computer or a Render worker. Pick one by 3:00 PM based on speed and cost.
-4. **Business plumbing:** Stripe payment links (test mode until the team agrees to go live),
-   AgentMail inboxes and webhooks, and HubSpot.
-5. **The heartbeat dashboard** on Vercel: levels made per game, the share that passed, target vs.
-   measured difficulty, players, studios emailed, replies, payments, spend, cost per level, and
-   step-ins, with the activity log and Noel's live phone view underneath. This competes for Best
-   design.
-
-### Pinara: the agents
-
-The full plan is in `docs/agent-plan.md`. In short:
-
-1. Stand up the Naïve Team: a CEO coordinator with Designer, Tuner, Playtest Lead, Research, and
-   Sales on its roster, handing work to each other through cards on the company board.
-2. One Naïve skill per game, made from Max's `SKILL.md` files.
-3. Budgets on every agent, permissions on every tool, and cron schedules.
-4. **Test Naïve's approval rules in the first hour**, so the overnight run needs no clicks.
-5. The decision log: every CEO decision records what it saw, what it chose, and why, and the next
-   run checks whether it worked.
-
-### If we're behind, cut in this order
-
-If 8:00 PM Saturday arrives without a full loop, cut in this order: Luxor, phone research on other
-games, Android playtests, in-game purchases, then the rhythm runner. Always keep at least two games
-running Design → Tune → Solve → Ship → Phone playtest → Player data → CEO
-decision → Sales email.
-
-**Each adapter is real work,** especially the headless `simulate` and the rhythm runner's
-solver. Get two games working end to end before starting the third.
+The cut order is in `docs/master-plan.md`.
 
 ## Sponsor tools: what each one does for us
 
 | Tool | Its job | Owner |
 |---|---|---|
-| **Naïve** | Runs the company: the Team (CEO + roster), board cards, budgets, per-tool permissions, cron, skills per game, structured outputs for level JSON, and a Computer for Solver runs | Pinara (agents), Abhinav (Computer, MCP) |
+| **Naïve** | Runs the company: the Team (CEO + roster), board cards, budgets, per-tool permissions, cron, skills per game, structured outputs for level JSON, and a Computer for Solver runs | Abhinav (Team, MCP), Pinara (Designer, Tuner), Noel (business agents) |
 | **Mobilerun** | Cloud iPhones and Androids for playtests, phone research, recordings, and the live view on stage | Noel |
-| **Monid** | App Store and Google Play reviews and charts to find games whose players want more levels, and contact lookups for studios | Pinara (Research agent) |
-| **Apify** | Bulk scraping: the Google Play puzzle category, itch.io puzzle games, and studio websites | Pinara (Research agent) |
-| **AgentMail** | The sales inbox: sends sample packs to studios, receives replies, keeps threads | Abhinav (setup), Pinara (Sales agent) |
-| **HubSpot** | Studio pipeline: found → sample made → emailed → replied → pilot paid → delivered | Abhinav (setup), Pinara (Sales agent) |
-| **Stripe** | Studio pilot-pack payment links, and hint packs in the games. Test mode until the team agrees to go live. | Abhinav |
-| **OpenAI / OpenRouter** | Models. A strong model for design and sales replies, a cheap one for sorting reviews. Route through Naïve's model proxy where possible, so all spend sits in one ledger. | Pinara |
-| **Vercel** | Hosts the three games and the dashboard | Max (games), Abhinav (dashboard) |
+| **Monid** | App Store and Google Play reviews and charts to find games whose players want more levels, and contact lookups for studios | Noel (Research agent) |
+| **Apify** | Bulk scraping: the Google Play puzzle category, itch.io puzzle games, and studio websites | Noel (Research agent) |
+| **AgentMail** | The sales inbox: sends sample packs to studios, receives replies, keeps threads | Noel |
+| **HubSpot** | Studio pipeline: found → sample made → emailed → replied → pilot paid → delivered | Noel |
+| **Stripe** | Studio pilot-pack payment links, and hint packs in the games. Test mode until the team agrees to go live. | Noel |
+| **OpenAI / OpenRouter** | Models. A strong model for design and sales replies, a cheap one for sorting reviews. Route through Naïve's model proxy where possible, so all spend sits in one ledger. | Abhinav |
+| **Vercel** | Hosts the three games and the dashboard | Max |
 | **Neon** | Postgres for everything the demo replays | Abhinav |
 | **Render** | Solver worker, if a Naïve Computer is too slow or costly | Abhinav |
 | **Luxor** | Stretch: train a small model that predicts difficulty from a level's layout. King's research found a learned model can beat simulation-only bots at predicting how hard a level feels to people. | Abhinav |
@@ -332,20 +287,9 @@ match-3.
 
 ## Timeline
 
-Hacking runs from 1:00 PM Saturday to **11:00 AM Sunday, the code freeze**.
-
-| When | Milestone |
-|---|---|
-| Sat now–3:00 PM | **Spikes.** Max: three repos checked and the match-3 adapter started. Noel: a phone a Naïve agent controls. Abhinav: Neon tables and the first MCP tools. Pinara: the Naïve Team skeleton, approval rules tested, marketplace templates checked. |
-| Sat 3:00 PM | **Contracts.** The adapter interface, the MCP tool list, player events, the activity log, and environment variable names, all written in `log.md`. Naïve Computer or Render for the Solver. |
-| Sat 3:00–6:00 PM | Two games connected. Their first levels designed, solved, tuned, and playable on phones. |
-| **Sat 6:00 PM** | **Switch the company on.** The CEO ships the first packs on cron, and Sales sends its first personal emails. |
-| **Sat 8:00 PM** | **Full loop on two games:** design → tune → solve → ship → phone playtest → player data → CEO decision → sales. |
-| Sat 8:00 PM–2:00 AM | The third game (rhythm runner). Budget caps and kill switches. Get real people playing (the room, our posts). |
-| **Sun 2:00–8:00 AM** | **Hands off.** Packs ship on schedule, the CEO retunes from player data, and Sales answers replies. Log every step-in. |
-| Sun 8:00–10:00 AM | **Feature freeze at breakfast.** Read the overnight log, fix the worst failure, check every demo path, and record a backup. |
-| Sun 10:00–11:00 AM | Rehearse. |
-| **Sun 11:00 AM** | **Code freeze.** Judging begins. |
+The per-person timeline is in `docs/master-plan.md`. Hacking ends at **11:00 AM Sunday, the code
+freeze.** The company switches on at **6:00 PM Saturday**, and it runs unattended from **2:00 to
+8:00 AM.**
 
 ## The demo (3 minutes)
 
@@ -370,7 +314,7 @@ Open with the result, not the architecture.
 1. **Naïve's approval rules can stop the overnight run.** Sending email, `mobile`, `data_run`,
    `generate_video`, and `social.post` ask a human by default. A person's API key can set most of
    them to `allow`. But once a chat reads people's data (such as an inbound email), every send,
-   phone action, and MCP call in that chat asks *each time, even at `allow`.* Pinara tests this in
+   phone action, and MCP call in that chat asks *each time, even at `allow`.* Abhinav tests this in
    the first hour. Every approval clicked overnight is a step-in judges count.
 2. **Three adapters, one of them hard.** The rhythm runner's solver is the riskiest piece. See the cut order above.
 3. **Headless play.** Some open-source games mix rules with drawing code, so their rules won't run
@@ -403,6 +347,7 @@ Open with the result, not the architecture.
 ## Docs
 
 - Agent instructions and rules: `AGENTS.md` (Claude Code reads it through `CLAUDE.md`)
+- **The master plan (roles, times, contracts, demo checks): `docs/master-plan.md`**
 - The agent plan: `docs/agent-plan.md`
 - How to win: `docs/how-to-win.md`
 - What each push did: `log.md`

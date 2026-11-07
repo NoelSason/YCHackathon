@@ -27,10 +27,13 @@ the product, and handle day-to-day operations.
 
 | Person | Owns |
 |---|---|
-| **Max** | Game integration: forks the three games, gives each its own name and art, writes each game's adapter (schema, validate, simulate or solve, load by URL, events, `SKILL.md`), and hosts the games |
-| **Noel** | Mobile integration: Mobilerun phones driven by Naïve agents (playtests, phone research, the live view), plus the demo script |
-| **Abhinav** | The platform: Neon, the API offered to agents as one MCP server, the Solver harness, Stripe, AgentMail, and HubSpot plumbing, and the heartbeat dashboard |
-| **Pinara** | The agents: the Naïve Team (CEO, Designer, Tuner, Playtest Lead, Research, Sales), skills, budgets, permissions, cron, and the decision log. Plan: `docs/agent-plan.md` |
+| **Max** | Game integration: the three forks, their own names and art, each game's adapter (schema, validate, simulate or solve, load by URL, events, `SKILL.md`), hosting, then the heartbeat dashboard |
+| **Pinara** | Level quality: the Solver harness, bot players, the three solvers, the Designer and Tuner agents, evals, and the CEO's expected-vs-result check |
+| **Abhinav** | The Naïve backbone: Neon, the platform MCP server, the Naïve Team setup (roster, board, skills, budgets, permissions, cron, kill switch), the CEO loop, and the demo-readiness checks |
+| **Noel** | Business ops as Naïve agents (outreach, finance, billing, CRM), Mobilerun playtests, and the demo script |
+
+**`docs/master-plan.md` is the source of truth** for roles, times, backups, contracts, and the cut
+order. If another doc disagrees, the master plan wins.
 
 Rules for agents:
 
@@ -38,8 +41,8 @@ Rules for agents:
   edit anything.
 - **Stay in that person's area.** Changes to another person's area need your user's explicit
   go-ahead. Write them in `log.md` under "Next / heads-up" and name the owner.
-- **Shared contracts:** the game adapter (Max ↔ Abhinav), the MCP tool list (Abhinav ↔ Pinara),
-  and the playtest tools (Noel ↔ Pinara). They're defined in `README.md` and `docs/agent-plan.md`
+- **Shared contracts:** the five contracts listed in `docs/master-plan.md` (game adapter, MCP tool
+  list, activity log, playtest tool, business events). They're defined in `README.md` and `docs/agent-plan.md`
   and recorded in `log.md`. The Solver and the browser game must use the same adapter code for a
   game. Never write a second copy of a game's rules. Before you change a shared interface (agent tools, API
   routes, environment variable names, the database schema), check `log.md` for that interface
@@ -92,6 +95,9 @@ what to build next, prefer whatever moves one of these:
   Work on either is high priority.
 - **Decisions:** the CEO agent changes the plan from player data, solver results, and sales, and
   logs the reason.
+- **Everything in the demo really works.** Every demo path has an automated check (see "Demo
+  readiness" in `docs/master-plan.md`). Never show a mock as real, and never type in a number the
+  logs didn't produce.
 - **Approvals:** Naïve makes sends, phone actions, data runs, and video generation ask a human by
   default, and a chat that has read people's data asks on every send even at `allow`. Every
   approval is a step-in. Design agents so the overnight run needs none (see Risks in `README.md`).

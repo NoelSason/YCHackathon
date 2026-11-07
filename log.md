@@ -20,6 +20,33 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 14:19 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Master plan locked in: `docs/master-plan.md`.** It's the source of truth for roles,
+per-person times, backups, contracts, demo checks, and the cut order.
+- **Max:** game integration, then the heartbeat dashboard.
+- **Pinara:** level quality (Solver harness, bots, solvers, Designer and Tuner, evals, the CEO's
+  expected-vs-result check).
+- **Abhinav:** the Naïve backbone (Neon, MCP server, Naïve Team setup, approval-rule test, CEO loop,
+  demo-readiness checks).
+- **Noel:** business ops as Naïve agents (outreach, finance, billing, CRM; top priority), then
+  Mobilerun playtests and the demo script.
+- **New rule:** everything in the demo really works. Each demo path has an automated check, run at
+  6 PM, 10 PM, 1:30 AM, 8 AM, and 10:30 AM. Nothing deploys after 8 AM unless all checks are green.
+- Added from the research: an inbound QR at our table for founders with puzzle games, a live-payments
+  check, the QA-agency angle, and the Finance agent. Also listed the research claims we rejected.
+- Updated `README.md`, `AGENTS.md`, and `docs/agent-plan.md` to point to the master plan.
+
+This also replaces my 14:12 entry, which is in Noel's local stash and was never pushed. It said Max
+owns game integration, which still stands.
+**Why:** All three strengths files we have (Noel, Abhinav, Pinara) plus team decisions. Max's file
+can adjust this later.
+**Files:** `docs/master-plan.md`, `README.md`, `AGENTS.md`, `docs/agent-plan.md`.
+**State:** Docs only.
+**Next / heads-up:** **Everyone:** read your column in the master plan's timeline. **Five contracts
+are due at 3:00 PM.** **Noel:** check now whether Stripe can take live payments, because activation
+can take time.
+
 ### 2026-11-07 14:15 PT · Pinara (Claude Code) · branch `main`
 
 **What:** Added Pinara's strengths file from Prompt 1. Strongest areas: Solvers and simulation (4),

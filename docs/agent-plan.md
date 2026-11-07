@@ -1,10 +1,17 @@
 # Agent plan
 
-Owner: **Pinara**. This doc covers the agents that run the company: who they are, what each one
-does, how they hand work to each other, and how we keep them running overnight without a human.
+This doc covers the agents that run the company: who they are, what each one does, how they hand
+work to each other, and how we keep them running overnight without a human.
 
-The platform tools the agents call come from Abhinav. The games come from Max. The phone tools
-come from Noel. Changes to those contracts go in `log.md`.
+**Owners** (see `docs/master-plan.md`):
+
+- **Abhinav:** the Naïve Team setup (coordinator, roster, board, skills, budgets, permissions, cron,
+  kill switch), the approval-rule test, and the CEO agent
+- **Pinara:** the Designer and Tuner agents, the evals, and the CEO's expected-vs-result check
+- **Noel:** the business agents (Research, Sales Sender, Sales Reader, Finance) and the Playtest
+  Lead
+
+The games and their skills come from Max. Changes to any contract go in `log.md`.
 
 Every Naïve feature named here comes from the Naïve docs index (https://vetta.sh/docs/llms.txt).
 Read the page before using a feature. Field names and limits can change.
@@ -68,6 +75,7 @@ board is durable and the dashboard can show it.
 | **Research** | Cron, every 4 hours, plus `research` cards | Monid, Apify, and Naïve Data (reviews, charts, social posts) | `crm_update` | A studio target list with a reason for each, and genre notes for the Designer |
 | **Sales Reader** | An inbound email | One reply | Board | A summary card: who, what they asked, and the suggested next step |
 | **Sales Sender** | An `outreach` or `reply` card | The card only | AgentMail send, `create_payment_link`, `crm_update` | A sent email and a CRM stage change |
+| **Finance** | Cron, every 3 hours | Naïve credit ledger, Monid balance, Mobilerun minutes, Stripe revenue | `get_company_metrics`, board | Spend vs. budget, cost per level, margin per pilot, and overrun flags for the CEO. Never charges anyone. |
 
 Keep the roster this size. More agents mean more hand-offs to debug.
 
@@ -116,6 +124,7 @@ agents make real decisions.
 | `publish` (pack id) | CEO | Platform tool `publish_pack` (no agent needed) | Pack live |
 | `research` (question) | CEO | Research | Targets and notes saved |
 | `outreach` (studio) | CEO, Research | Sales Sender | Email sent, CRM updated |
+| `deliver` (payment id) | Stripe webhook | Platform tool (no agent needed) | Pack delivered and receipt sent |
 | `reply` (thread summary) | Sales Reader | Sales Sender | Reply sent or a deal step taken |
 
 **Playtests run as plans.** The Playtest Lead never taps a screen itself. It writes a plan (which
@@ -163,7 +172,8 @@ reserve.
 | Playtest Lead | $10 | $0.40 |
 | Research | $10 | $1.00 |
 | Sales Reader + Sender | $10 | $0.30 |
-| **Total** | **$100** | |
+| Finance | $3 | $0.20 |
+| **Total** | **$103** | |
 
 Phone minutes run on Mobilerun's credits, not Naïve's. Monid runs use Monid's $20. Solver compute
 runs on a Naïve Computer (billed to Naïve) or Render.
