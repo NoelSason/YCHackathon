@@ -41,9 +41,22 @@ while (Date.now() < deadline) {
   if (s.status !== "running" && s.stop_reason) break;
 }
 
+// The session ending cleanly is not proof: an agent whose MCP server has no credential also ends
+// with end_turn and does nothing. The row in activity_log is the proof.
+let landed: boolean | null = null;
+if (process.env.DATABASE_URL) {
+  const pg = (await import("pg")).default;
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: true } });
+  const r = await pool.query(`select count(*)::int as n from activity_log where action = 'approval_test' and ts > now() - interval '15 minutes'`);
+  landed = (r.rows[0] as { n: number }).n > 0;
+  await pool.end();
+}
+
 const verdict =
   s.stop_reason === "awaiting_approval" ? "ASKS: an allow-listed MCP tool still paused for approval. Every overnight call is a step-in. Check tools.configs keys and the vault binding."
-  : s.stop_reason === "end_turn" || s.status === "completed" ? "OK: allow-listed MCP tools run without a human. Check activity_log for the 'approval_test' row to confirm the call landed."
+  : landed === true ? "OK: the probe called platform.log_action unattended and the row is in activity_log. Allow-listed MCP tools run without a human."
+  : landed === false ? "NOT REACHED: the session ended without any approval card, but no 'approval_test' row landed in the last 15 minutes. The agent could not call the platform. Check the vault credential for PLATFORM_MCP_URL and the session's events in the Studio (look for session.error)."
+  : s.stop_reason === "end_turn" || s.status === "completed" ? "UNVERIFIED: session ended cleanly, but DATABASE_URL is not set so the activity_log row was not checked. Set it in .env and rerun."
   : `UNCLEAR: status=${s.status} stop_reason=${s.stop_reason} stop_code=${(s as { stop_code?: string }).stop_code ?? "-"}. Read the session events in the Studio.`;
 console.log("\n" + verdict);
 console.log("\nNext: send the probe ONE inbound email, run again, and see whether the second call asks (the 'read people's data' rule). Write both results in log.md.");

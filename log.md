@@ -32,8 +32,10 @@ CEO hourly (`dep_8hq07mr0wrxz240r96fhggmxt1`), Research every 4h, Finance every 
 **Files:** `platform/naive/team.json`.
 **State:** Agents and deployments exist. **Approval verdict is provisional:** `npm run vault`
 failed (`API key is missing the admin scope`), so the agents have no bearer for the platform yet
-and the probe may not have reached it. Checking `activity_log` for the probe's row; fixing with an
-admin-scoped key.
+and the probe may not have reached it. Checked `activity_log`: **no row**, so the probe never reached the platform; the clean `end_turn`
+means a dead MCP connection does not raise an approval card, it does nothing. `approval-test` now
+checks the row itself and reports NOT REACHED instead of OK. Fixing the vault with the CLI or an
+admin-scoped key, then re-running.
 **Next / heads-up:** **Pinara:** the agents exist; edit prompts in `platform/naive/src/roster.ts`
 and re-run `npm run setup`, don't edit them in the Studio or setup will overwrite. **Everyone:**
 deployments stay disabled until the 6:00 PM switch-on (`npm run kill -- on`).
