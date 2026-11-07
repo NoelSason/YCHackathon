@@ -1,0 +1,47 @@
+# Server-side backstop for .githooks/pre-push, which a teammate can skip
+# (no hook installed, or `git push --no-verify`). Fails when a push or PR doesn't change log.md.
+name: log-check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  log-updated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check that log.md changed
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          ZERO=0000000000000000000000000000000000000000
+          if [ "$EVENT" = "pull_request" ]; then
+            range="$BASE...$HEAD"
+          elif [ "$BEFORE" = "$ZERO" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            # New branch or force push: compare against the default branch.
+            git fetch origin "${{ github.event.repository.default_branch }}"
+            range="FETCH_HEAD...$AFTER"
+          else
+            range="$BEFORE..$AFTER"
+          fi
+
+          if [ -z "$(git rev-list "$range")" ]; then
+            echo "No new commits."
+            exit 0
+          fi
+
+          if git diff --name-only "$range" | grep -qx 'log.md'; then
+            echo "log.md updated."
+          else
+            echo "::error::log.md was not updated. Add an entry at the top of log.md describing this push."
+            exit 1
+          fi

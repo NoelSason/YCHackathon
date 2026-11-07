@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Blocks a push unless the commits being pushed change log.md.
+# Enable once per clone: git config core.hooksPath .githooks
+set -euo pipefail
+
+LOG_FILE="log.md"
+ZERO="0000000000000000000000000000000000000000"
+
+# Git passes one line per ref: <local ref> <local sha> <remote ref> <remote sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Deleting a remote branch: nothing to check.
+  if [ "$local_sha" = "$ZERO" ]; then
+    continue
+  fi
+
+  # Pick the commits this push adds to the remote.
+  if [ "$remote_sha" = "$ZERO" ] || ! git cat-file -e "$remote_sha" 2>/dev/null; then
+    # New branch, or the remote tip isn't known locally: use commits not on any remote.
+    range=("$local_sha" --not --remotes)
+  else
+    range=("$remote_sha..$local_sha")
+  fi
+
+  # Nothing new to push on this ref.
+  if [ -z "$(git rev-list "${range[@]}")" ]; then
+    continue
+  fi
+
+  if [ -z "$(git log --format= --name-only "${range[@]}" -- "$LOG_FILE")" ]; then
+    echo "" >&2
+    echo "Push blocked: none of the commits for ${remote_ref#refs/heads/} change $LOG_FILE." >&2
+    echo "Add an entry at the top of $LOG_FILE (template is in the file), commit it, then push again." >&2
+    echo "" >&2
+    exit 1
+  fi
+done
+
+exit 0
