@@ -20,6 +20,26 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 13:46 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Full pivot to the autonomous level studio. The streaming plan is gone.**
+- `README.md` rewritten: the company (our own agent-run match-3 game + a level studio for game
+  companies), eight agents, a map of each sponsor tool's job, our credits, how level generation
+  works (bot-simulated difficulty, tuning, player data, with research sources), each person's plan,
+  the timeline, the demo, and risks.
+- Research on judging moved to `docs/how-to-win.md`.
+- `AGENTS.md`: new company description, ownership, priorities, and Mobilerun rules.
+**Why:** The team chose level generation. Research and the credits page shaped the details.
+**Files:** `README.md`, `docs/how-to-win.md`, `AGENTS.md`.
+**State:** Docs only.
+**Next / heads-up:**
+- **Everyone:** use Mobilerun's phones, not Naïve's. Naïve agents control them through Mobilerun's
+  MCP server. Claim the Mobilerun credits only when ready, because the 72 hours start then.
+- **Abhinav:** the rules engine and level JSON schema come first. Everything else imports them.
+- **Abhinav + Teammate 4:** test Naïve's approval rules early. Sends, `mobile`, `data_run`, and
+  `generate_video` ask a human by default, and a chat that has read inbound email asks on every send
+  even at `allow`. That could stall the overnight run.
+
 ### 2026-11-07 13:30 PT · Noel (Claude Code) · branch `main`
 
 **What:** Added "Possible pivot: autonomous level design for puzzle games" to `README.md`: why it

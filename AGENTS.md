@@ -22,10 +22,10 @@ the product, and handle day-to-day operations.
 
 | Person | Owns |
 |---|---|
-| **Noel** | iOS research and mobile automation with Mobilerun: the Research and Publisher agents |
-| **Max** | Video generation: the Clipper pipeline (highlights, clips, captions, thumbnails) |
-| **Abhinav** | The Naïve SDK agents (Streamer, Chat), and the platform everything runs on (hosting, deployment, storage, the job queue, the activity log) |
-| **Teammate 4** (_name TBD_) | Business ops: the Ops agent (on Naïve), spend tracking, sponsors and sales, the demo dashboard and script |
+| **Noel** | Phones and market research: the Playtester and Market Research agents (Mobilerun, Monid, Apify) |
+| **Max** | The playable web game (Vercel), its art and look, player telemetry, and trailers (Naïve Media, Monid video models), plus the Publisher |
+| **Abhinav** | The rules engine and level schema, the Solver, the Designer and Tuner agents (Naïve SDK), and the platform (Neon, the Naïve Team setup, Render if used, the activity log) |
+| **Teammate 4** (_name TBD_) | The CEO agent (Naïve Team coordinator), the Sales agent (AgentMail, HubSpot, Stripe), spend tracking, the heartbeat dashboard, and the demo |
 
 Rules for agents:
 
@@ -33,8 +33,9 @@ Rules for agents:
   edit anything.
 - **Stay in that person's area.** Changes to another person's area need your user's explicit
   go-ahead. Write them in `log.md` under "Next / heads-up" and name the owner.
-- **Shared contracts go through Abhinav's area.** Video generation and mobile automation plug into
-  the Naïve agents and the platform. Before you change a shared interface (agent tools, API
+- **Shared contracts go through Abhinav's area.** The rules engine and the level JSON schema are
+  used by the game, the Solver, and the Playtester, so all three must import the same package.
+  Never reimplement the rules. Before you change a shared interface (agent tools, API
   routes, environment variable names, the database schema), check `log.md` for that interface
   and keep it backward compatible, or flag the break in the log.
 - **Put each area in its own directory** so people don't edit the same files. List the
@@ -70,19 +71,24 @@ That has direct engineering consequences:
   live run that might fail on stage.
 - Keep a way to replay or show past runs if the live demo breaks.
 
-The full criteria, research, and demo outline are in "How we win" in `README.md`. When choosing
+The research is in `docs/how-to-win.md`, and the demo outline is in `README.md`. When choosing
 what to build next, prefer whatever moves one of these:
 
 - **Autonomy:** fewer human step-ins, and a longer unattended run.
-- **Numbers:** anything that produces a real, measured figure for the demo (hours, clips, views,
-  decisions, spend).
+- **Numbers:** anything that produces a real, measured figure for the demo (levels made, solver
+  win rates, target vs. measured difficulty, players, studios emailed, decisions, spend).
 - **Visible output:** something a judge can see or click, over something we'd have to explain.
 - **Sponsor depth:** Naïve, Mobilerun, and Monid used centrally, not as a token call.
 - **Demo reliability:** removing a place the 3-minute demo could stall beats adding a feature.
 
-- **Earning:** the brief says "making, selling, shipping, earning." The clip-first outreach loop
-  to human streamers, ending in a Stripe payment, is how we earn. Work on it is high priority.
-- **Decisions:** the CEO (Ops) agent changes strategy from results and logs the reason.
+- **Earning:** the brief says "making, selling, shipping, earning." We earn through studio pilot
+  packs (sample levels made before outreach, then a Stripe link) and in-game hint or level packs.
+  Work on either is high priority.
+- **Decisions:** the CEO agent changes the plan from player data, solver results, and sales, and
+  logs the reason.
+- **Approvals:** Naïve makes sends, phone actions, data runs, and video generation ask a human by
+  default, and a chat that has read people's data asks on every send even at `allow`. Every
+  approval is a step-in. Design agents so the overnight run needs none (see Risks in `README.md`).
 
 The demo shows the company's history since we stopped touching it, not what the software could
 do. Don't build anything that only shows up in a slide. Never fake or inflate a number. Keep
@@ -132,13 +138,17 @@ orders, testing an app.
 - Cloud phones keep their state. Reuse the same device across related tasks. Don't provision,
   reset, or release devices without asking.
 - Each team has 72 hours of device minutes and six seats. iPhones are first come, first served.
+- **Use Mobilerun's phones, not Naïve's.** Naïve's phones bill $0.08 per iPhone-minute against the
+  $250 Naïve balance, and Mobilerun's credits cover far more phone time. Naïve agents drive
+  Mobilerun phones through Mobilerun's MCP server, added to the agent as an MCP toolset.
+- On a cloud iPhone, open links by tapping and typing in Safari. On Android, Chrome can be driven
+  directly (Browser Automation in the Mobilerun docs), which lets a playtest read the game's state.
 
 ## Sponsor tools
 
-All participants get credits. Check whether a sponsor covers a need before you add another vendor:
-OpenAI and OpenRouter (models), Stripe (payments), HubSpot (CRM), AgentMail (agent email inboxes),
-Apify (scraping), Monid (tool marketplace), Vercel and Render (hosting), Neon (Postgres), Luxor
-(GPUs), Mobilerun (phones).
+Each sponsor tool has one job in the main loop. The map is under "Sponsor tools" in `README.md`.
+Check it before adding another vendor. Naïve also has its own email, data, media, and social
+posting. The map says which one we use for what, so don't add a second tool for the same job.
 
 ## Engineering rules
 
