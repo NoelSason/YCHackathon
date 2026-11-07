@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "skills": {
+    "router": "games/router/SKILL.md",
+    "implementation": "games/implementation/SKILL.md"
+  },
+  "workflows": {
+    "create": ["route", "design", "evaluate", "implement", "verify"],
+    "revise": ["route", "design", "evaluate", "implement", "verify"],
+    "playtest": ["route", "evaluate", "verify"]
+  },
+  "stages": {
+    "route": {
+      "purpose": "Choose the game-specific route and evaluation method before doing game work.",
+      "skill_keys": ["router"]
+    },
+    "design": {
+      "purpose": "Read the game's skill and produce a high-level level design and constraints.",
+      "skill_keys": ["design"]
+    },
+    "evaluate": {
+      "purpose": "Use the game's solver or playtest guidance to check a design or existing level.",
+      "skill_keys": ["evaluate"]
+    },
+    "implement": {
+      "purpose": "Create or revise the level using the declared game interface.",
+      "skill_keys": ["implementation", "implement"]
+    },
+    "verify": {
+      "purpose": "Verify only what the declared interface can measure and report gaps honestly.",
+      "skill_keys": ["evaluate"]
+    }
+  },
+  "interfaces": {
+    "match3_adapter": {
+      "mode": "programmatic",
+      "availability": "planned_not_connected",
+      "operations": ["validate_level", "solve_level", "save_level"],
+      "verification": "Schema and rules validation, then seeded bot simulation. Do not claim completion until the adapter is connected and returns results."
+    },
+    "provided_platformer_editor": {
+      "mode": "user_provided_editor",
+      "availability": "external_environment_required",
+      "operations": [],
+      "verification": "Use the supplied editor/game save and playtest flow. No programmatic solver is declared."
+    },
+    "geometry_dash_editor_mobilerun": {
+      "mode": "mobilerun_agent",
+      "availability": "attached_mcp_required",
+      "operations": ["submit_bounded_agent_task", "read_task_result", "inspect_trajectory_screenshots"],
+      "verification": "Mobilerun may confirm editor navigation, local save, and visual loading. It cannot prove frame-exact completion or difficulty."
+    }
+  },
+  "games": {
+    "match3": {
+      "label": "Match-3",
+      "interface": "match3_adapter",
+      "skills": {
+        "design": "games/match3/SKILL.md",
+        "evaluate": "games/match3/SKILL.md",
+        "implement": "games/match3/SKILL.md"
+      }
+    },
+    "platformer-editor": {
+      "label": "External platformer editor",
+      "interface": "provided_platformer_editor",
+      "skills": {
+        "design": "games/platformer/SKILL.md",
+        "evaluate": "games/platformer/SKILL.md",
+        "implement": "games/platformer/SKILL.md"
+      }
+    },
+    "geometry-dash-editor": {
+      "label": "Official rhythm-game editor",
+      "interface": "geometry_dash_editor_mobilerun",
+      "skills": {
+        "design": "games/editors/geometry-dash/SKILL.md",
+        "evaluate": "games/editors/geometry-dash/SKILL.md",
+        "implement": "games/editors/geometry-dash/SKILL.md"
+      }
+    }
+  }
+}

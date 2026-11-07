@@ -152,6 +152,24 @@ The three skills differ in what a "level" is and how the Tuner judges it:
 and attach all three to the Designer and the Tuner. Pin versions (`game-<name>@3`) once a game is
 stable, so a skill edit can't change overnight behavior by surprise.
 
+## Unified skill routing and implementation
+
+The Designer starts each level request with `games/skill_router.py`, using the configured game ID
+and task type from `games/skill-routing.json`. The route packet gives the stage order and skill
+paths:
+
+1. Router skill chooses the high-level design, evaluator, and implementation path.
+2. The game skill provides concrete level rules and solving/tuning guidance.
+3. The common Implementation skill creates the level through the configured adapter or editor
+   workflow.
+4. Verification reports only evidence supported by the configured interface.
+
+The interpreter resolves config into a packet; the Naïve session still calls its attached tools.
+Programmatic operations must be checked against available MCP tools at runtime. The match-3
+adapter is currently marked not connected in config, so Designer/Tuner may not claim validation,
+simulation, or save completion until those tools exist. Mobilerun editor checks are visual/load
+checks, not proof of frame-exact solvability. Publishing remains a separate platform action.
+
 ## Structured outputs
 
 The Designer's result must be a level that validates. Set the session's structured output to the
