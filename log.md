@@ -20,6 +20,16 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:05 PT · Abhinav (Claude) · branch `main`
+
+**What:** `approval-test` now prints the probe session's events (tool.*, message.completed, and
+anything mentioning an error) after the verdict, and says so when no tool call was attempted.
+**Why:** The second probe said NOT REACHED; the events show whether the MCP server was offered,
+connected, or refused.
+**Files:** `platform/naive/src/approval-test.ts`.
+**State:** Typechecks.
+**Next / heads-up:** Abhinav re-runs vault + approval-test and reads the events.
+
 ### 2026-11-07 16:00 PT · Abhinav (Claude) · branch `main`
 
 **What:** `npm run vault` now stores both bearers in one run: the platform's (`PLATFORM_MCP_URL`

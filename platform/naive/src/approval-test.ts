@@ -59,4 +59,18 @@ const verdict =
   : s.stop_reason === "end_turn" || s.status === "completed" ? "UNVERIFIED: session ended cleanly, but DATABASE_URL is not set so the activity_log row was not checked. Set it in .env and rerun."
   : `UNCLEAR: status=${s.status} stop_reason=${s.stop_reason} stop_code=${(s as { stop_code?: string }).stop_code ?? "-"}. Read the session events in the Studio.`;
 console.log("\n" + verdict);
+
+// Diagnostics: what the session actually did. Tool events and anything that looks like an error.
+const ev = await naive.sessions.events(session.id, { limit: 200 });
+const interesting = ev.data.filter((e) =>
+  e.type.startsWith("tool.") || e.type === "message.completed" || e.type === "session.retrying" || e.type === "session.degraded" || e.type === "budget.exceeded" || JSON.stringify(e.data).toLowerCase().includes("error"),
+);
+console.log(`\nSession events (${ev.data.length} total, ${interesting.length} shown):`);
+for (const e of interesting) {
+  const d = JSON.stringify(e.data);
+  console.log(`  ${e.seq}\t${e.type}\t${d.length > 300 ? d.slice(0, 300) + "…" : d}`);
+}
+if (!interesting.some((e) => e.type === "tool.started")) {
+  console.log("  (no tool.started event: the model never attempted a tool call, so either the platform tools were not offered to it or the MCP connection failed before the turn; look for an mcp/connection error above)");
+}
 console.log("\nNext: send the probe ONE inbound email, run again, and see whether the second call asks (the 'read people's data' rule). Write both results in log.md.");
