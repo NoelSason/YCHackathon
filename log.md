@@ -20,6 +20,28 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 14:58 PT · Abhinav (Claude) · branch `main`
+
+**What:** Naïve Team as code (`platform/naive/`): `npm run setup` creates/updates the seven
+roster agents (designer, tuner, playtest, research, sales_reader, sales_sender, finance) and the
+CEO coordinator with the board and the roster pinned, with each platform MCP tool allow-listed
+by name per agent and budgets from `docs/agent-plan.md`; creates the CEO (hourly), Research (4h),
+and Finance (3h) cron deployments **disabled**. `npm run approval-test` runs the step-1 approval
+probe and prints the verdict. `npm run kill -- on|off` is the kill switch / 6 PM switch-on and
+logs a step-in. `platform/render.yaml` deploys the MCP server on Render and runs the migration
+at boot.
+**Why:** The backbone packages (Team setup, approval test, kill switch, cron) need a Naïve key and
+network access this cloud session doesn't have (Neon and Naïve APIs are blocked by its egress
+policy), so they're scripts Abhinav runs from his laptop.
+**Files:** `platform/naive/`, `platform/render.yaml`, `platform/mcp/package.json`.
+**State:** Typechecks against the real SDK types (`@usenaive-sdk/managed-agents` 0.12.3). **Not
+run yet**: needs the MCP server deployed, the vault bearer set, then `setup` and `approval-test`.
+**Next / heads-up:** **Abhinav:** deploy (Render blueprint), vault the bearer, run setup, run the
+approval test, write the verdict here. **Pinara:** your agents' prompts and allow-lists live in
+`platform/naive/src/roster.ts`; edit there, then `npm run setup` re-applies. **Noel:** add the
+Mobilerun MCP server and email tool names to `playtest` and `sales_sender` in `roster.ts` when
+known.
+
 ### 2026-11-07 14:40 PT · Abhinav (Claude) · branch `main`
 
 **What:** Platform v1. `platform/CONTRACTS.md` has the three contracts due at 3:00 PM: how a
