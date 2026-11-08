@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 12:29 AM PT · Noel · Claude Code (hourly checkpoint) · main
+- **What:** Demo script updated for the second email inbox: it's live for cold email (13 sent, replies answered), the QR form to a never-emailed address is still untested, and the overnight step-in row is written.
+- **Why:** Noel asked for a commit every hour; the script must match what's running.
+- **Files:** `docs/demo-script.md`
+- **State:** docs only.
+- **Next / heads-up:** Test the form with a never-emailed address at 8:30 AM. The network was flaky around midnight (brief database and inbox failures).
+
 ### 2026-11-08 12:02 AM PT · Noel · Claude Code (outreach agent, coordinator) · main
 - **What:** (1) **Second send path live.** When AgentMail refuses a new recipient, the same email goes from a Naïve inbox (`levelai@new-company-6d6m75.usenaive.ai`, $0.0008 a send); Resend is a third option if configured. Replies land in that inbox, which the server polls every 15 s; a test reply was answered in 21 s. 13 real emails went out 11:32–11:45 PM: 10 studios (Kiragames, iKame/Zego, AlphaPlay, Grand Games, Hitapps, Secret Mode, ustwo, Rogueside, Poti Poti, Uken) and 3 agencies (Pixel Genesys, N-iX, Kevuru). 21 of 40 on the day's cap; 0 replies so far. (2) **Site outage 11:55 PM–12:02 AM.** Cloudflare refused a new tunnel, and the watchdog then read Cloudflare's own API address from the error line as our tunnel, so it stopped retrying. Fixed the same grep in `business/keepalive.sh` and `ops/monitor.sh`; restarted the tunnel and the keepalive. (3) Logged one human step-in row covering the overnight test runs, so the "on its own" clock is true from here.
 - **Why:** Noel asked for far more outreach; the site must recover unattended.

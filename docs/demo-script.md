@@ -130,9 +130,10 @@ Replies to people who wrote first are always allowed. So:
   game" at the top of `/join`). The reply took 26 s when tested tonight.
 - **The form on `/join`** to a new address fails and shows "Email us your game instead". Don't send
   judges to the form unless the upgrade is done. Re-test with a never-emailed address after upgrading.
-- **Second send path:** at 11:00 PM it's uncommitted work in `business/src/outreach/alt-mail.ts`. It
-  isn't running, and `.env` has neither `NAIVE_SALES_INBOX_ID` nor `RESEND_API_KEY`. Don't describe it
-  unless `log.md` says it's live and a never-emailed address got mail.
+- **Second send path (live since 11:32 PM):** when the main inbox refuses a new recipient, the same email goes
+  from a second inbox (`levelai@new-company-6d6m75.usenaive.ai`). Replies land there and are answered; a test
+  reply took 21 s. 13 real emails went out 11:32–11:45 PM. The `/join` form should reach new addresses this way
+  too, but that is **not tested**: try it at 8:30 with a never-emailed address before sending judges to it.
 
 ### D. X post
 
@@ -240,8 +241,8 @@ Never run `./demo.sh` plain tonight or tomorrow: `:4545` is already running.
 | Live checkouts | Verified, no real charge | 10:17 PM | Sentinel 6 |
 | Test-mode payment path | Verified | 10:17 PM | Sentinel 6 webhook test |
 | Email-in audit | Verified live earlier tonight | ~10:05 PM | Judge-flow sentinel, inbox checked |
-| QR form to a new address | **Blocked until 3:04 PM or upgrade** | 10:54 PM | Feed: "paused until Sun 3:04 PM PT" |
-| Second send path | **Not running, not tested** | 11:00 PM | Uncommitted code, no env vars |
+| QR form to a new address | **Not tested since the second inbox went live** | n/a | Test at 8:30 AM |
+| Second send path | Verified: 13 real sends, reply answered in 21 s | 11:45 PM | Activity log, message ids |
 | Agency conversation | Verified | 10:46–10:48 PM | Sentinel 7, live thread |
 | Generator test | Verified | 10:27 PM | Sentinel 8 |
 | Generator pack at 10 tries | **Works:** 5 of 5 in 7.2 s, 24 generator calls; email and links checked | 11:18 PM | One live run; 0 of 25 simulated packs came back short |
@@ -251,6 +252,6 @@ Never run `./demo.sh` plain tonight or tomorrow: `:4545` is already running.
 | Tunnel self-heal | Verified | 9:53 PM (37 s) | Sentinel 3 drill |
 | Readiness check | 17/17 | 9:54 PM | Sentinel 3 |
 | 30-minute console soak | Passed | 10:36 PM | Heap flat, no errors |
-| Overnight step-in row | **Not yet written** | n/a | Coordinator, at relay end |
+| Overnight step-in row | Written | 12:03 AM | `interventions` row |
 | Replay at `--port 4547` | **Not run** | n/a | Flag exists in `demo/src/server.ts` |
 | Video and live timing | **Not rehearsed** | n/a | Do at 8:30 AM |
