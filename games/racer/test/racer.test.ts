@@ -346,3 +346,19 @@ test("older level JSON still validates and plays, even with an object under a ca
   assert.ok(r.min_ticks >= old.length);
   assert.equal(kindOf(old, cellKey(5, 1)), "car");
 });
+
+
+test("cleared traffic stays gone when steering back through its second cell", () => {
+  const level: Level = { ...base, lane_change_cooldown: 0, objects: [{ row: 5, lane: 1, kind: "car" }] };
+  const grid = buildGrid(level);
+  let state = { ...startState(level), row: 4, lane: 1 };
+  const crash = step(level, grid, state, 0);
+  assert.deepEqual(crash.ev.cleared, [cellKey(5, 1)]);
+  state = crash.next;
+  while (state.stun) state = step(level, grid, state, 0).next;
+  state = step(level, grid, state, 1).next;
+  const back = step(level, grid, state, -1);
+  assert.equal(back.ev.crashed, false, "the wreck hidden by the browser must stay cleared");
+  assert.equal(back.next.lane, 1);
+  assert.deepEqual(back.ev.hit, []);
+});

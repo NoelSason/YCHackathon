@@ -1,4 +1,4 @@
-// Exact solver for Turbo Lanes: breadth-first search over (row, lane, cooldown, boost, stun, shield, rear),
+// Exact solver for Turbo Lanes: breadth-first search over (row, lane, cooldown, boost, stun, shield, rear, cleared),
 // one tick per layer, using the game's own step(). The first state past the finish line gives the
 // fastest possible time. Crashes are allowed (they only cost time), so every track can be finished;
 // the question is whether it can be finished within the time limit.
@@ -15,7 +15,7 @@ const ACTIONS: Action[] = [0, -1, 1];
 
 export function solveLevel(level: Level): SolveResult {
   const grid = buildGrid(level);
-  const key = (st: CarState, row: number) => ((((((row * 8 + st.lane) * 4 + st.cooldown) * 8 + st.boost) * 16 + st.stun) * 2 + st.shield) * 6 + st.rear + 1);
+  const key = (st: CarState, row: number) => ((((((row * 8 + st.lane) * 4 + st.cooldown) * 8 + st.boost) * 16 + st.stun) * 2 + st.shield) * 6 + st.rear + 1) * 32768 + (st.cleared ?? 0);
   const start = startState(level);
   type Node = { s: typeof start; parent: number; action: Action; crashes: number };
   const nodes: Node[] = [{ s: start, parent: -1, action: 0, crashes: 0 }];

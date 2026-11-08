@@ -61,7 +61,7 @@ function stateKey(st: CarState, depth: number): number {
   k = k * 16 + st.stun;
   k = k * 2 + st.shield;
   k = k * 8 + (st.rear + 1);
-  return k * 16 + depth;
+  return (k * 16 + depth) * 32768 + (st.cleared ?? 0);
 }
 
 /**

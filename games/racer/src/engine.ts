@@ -58,6 +58,8 @@ export interface CarState {
    * the lane it left was already driven over, so steering straight back must not touch it again.
    */
   rear: number;
+  /** Cleared anchors in this row and the two behind it (5 lane bits per row). */
+  cleared?: number;
 }
 
 export interface StepEvents {
@@ -186,7 +188,7 @@ export function objectsAt(grid: Grid, row: number, lane: number): number[] {
 }
 
 export function startState(level: Level): CarState {
-  return { row: 0, lane: level.start_lane ?? Math.floor(level.lanes / 2), tick: 0, cooldown: 0, boost: 0, stun: 0, shield: 0, rear: -1 };
+  return { row: 0, lane: level.start_lane ?? Math.floor(level.lanes / 2), tick: 0, cooldown: 0, boost: 0, stun: 0, shield: 0, rear: -1, cleared: 0 };
 }
 
 export const finished = (level: Level, s: CarState): boolean => s.row >= level.length;
@@ -196,7 +198,8 @@ export const canSteer = (s: CarState): boolean => s.stun === 0 && s.cooldown ===
 
 /**
  * Advance one tick. Returns the new state and what happened. Each object is touched at most once:
- * rows only increase, and the `rear` field stops a quick left-right from re-entering a cell.
+ * rows only increase; a bounded history also remembers cleared traffic whose second cell
+ * can still overlap the car after a lane change. The shared grid remains immutable.
  */
 export function step(level: Level, grid: Grid, s: CarState, action: Action): { next: CarState; ev: StepEvents } {
   const ev: StepEvents = { crashed: false, boosted: false, coins: 0, shielded: false, protected: false, sideswipe: false, hit: [], cleared: [] };
@@ -205,7 +208,13 @@ export function step(level: Level, grid: Grid, s: CarState, action: Action): { n
     n.stun = s.stun - 1;
     return { next: n, ev };
   }
+  const wasCleared = (key: number): boolean => {
+    const offset = s.row - Math.floor(key / 8);
+    return ev.cleared.includes(key) || (offset >= 0 && offset <= 2 &&
+      ((s.cleared ?? 0) & (1 << (offset * 5 + key % 8))) !== 0);
+  };
   const collect = (key: number): void => {
+    if (wasCleared(key)) return;
     const kind = grid.get(key);
     if (kind === "shield") {
       n.shield = 1;
@@ -229,7 +238,7 @@ export function step(level: Level, grid: Grid, s: CarState, action: Action): { n
       const keys: number[] = [];
       for (let r = s.row - VEHICLE_ROWS + 1; r <= s.row; r++) {
         if (r < s.row && target === s.rear) continue; // already driven over in that lane
-        for (const k of objectsAt(grid, r, target)) if (!keys.includes(k)) keys.push(k);
+        for (const k of objectsAt(grid, r, target)) if (!wasCleared(k) && !keys.includes(k)) keys.push(k);
       }
       keys.sort((a, b) => a - b); // rear to front
       let shield = n.shield;
@@ -277,6 +286,7 @@ export function step(level: Level, grid: Grid, s: CarState, action: Action): { n
     advanced += 1;
     if (n.row >= level.length) break;
     const key = cellKey(n.row, n.lane);
+    if (wasCleared(key)) continue;
     const kind = grid.get(key);
     if (isObstacle(kind) && n.shield > 0) {
       n.shield = 0;
@@ -298,6 +308,11 @@ export function step(level: Level, grid: Grid, s: CarState, action: Action): { n
   // Lanes the car covered on the row now behind its front: the one it started in and the one it
   // is in. Two rows forward (boost) leaves only the current lane.
   n.rear = advanced === 1 && startLane !== n.lane ? startLane : -1;
+  n.cleared = ((s.cleared ?? 0) << (advanced * 5)) & 0x7fff;
+  for (const key of ev.cleared) {
+    const offset = n.row - Math.floor(key / 8);
+    if (offset >= 0 && offset <= 2) n.cleared |= 1 << (offset * 5 + key % 8);
+  }
   return { next: n, ev };
 }
 

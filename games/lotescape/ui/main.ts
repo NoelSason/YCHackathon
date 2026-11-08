@@ -142,11 +142,13 @@ function commit(next: State) {
 }
 function restart() {
   stopAutoplay();
+  drag = undefined;
   for (const car of cars.values()) car.remove(); for (const marker of exits.values()) marker.remove(); cars.clear(); exits.clear();
   state = initialState(level); selected = state.vehicles[0]?.id ?? ""; ended = false; sessionId = crypto.randomUUID();
   message.textContent = HINT; message.className = "message"; render(); event("attempt");
 }
 function act(direction: Direction) {
+  stopAutoplay();
   if (!selected || ended) return;
   const next = move(level, state, selected, direction);
   if (next === state) { message.textContent = BLOCKED; return; }
@@ -319,7 +321,7 @@ board.addEventListener("pointerdown", (e) => {
   const car = (e.target as HTMLElement).closest<HTMLButtonElement>(".car");
   const vehicle = car && !ended ? state.vehicles.find((v) => v.id === car.dataset.id) : undefined;
   if (!car || !vehicle) return;
-  e.preventDefault(); select(vehicle.id);
+  e.preventDefault(); stopAutoplay(); select(vehicle.id);
   const [neg, pos] = axisDirections(vehicle), left = level.move_limit - state.moves;
   const back = slideLimit(level, state, vehicle.id, neg), ahead = slideLimit(level, state, vehicle.id, pos);
   const min = -Math.min(back.steps, left), max = Math.min(ahead.steps, left);
@@ -350,7 +352,12 @@ function endDrag(e: PointerEvent) {
   commit(slide(level, state, id, steps < 0 ? neg : pos, Math.abs(steps)));
 }
 board.addEventListener("pointerup", endDrag);
-board.addEventListener("pointercancel", endDrag);
+board.addEventListener("pointercancel", (e) => {
+  if (!drag || e.pointerId !== drag.pointer) return;
+  cars.get(drag.id)?.classList.remove("dragging");
+  drag = undefined;
+  render(); // canceled gestures restore the board without spending moves
+});
 
 async function loadSaved(id: string) {
   const response = await fetch(`${api}/levels/${encodeURIComponent(id)}`); if (!response.ok) throw new Error(`Could not load saved level (${response.status}).`);

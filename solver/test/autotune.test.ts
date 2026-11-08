@@ -184,3 +184,18 @@ test("accepts a measurement whose 95% interval contains the target, within 8 poi
   assert.equal(onTarget({ win_rate: 0.25, ci95_low: 0.15, ci95_high: 0.4 }, 0.35), false); // 10 pts off
   assert.equal(onTarget({ win_rate: 0.28, ci95_low: 0.25, ci95_high: 0.31 }, 0.35), false); // tight interval excludes it
 });
+
+
+test("a simulation exception finishes the measurement as failed immediately", async () => {
+  const root = await design("match3", { goal: { target: 10 } }, 0.5);
+  const broken: Adapter = { ...fakeMatch3, simulate: () => { throw new Error("broken simulation"); } };
+  const out = await tuneNextDesign(q, "test-worker", () => broken, { games: ["match3"], threads: 1 });
+  assert.equal(out.kind, "rejected");
+  const runs = await q(`select status, error, finished_at from solver_runs where level_id = $1`, [root]);
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0]!.status, "failed");
+  assert.match(String(runs[0]!.error), /broken simulation/);
+  assert.ok(runs[0]!.finished_at);
+  const activity = await q(`select action from activity_log where action = 'solver_run.failed'`);
+  assert.equal(activity.length, 1);
+});

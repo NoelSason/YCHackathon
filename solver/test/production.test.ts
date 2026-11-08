@@ -71,6 +71,9 @@ test("LevelOps import is atomic/idempotent, keeps evidence, honors kill switch, 
     const accepted = calibrate(recipe("watersort", 1));
     const id = await saveAccepted(q, accepted, 1);
     assert.equal(await saveAccepted(q, accepted, 1), id);
+    const conflicting = { ...accepted, level: { ...accepted.level, title: "Different checkpoint" } };
+    await assert.rejects(saveAccepted(q, conflicting, 1), /conflicts with existing level/);
+    assert.deepEqual((await q("select level from levels where level_id=$1", [id]))[0]!.level, accepted.level);
     for (const table of ["levels", "solver_runs", "activity_log"]) assert.equal((await q(`select count(*)::int as n from ${table}`))[0]!.n, 1);
     assert.equal((await q("select count(*)::int as n from packs"))[0]!.n, 0);
     assert.equal((await q("select status from levels"))[0]!.status, "accepted");

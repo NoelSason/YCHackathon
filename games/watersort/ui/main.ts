@@ -94,7 +94,7 @@ function setHint(text: string): void {
 }
 
 function start(level: Level, levelId: string | null, sample: number | null): void {
-  window.clearInterval(autoTimer);
+  stopAutoplay();
   setHint(DEFAULT_HINT);
   game = {
     level, levelId, sample,
@@ -132,7 +132,8 @@ function restart(): void {
 
 const colorName = (c: number): string => COLORS[c] ?? "that color";
 
-function tap(i: number): void {
+function tap(i: number, automated = false): void {
+  if (!automated) stopAutoplay();
   if (game.status !== "playing") return;
   const cap = game.level.capacity;
   const tube = game.tubes[i];
@@ -202,6 +203,7 @@ function tap(i: number): void {
 
 /** Take back the last pour: the board and the pour count go back one step. */
 function undo(): void {
+  stopAutoplay();
   if (game.status !== "playing" || game.undos === 0 || !game.history.length) return;
   game.tubes = game.history.pop()!;
   game.moves--;
@@ -578,10 +580,16 @@ function showLevelBadge(): void {
 }
 
 let autoTimer: number | undefined;
+let replayEpoch = 0;
+function stopAutoplay(): void {
+  window.clearInterval(autoTimer);
+  replayEpoch++;
+  if (engine) { engine = false; showLevelBadge(); }
+}
 
 /** Pour the solver's shortest solution, one pour at a time, so a phone or a screen can show it. */
 function autoplay(): void {
-  window.clearInterval(autoTimer);
+  stopAutoplay();
   if (game.status !== "playing" || game.moves > 0) start(game.level, game.levelId, game.sample);
   let inputs: Array<[number, number]> | undefined;
   try {
@@ -592,18 +600,21 @@ function autoplay(): void {
   if (!inputs) return notice("Autoplay: this level has no solution.");
   engine = true;
   showLevelBadge();
-  const replayGame = game;
+  const replayGame = game, epoch = replayEpoch;
   let k = 0;
   autoTimer = window.setInterval(() => {
     const pourStep = inputs![k++];
     if (game.status !== "playing" || !pourStep) return window.clearInterval(autoTimer);
     game.selected = null;
-    tap(pourStep[0]);
-    window.setTimeout(() => { if (game === replayGame && game.status === "playing") tap(pourStep[1]); }, 260);
+    tap(pourStep[0], true);
+    window.setTimeout(() => {
+      if (replayEpoch === epoch && game === replayGame && game.status === "playing") tap(pourStep[1], true);
+    }, 260);
   }, 700);
 }
 
 function revealHint(): void {
+  stopAutoplay();
   if (game.status !== "playing" || game.hints === 0) return;
   try {
     const result = solveLevel({ ...game.level, tubes: game.tubes.map(t => t.map(c => COLORS[c]!)) }, 50000);
