@@ -43,7 +43,9 @@ mark() {
   local f="$STATE/$1.since"
   if [ "$2" = "ok" ]; then rm -f "$f"; echo 0; return; fi
   [ -f "$f" ] || now > "$f"
-  echo $(( $(now) - $(cat "$f") ))
+  # At least 1 s, so the first failing pass already reads RED (0 would print OK).
+  local d=$(( $(now) - $(cat "$f") )); [ "$d" -gt 0 ] || d=1
+  echo "$d"
 }
 
 # due <check> → true when a recovery may run now (red long enough, none in the last 20 min)

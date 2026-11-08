@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 9:54 PM PT · Noel · Claude Code (ops sentinel, relay slot 3) · main
+- **What:** Overnight ops check: readiness 17/17, every watchdog and caffeinate running, public pages 200, console 401 (password). Fixed `ops/monitor.sh` printing a first failing pass as OK (a 502 at 9:37 PM read "OK"); it now reads RED. Tunnel drill: killed the console tunnel at 9:53 PM; the keepalive restored the public console in 37 s.
+- **Why:** The system has to survive the night unattended, and the monitor must not hide a red.
+- **Files:** `ops/monitor.sh`
+- **State:** works; verified live (drill logged `RED … console=530`, then recovery).
+- **Next / heads-up:** Monid has no dollar cap in code (balance $19.07 at 8:19 PM); OpenAI's daily call cap covers verify only. Noel: set hard limits on both dashboards.
+
 ### 2026-11-07 9:51 PM PT · Noel · Claude Code (generator agent, Sentinel 2 neon, agency agent, checkpoint) · main
 - **What:** (1) **Bring your own generator** done (generator agent). A studio registers an HTTP generator (signed `generate`/`evaluate`, optional `validate`); our loop tunes each level through it. The sample generator (https://levelai-sample-generator.vercel.app) ran a 5-level parking pack in 12.7 s, 36 generator calls, emailed. `hook.ts` returns "no generator" when `biz_generators` is missing. Demo steps are in `docs/demo-script.md`. (2) **Neon** (Sentinel 2): queries are under 1.3 ms in the database; added index `activity_log_playtested`; `/public-stats` runs its three reads in parallel. (3) **Agency**: the test-agency thread worked end to end (inquiry, pricing reply in ~20 s, free 5-level sample, $49 live checkout link). Agency outreach is on with a cap of 3 a day; it waits on the email account's new-recipient cap until Sun 3:04 PM. (4) Checkpoint of the pack and console agents' in-progress edits.
 - **Why:** Studios with their own generator are a demo segment; Neon should be visibly efficient; the agency flow is the live conversation demo.
