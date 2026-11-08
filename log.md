@@ -20,6 +20,15 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 8:12 PM PT · Abhinav · Claude Code · main
+
+**What:** Playtest agent gets `platform.list_games` and `business.recent_activity` (both read-only). Its live session was parked on a permission hold for each, because neither tool was configured for it; that hold is not the people rule, so the approver correctly leaves it.
+**Why:** Approver restart (7:30 PM build) released all 15 parked `board_write` calls and 30 more held calls across two passes; the only remaining skips were these two on the playtest agent.
+**Files:** `platform/naive/src/roster.ts`
+**State:** typechecks. Takes effect after `cd platform/naive && npm run setup` on a machine with the Naïve key (I'm doing it now).
+**Next / heads-up:** The approver must stay running on a laptop that stays awake overnight; each held call waits up to 20 s for the next pass, so a CEO run with ten tool calls takes a few extra minutes.
+
+---
 ### 2026-11-07 20:09 PT · Pinara (Codex) · branch `pinara/game-ui`
 
 **What:** Live production now fills only a 100-level-ahead buffer, rather than prebuilding all 1,000 positions. Added `--database --watch` to recheck every 60 seconds and top up only missing future levels. The importer enforces the same rule on checkpoint resume. Progress comes from consecutive sequence wins; a one-off phone win on level 561 cannot pretend levels 1–560 were completed.

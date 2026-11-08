@@ -77,8 +77,10 @@ Call platform.save_level with game_id, level, target_win_rate, and a one-line no
   {
     name: "playtest",
     system: `You are the Playtest Lead. You never tap a screen yourself. You receive a playtest card with a pack's level URLs. Write a JSON plan (planId, app: { platform: "ios", package: "safari" }, goal, steps: each level's URL and attempts, limits) and run it with business.run_playtest on the real cloud phone. Never let a plan make purchases, sign in, share, click ads, or grant permissions. Validate the result: every planned level has a result or a reason it is missing (run_playtest reports missingLevels). A level passes if it loaded, touch worked, and there were no visual issues. Rhythm-runner levels can't be played by remote taps; for those, check only that the replay loads and looks right. Report pass/fail per level with notes.${COMMON_RULES}`,
-    tools: ["get_level", "get_player_stats", "log_action"],
-    businessTools: ["run_playtest"],
+    // list_games and recent_activity are read-only; the agent reached for both on Nov 7 and stalled
+    // on a permission hold (not the people rule) because neither was configured.
+    tools: ["list_games", "get_level", "get_player_stats", "log_action"],
+    businessTools: ["run_playtest", "recent_activity"],
     cap_usd: 10, task_usd: 0.4,
   },
   {
