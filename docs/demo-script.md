@@ -1,152 +1,251 @@
-# Demo plan: Level AI
+# Demo script: Level AI
 
-Owner: **Noel**. Two deliverables: a **2-minute video due 11:00 AM Sunday** (the top 10 teams go to
-live presentations), and a **3-minute live demo at 1:00 PM** if we make the cut. Everything shown is
-real, live, or clearly labeled as a recording. Every number comes from the activity log or the
-console. Rewritten Nov 7, 7:50 PM to match what is actually built.
+Owner: **Noel**. Two deliverables on **Sun Nov 8**: a **2-minute video** (record ~10:30 AM, due
+11:00 AM, top 10 teams advance) and a **3-minute live demo at 1:00 PM**. Rewritten Sat Nov 7, 11:00 PM
+from live data. Times are Pacific.
 
-## The idea in one line
+Rules: show only real or labeled things. Read every `[N: …]` from the table below right before you
+record. Never present a rehearsal as live.
 
-> "Level AI is a puzzle-game level studio with no employees. Its agents read what players say about
-> the top games, sell to the studios, build and bot-test levels, playtest on a real iPhone, and get
-> paid. Here's what it did since we stopped touching it."
+## Morning checklist (in time order)
 
-## What only we can show
+Run from the repo root. Each block assumes `set -a; . ./.env; set +a` ran first in that terminal.
 
-1. **The judge becomes a customer in 30 seconds.** Scan the QR, enter any game, and an email
-   arrives quoting that game's own players (verified at 30 s end to end).
-   **Blocked as of Nov 7, 8:15 PM:** the email account has hit its new-account cap of 10 distinct
-   new recipients and can't email a new address until 3:04 PM Sunday, after the demo. A judge's
-   email will fail unless Noel upgrades the email plan (paid plans have no cap) or the judge emails
-   levelai@agentmail.to first (replies to people who wrote to us are always allowed). Re-test at
-   10:30 AM with an address that has never been emailed.
-2. **A real iPhone, live, playing App Store games.** It plays Candy Crush to study the genre leader,
-   plays our own levels, and posts our marketing on X from Safari.
-3. **A $49 level pack that builds itself.** A paid order makes the phone study the customer's
-   game, then the agents build 20 levels one at a time (design → 50+ bot plays → tune → accept), and
-   the console counts "level 7 of 20 accepted at 52% (target 50%)". The pack is emailed and the
-   phone plays level 1.
-4. **Real money and an honest step-in list.** Live Stripe checkout for $5 / $49 / $199 a month,
-   and every human step-in listed with who and why.
-
-## 2-minute video storyboard (record tonight and at 10:30 AM)
-
-Screen-record the console (levelai-console.vercel.app, full screen with F) plus the phone, and
-voice over. Use only real names from the log: the studios we emailed are Loop Games, Rotatelab,
-GOODROID, ABI Games, Oakever Games, Hidden Folks B.V., Rollic Games, and Loom Games (8 as of
-8:15 PM). Don't invent studios, games, levels, or step-ins.
-
-| Time | On screen | Voiceover |
+| When | Do | Good looks like |
 |---|---|---|
-| 0:00–0:10 | A real review quote from the outreach board, e.g. Bus Traffic Fever: "levels are impossible to pass without power up". | "Puzzle games live or die on their levels. Players tell studios exactly what's wrong, in reviews nobody reads." |
-| 0:10–0:20 | Console header: "Running on its own for …", agent actions, human step-ins. | "Level AI is a studio run by AI agents. This is the company's live log since we stopped touching it." |
-| 0:20–0:35 | Market research card (reviews read), a "read N reviews of 30 top free puzzle games" feed row. | "All night the research agent has worked through the store charts, up to thirty games at a time, the newest reviews of each. It's read [N] so far, and a model double-checks the quotes before any studio is emailed." |
-| 0:35–0:50 | Outreach board: a studio card with the evidence sentence, the quote, and the email subject. | "When three or more players describe the same problem, the sales agent writes to the studio's public address, quoting them. [N] studios so far, each with an opt-out." |
-| 0:50–1:15 | The phone, live: a Candy Crush study, then our level. The console counts the pack: "level k of 20 accepted". | "A studio orders a level pack. The iPhone plays their game to measure its difficulty curve. Then our pack builder makes twenty levels: generate, fifty bot plays, tune, accept, one at a time." |
-| 1:15–1:30 | Pack email arriving; the phone opens the pack's first level. | "The pack lands in their inbox with each level's target and measured difficulty, and the phone plays the first one." |
-| 1:30–1:45 | /pricing, then a Stripe live payment (only if real), or the live checkout page. | "Three products, live payments: a five-dollar iPhone playtest, a forty-nine-dollar pack, and a subscription." |
-| 1:45–2:00 | The "Where a person stepped in" list, then the logo. | "Here's every time a human stepped in, and why. Everything else, the agents did." |
+| 7:30 | `curl -s https://levelai.vercel.app/health` and `grep -E 'RED\|RECOVERY\|WARN' /tmp/levelai-monitor.log \| tail` | `"ok":true`; no red in the last hours. |
+| 7:35 | Confirm the overnight row exists: open the console, click **Human step-ins**. | A row covering the team's overnight test runs, plus the 8 earlier ones. If it's missing, tell the coordinator before you record. The clock isn't true without it. |
+| 7:40 | **X:** open the main phone in Mobilerun's live view. Open x.com in Safari and log in again, or clear Safari's x.com data first. | The X home timeline loads. Nothing else fixes this; it needs you. |
+| 7:50 | Decide the email plan. Upgrade AgentMail if you want the QR form to work for new addresses. Otherwise keep the email-in route (Segment C). | Decision made. |
+| 8:00 | Snapshot runs by itself. Check: `ls -t demo/data/run-*.jsonl \| head -1` | A file stamped about 16:00 UTC. |
+| 8:05 | Readiness: `cd platform/checks && PLATFORM_URL=https://br-broad-violet-bem8cpy5-platform.compute.c-9.us-east-2.aws.neon.tech EXPECT_RUNNING=1 npm run check` | All green, or `deployments` flaky on Naïve capacity (seen at 9:46 PM). |
+| 8:15 | **X test:** run the post-now command in Segment D. | `posted on x from the iPhone` in the feed. If it fails, use the fallback in Segment D. |
+| 8:30 | Rehearse once: read both tables aloud against the console. Run the numbers command below. | You can say every line without looking. |
+| 9:40 | Start a pack for the video (Segment A) and screen-record the console and phone until it finishes (about 12.5 min). | Rows from "level pack ordered" through the closing playtest. |
+| 10:10 | Record the money shot and the step-in drawer (Segment B, Segment G). | Clips saved. |
+| 10:20 | Run the numbers command and fill every `[N: …]`. Record the voiceover. | |
+| 10:30 | Second snapshot runs by itself. Cut and upload the video. | **Submitted before 11:00.** Code freeze at 11:00: change nothing after it. |
+| 12:30 | Run the numbers command again. Open tabs: console (F for full screen), `/pricing`, `/join`, Mobilerun live view. | |
+| 12:48 | Start the live pack (Segment A). 13 minutes before you need it. | |
+| 1:00 | Present. | |
 
-Fill in each [N] from the console right before recording. If no real payment has happened, say
-"live checkout" and show the checkout page, not a test receipt.
+**Numbers command.** Prints everything the tables need. It prints no secrets.
+
+```bash
+set -a; . ./.env; set +a
+curl -s https://levelai.vercel.app/public-stats; echo
+curl -s -u "x:$DEMO_PASSWORD" localhost:4545/api/state | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const {stats:t,pipeline:p,naiveSpend:n}=JSON.parse(s);console.log({actions:t.agentActions,decisions:t.decisions,stepIns:t.stepIns,autoApproved:t.autoApprovals,onItsOwnSince:new Date(t.unattendedSince).toLocaleString(),compiled:t.levelsCompiled,spentUsd:+(n.usd+t.spendUsd).toFixed(2),earnedUsd:p.payments.liveAmountMinor/100})})'
+node --no-warnings -e "const {Client}=require('./solver/node_modules/pg');(async()=>{const d=new Client({connectionString:process.env.DATABASE_URL});await d.connect();const a=await d.query(\"select count(*)::int n from levels where created_by='tuner' and status in ('accepted','published')\");console.log('agent-made levels accepted:',a.rows[0].n);const w=await d.query(\"select count(*)::int n from biz_pack_deliveries where state in ('queued','working') and due_at <= now()\");console.log('packs queued or working now:',w.rows[0].n);const p=await d.query(\"select to_char(ts at time zone 'America/Los_Angeles','Dy HH12:MI AM') at, action, result from activity_log where action like 'payment received%' order by ts desc limit 5\");console.table(p.rows);await d.end()})()"
+```
+
+## The numbers
+
+Measured Sat 10:55–11:00 PM. They will have moved. Reread them from the "where" column.
+
+| `[N: …]` | Value at Sat ~11:00 PM | Where to read it |
+|---|---|---|
+| reviews | 36,281 (12 passes, 254 games) | Numbers command, `reviewsRead`; on the console, the Market research card. Say "reviews read": it counts reads, so a review read twice counts twice. |
+| found | 23 studios | `studiosAudited`. The console's "Found" tile shows only studios not yet emailed (16, including 1 agency). Don't read that one as the total. |
+| emailed | 8 studios | `emailsSent`; the "Emailed" tile. |
+| replied | 0 | Outreach board totals (press **O**). Say it if asked. |
+| playtests | 17 | `playtestsRun`. |
+| actions | 1,229 | `actions`; the **Agent actions** tile. |
+| decisions | 15 | `decisions`; the **Decisions** tile. |
+| step-ins | 8 at 11:01 PM (expect one more for the overnight tests) | `stepIns`; the **Human step-ins** tile. |
+| auto-approved | 528 | `autoApproved`; shown beside the step-ins. |
+| agent levels | 12 accepted | "agent-made levels accepted" (Designer and Tuner agents). |
+| compiled | 769 | `compiled`; made by the deterministic compiler, not agents. |
+| spent | $15.12 | `spentUsd`; the **Spent** tile. It's Naïve credits plus logged tool costs. Monid rows before 10:53 PM are understated, so call it "logged spend". |
+| earned | **$0** | `earnedUsd`. No real payment yet. Say so. |
+| own clock | since 11:01 PM, Pinara's newest step-in (true only once the overnight row is in) | **Running on its own for** in the console header. |
+
+## 2-minute video
+
+Screen-record the console (`levelai-console.vercel.app`, full screen with **F**, password
+`DEMO_PASSWORD`, any username) and the phone. The studios emailed so far are Loop Games, Rotatelab,
+GOODROID, ABI Games, Oakever Games, Hidden Folks B.V., Rollic Games, and Loom Games A.Ş.
+
+| Time | On screen | Say |
+|---|---|---|
+| 0:00–0:10 | Press **O**. GOODROID's card, the Bus Traffic Fever quote. | "Puzzle games live or die on their levels. Players say exactly what's wrong, in reviews nobody reads. Here's one: levels are impossible to pass without power up." |
+| 0:10–0:20 | Console header: clock, actions, step-ins. | "Level AI is a level studio run by AI agents. This is its live log since we stopped touching it." |
+| 0:20–0:35 | Market research card, then a "read N player reviews" feed row. | "All night the research agent has worked through the store charts. It has read [N: reviews] reviews so far, counting repeats, and a model double-checks each quote before any studio is emailed." |
+| 0:35–0:50 | Outreach board, a studio card with its quote and subject. | "When three or more players describe the same problem, the sales agent writes to the studio's public address and quotes them. That's [N: emailed] studios so far, each with an opt-out. None has replied yet." |
+| 0:50–1:15 | Pack recording from 9:40 AM, sped up with a "sped up" label: phone study, then "level k of 20 accepted". | "A studio orders a level pack. A real iPhone plays their game to measure how hard it gets. Then our pack builder makes twenty levels, one at a time: generate, bot plays, tune, accept. The whole order took about twelve minutes." |
+| 1:15–1:30 | Pack email, then the phone playing level 1. | "The pack lands in their inbox with each level's target and measured difficulty. If the phone can't see a difficulty ramp, the email says we used our default curve. Then the phone plays level one." |
+| 1:30–1:45 | `/pricing`, the $49 form, Stripe's live page (stop there). Then the payment rows from the numbers command. | "Checkout is live: a five-dollar playtest, a forty-nine-dollar pack, and a subscription. Nobody has paid us yet, so we've earned zero dollars. Here's a test-mode order the system ran on its own, labeled test." |
+| 1:45–2:00 | Click **Human step-ins**. Then the logo. | "Here's every time a person stepped in, and why. A policy program approved [N: auto-approved] held tool calls, and each one is logged. We set the goal and the budget. Everything else, the agents and their programs did." |
+
+If a clip wasn't recorded, cut the shot. Don't substitute a rehearsal without saying it is one.
 
 ## Live demo (3:00)
 
+Start the pack at **12:48 PM**.
+
 | Time | Show | Say |
 |---|---|---|
-| 0:00–0:15 | Console header. | The one-line idea, plus the biggest real overnight number. |
-| 0:15–0:25 | The QR on the console. | "Judges, scan this and enter any puzzle game. Then put your phone down." |
-| 0:25–1:00 | Feed: reading reviews → audited → email sent. | Narrate the agents as they work. "Check your phone." |
-| 1:00–1:40 | A pack run already in progress (start it before presenting with `POST /orders/demo-run`): the phone study row, then levels counting up. | "This order came in N minutes ago. The phone studied the game, and the agents are on level k of 20." |
-| 1:40–2:10 | The phone, live, on our level or on Candy Crush. | "A real cloud iPhone, driven by our playtest agent. Paid orders get it first." |
-| 2:10–2:40 | /pricing, then the step-in list. | "Live payments. And here's every human step-in." Read them honestly. |
-| 2:40–3:00 | Numbers. | Studios found, emailed, reviews read, levels accepted, spend. "We set the goal and the budget; the agents run it." |
+| 0:00–0:15 | Console header. | "Level AI is a puzzle-game level studio with no employees. Agents read what players say, sell to studios, build and bot-test levels, and playtest on a real iPhone. Here's what it did since we stopped touching it." |
+| 0:15–0:25 | Press **Q** for the QR. | "Judges, scan this, tap Email us your game, and send the name of any puzzle game. Then put your phone down." |
+| 0:25–1:00 | Feed: the new audit rows. | Narrate the rows you see. "The agents are reading that game's reviews now. You should have a reply within a minute. Check your phone." |
+| 1:00–1:40 | The pack started at 12:48: phone study row, level rows, the phone on level 1. | "This order came in about thirteen minutes ago, before I walked up. The phone studied the game for about three minutes, the twenty levels took about seventy-five seconds, and the phone is now playing level one." |
+| 1:40–2:10 | The phone (press **P**). | "A real cloud iPhone, driven by our playtest agent. Paid orders get it first." |
+| 2:10–2:40 | `/pricing`, then **Human step-ins**. | "Checkout is live, and we've earned zero dollars so far. Here's every human step-in." Read them. Say the morning items out loud: "This morning I logged back in to X on the phone and started this test order." |
+| 2:40–3:00 | Numbers. | "[N: found] studios found, [N: emailed] emailed, [N: reviews] reviews read, [N: agent levels] levels accepted by agents, [N: spent] logged spend. We set the goal and the budget; the agents run it." |
 
-## Bring your own generator (optional 40-second segment)
+Timing warning: the level build happens about six minutes into a run and lasts about 75 seconds, so
+"levels counting up" is hard to catch live. Plan for a finished build. If it happens to be running,
+narrate it.
 
-A studio connects its own level generator, and our agents build a pack with it: their generator makes each
-level, their bot measures it, our loop tunes it. The stand-in studio endpoint is our labeled "Example
-generator (Level AI sample)" at https://levelai-sample-generator.vercel.app (code in `sample-generator/`).
-It's registered to the team studio for `noel_sason@berkeley.edu` (generator
-`9fbe79ac-23f1-470b-af8d-ca05fbce724e`, genre parking). Its secret is set on that Vercel project.
-`LEVELAI_DEMO_STUDIO_KEY` and `BUSINESS_MCP_TOKEN` are in `.env`. Run `set -a; . ./.env; set +a` first.
+## Segments
 
-1. **Register (show, don't rerun).** Rerunning it rotates the secret and breaks the sample until its
-   `LEVELAI_SIGNING_SECRET` is updated on Vercel. Show the command:
+### A. Pack run
+
+Always send `company` and `name`. Check first that the numbers command shows 0 packs queued or
+working now. Packs run one at a time.
+
+```bash
+curl -X POST localhost:8787/orders/demo-run -H "Authorization: Bearer $BUSINESS_MCP_TOKEN" -H "content-type: application/json" \
+  -d '{"email":"noel_sason@berkeley.edu","genre":"match3","game":"Candy Crush Saga","bundleId":"com.midasplayer.apps.candycrushsaga","company":"Level AI Test Agency","name":"Noel"}'
+```
+
+Real timings from the 10:07–10:19 PM run, 12 min 25 s end to end: wait for phone 2:38, study 3:06,
+20 levels 75 s, pack email 1 s later, closing playtest 4:58. **Start it about 13 minutes before you
+need it.** The phone saw no ramp in that run, so the default curve was used and the email says so.
+The feed labels it "no payment: a team test order"; say that.
+
+### B. Money
+
+The console's test-payment tile hides team orders and reads 0, so don't show it. Show live checkout
+(`/pricing`, the $49 form, stop at Stripe's page) and the activity-log row, for example
+`payment received: pilot_pack, 49.00 USD (test mode)` at 8:08 PM. The console feed holds only the
+newest 150 rows, so by morning that row won't be in it. Read it from the numbers command and show
+the terminal. **Earned is $0.** Refunds don't lower Earned; it doesn't matter while Earned is $0.
+
+### C. Judge flow
+
+AgentMail can't send a first email to a **new** address until **3:04 PM Sunday**, unless you upgrade.
+Replies to people who wrote first are always allowed. So:
+
+- **Works now:** email `levelai@agentmail.to` with the subject `Audit: <game>` (or tap "Email us your
+  game" at the top of `/join`). The reply took 26 s when tested tonight.
+- **The form on `/join`** to a new address fails and shows "Email us your game instead". Don't send
+  judges to the form unless the upgrade is done. Re-test with a never-emailed address after upgrading.
+- **Second send path:** at 11:00 PM it's uncommitted work in `business/src/outreach/alt-mail.ts`. It
+  isn't running, and `.env` has neither `NAIVE_SALES_INBOX_ID` nor `RESEND_API_KEY`. Don't describe it
+  unless `log.md` says it's live and a never-emailed address got mail.
+
+### D. X post
+
+```bash
+curl -X POST localhost:8787/social/post-now -H "Authorization: Bearer $BUSINESS_MCP_TOKEN"
+```
+
+Feed rows, in order: `asked to post now` → (`asked the phone to stop studying <game> early`) →
+`posting on X from the iPhone` → `posted on x from the iPhone`, or
+`couldn't post on x from the iPhone`. A 409 means a post is already running. Failures took about
+90 s tonight; a successful run wasn't timed.
+
+The scheduled loop stays quiet 3 AM–2 PM, so nothing posts by itself during the video or demo. As of
+10:14 PM, x.com doesn't load on the phone (black logo screen); Noel must log in again. **Fallback:**
+show the 6:55 PM post (`posted on x from the iPhone`, phone task a4868c26…), labeled "earlier today".
+
+### E. Agency conversation (swap-in)
+
+Tested 10:46–10:48 PM: inquiry answered in 23 s, "yes, send a sample" answered in 27 s, 5 levels 2 s
+later. The inbox is polled every 15 s, so allow up to a minute. You play the agency; say that.
+
+1. Reset, so the turn count starts over:
    ```bash
-   curl -X POST https://levelai.vercel.app/api/studio/generators -H "Authorization: Bearer $LEVELAI_DEMO_STUDIO_KEY" \
-     -H "content-type: application/json" \
-     -d '{"name":"Example generator (Level AI sample)","genre":"parking","base_url":"https://levelai-sample-generator.vercel.app","format":"levelai"}'
+   curl -X POST localhost:8787/agency/demo-start -H "authorization: Bearer $BUSINESS_MCP_TOKEN" -H 'content-type: application/json' \
+     -d '{"email":"noel_sason@berkeley.edu","direction":"inbound"}'
    ```
-2. **Test it live (about 2 s).** Shows generate, validate, and evaluate, with timings and the measured win rate:
-   ```bash
-   curl -X POST https://levelai.vercel.app/api/studio/generators/9fbe79ac-23f1-470b-af8d-ca05fbce724e/test \
-     -H "Authorization: Bearer $LEVELAI_DEMO_STUDIO_KEY"
-   ```
-3. **Run a pack through it.** `levels` is 1 to 20; 5 takes about a minute once the queue is free. Packs run one at a
-   time, so check that no other pack is `working` first, or this one waits behind it.
-   ```bash
-   curl -X POST "$(grep '^  Tunnel:' /tmp/levelai-live.log | tail -1 | awk '{print $2}')/orders/demo-run" \
-     -H "Authorization: Bearer $BUSINESS_MCP_TOKEN" -H "content-type: application/json" \
-     -d '{"email":"noel_sason@berkeley.edu","generator_id":"9fbe79ac-23f1-470b-af8d-ca05fbce724e","levels":5,"company":"Level AI Test Agency"}'
-   ```
-4. **The console shows** (agent `level-delivery`), for example from the real run at 9:47 PM on Nov 7:
-   - "building Level AI Test Agency's level pack with their own generator "Example generator (Level AI sample)""
-   - "asked Level AI Test Agency's generator for level 4 at difficulty 0.64"
-   - "Level AI Test Agency's level 4 measured 29% vs 51% target: too hard; difficulty 0.64 → 0.42"
-   - "Level AI Test Agency's level 4 measured 51% vs 51% target: accepted"
-   - "delivered level pack to Level AI Test Agency"
+2. From noel_sason@berkeley.edu, email levelai@agentmail.to, subject **Agency inquiry**, body: "We're
+   a small agency; one client has a water-sort game that needs more levels. What can you do, and what
+   does it cost?" Don't include a store link; that routes to the audit path.
+3. When the reply arrives, answer: **"Let's try the free sample: water sort, easy."**
+4. Console rows: `new prospect wrote in`, `replied to Level AI Test Agency (test agency): …`, the
+   level-pack rows, `delivered level pack`.
 
-   That run took 12.7 s from start to delivered: 5 levels, 36 calls to the generator.
-5. **The email** (to noel_sason@berkeley.edu, subject "[Test order] Your level pack is ready: 5 parking-puzzle levels
-   from your generator") says the levels were made by YOUR generator, measured by YOUR bot (casual-player), and tuned
-   by our agents, with a table of target, measured (wins/100), difficulty setting, and tries per level, a play link,
-   and the JSON link.
+### F. Bring your own generator (swap-in)
 
-If the sample endpoint is down, the pack pauses and logs "step-in needed"; say so, and show the earlier run.
+Generator `9fbe79ac-23f1-470b-af8d-ca05fbce724e`, "Example generator (Level AI sample)". The API
+reports its genre as `lotescape`; emails say "parking-puzzle". **Don't re-register it:** that rotates
+its secret and breaks the sample. Each level now gets up to 10 tries.
 
-## Honest answers to likely questions
+```bash
+# Live test, about 2 s: 25 of 50 wins at difficulty 0.5 at 10:27 PM.
+curl -X POST https://levelai.vercel.app/api/studio/generators/9fbe79ac-23f1-470b-af8d-ca05fbce724e/test -H "Authorization: Bearer $LEVELAI_DEMO_STUDIO_KEY"
+# A 5-level pack through it.
+curl -X POST localhost:8787/orders/demo-run -H "Authorization: Bearer $BUSINESS_MCP_TOKEN" -H "content-type: application/json" \
+  -d '{"email":"noel_sason@berkeley.edu","generator_id":"9fbe79ac-23f1-470b-af8d-ca05fbce724e","levels":5,"company":"Level AI Test Agency","name":"Noel"}'
+```
 
-- **"Where did humans step in?"** Read the console list. As of 8:15 PM it holds 6 rows: Abhinav's
-  4:44 PM switch-on, Pinara enabling and re-running the Designer's scheduled run (6:21 and 6:25 PM),
-  and Pinara starting (7:57 PM) and stopping (8:10 PM) the level compiler's bulk run. Also say what
-  isn't a row: logging in to X on the phone, and the policy auto-approver, which approves held calls
-  to our own servers only and logs each one. Never invent or hide one.
-- **"Did agents make all those levels?"** No. The Designer and Tuner agents had accepted 3 levels
-  by 8:15 PM. The rest come from two deterministic programs that use the same game rules and bots:
-  the level compiler (hundreds of levels, each verified with 200+ bot replays) and the pack builder
-  for paid orders. The agents decide what to make; the programs make and measure it.
-- **"Do you put levels inside the customer's game?"** No. Packs are levels in our engine for their
-  genre (match-3, sort, racer, parking), calibrated to how their game plays, delivered as playable
-  previews plus JSON in a documented format (/developers).
-- **"Is the cold email spam?"** Role-based addresses only, real quotes, at most 40 a day, an opt-out
-  line, and auto-replies only to clear yeses.
-- **"How does it scale?"** Costs are compute, not people: about $0.0015 per game read, one small
-  model call per qualifying game, cloud-phone minutes per playtest, and solver CPU per level. More
-  phones and more solver workers scale it linearly.
-- **"Why Naïve?"** The team, its crons, budgets, and the Marketing, Research, CEO, and Designer
-  agents run on Naïve. Naïve pauses tool calls after an agent reads data from an MCP server, so the
-  tuner is a deterministic program and that rule shows up in our step-in story. Say so.
+Feed rows: `asked Level AI Test Agency's generator for level k at difficulty …`, `level k measured …
+vs … target: …`, `delivered level pack`. A real 9:47 PM run took 12.7 s for 5 levels. If the endpoint
+is down, the pack logs "step-in needed"; say so and show the 9:47 PM email.
 
-## The night before (checklist)
+### G. Step-ins
 
-- [ ] The business server, console, solver worker, and keepalive scripts are running on Noel's laptop (they keep it awake). `curl https://levelai.vercel.app/health` is ok.
-- [ ] The readiness check is green where it can be: `cd platform/checks && PLATFORM_URL=… EXPECT_RUNNING=1 npm run check`.
-- [ ] At least one level is accepted and plays at /play (the tuner fix is in).
-- [ ] One pack run completes end to end with `POST /orders/demo-run`. Note its wall time.
-- [ ] X on the phone is still logged in (the last phone post succeeded).
-- [ ] Record the 2-minute video once tonight as a backup. Re-record at 10:30 AM with fresh numbers and submit before 11:00.
-- [ ] The health monitor is running (`ops/README.md`); `grep -E 'RED|RECOVERY|WARN' /tmp/levelai-monitor.log` is quiet.
-- [ ] Email to new addresses works again (upgrade the email plan), or the QR segment is replaced by "email levelai@agentmail.to".
-- [ ] Don't touch the system after midnight unless something is broken. Each step-in shows on the console.
+The panel shows only the newest 6. **Click the Human step-ins number** for the full list. As of
+11:01 PM it holds 8: Abhinav's switch-on (4:44 PM), Pinara enabling and re-running the Designer
+(6:21, 6:25 PM), starting and stopping bulk production (7:57, 8:10 PM), publishing the opening
+packs (8:19 PM), and building the Mosslight Trails client (11:01 PM). A policy program also approved 528 held tool calls to our own servers; those are
+logged, shown beside the step-ins, and not counted as people.
 
-## If something breaks on stage
+The clock caveat: "Running on its own" counts only logged step-ins. The team's overnight test runs
+(9:31–10:19 PM test leads, demo packs, restarts, tunnel drill) get logged as **one** step-in when
+hardening stops, and the clock restarts from that row. Morning actions (X login, test orders) aren't
+rows. Say them out loud.
+
+## If something breaks
 
 | Break | Do |
 |---|---|
-| The email takes longer than 45 s | Keep narrating the feed. Past 90 s, show the email from the 10:30 AM test and say it's from the rehearsal. If the email plan wasn't upgraded, expect this: say the account is capped on new recipients until 3 PM, and show the rehearsal email. |
-| Phone view frozen | Open the Mobilerun dashboard's live view, or say the phone is between jobs and show the last playtest row. |
-| The public site or console is down | The watchdogs restart a dead tunnel within about a minute. Meanwhile, show localhost:4545. |
-| The pack run is slow | Show how far it got ("level k of 20") and the levels already accepted. Don't pretend it finished. |
+| Email takes over 45 s | Keep narrating. Past 90 s, show tonight's test reply and say it's from rehearsal. |
+| Console down | The tunnel watchdog restores it in about 40 s (37 s in the 9:53 PM drill). Meanwhile open `http://localhost:4545` (same password). |
+| Network or database down | Replay the newest snapshot on a free port: `./demo.sh --replay "$PWD/$(ls -t demo/data/run-*.jsonl \| head -1)" --port 4547`. The banner says it's a replay. Snapshots run at 8:00 and 10:30 AM, plus hourly. |
+| Phone view frozen | Open Mobilerun's live view, or say the phone is between jobs and show the last playtest row. |
+| Pack is slow | Show how far it got. Don't pretend it finished. |
 
-Never claim a step that didn't happen, and never present rehearsal data as live.
+Never run `./demo.sh` plain tonight or tomorrow: `:4545` is already running.
+
+## Likely questions
+
+- **"Did agents make all those levels?"** No. Agents accepted [N: agent levels]. The rest come from
+  two deterministic programs using the same game rules and bots: the compiler ([N: compiled]) and the
+  pack builder. The Tuner is a program, not an LLM agent.
+- **"Do you put levels inside the customer's game?"** No. Packs are levels in our engine for their
+  genre, delivered as playable previews and JSON in a documented format (`/developers`).
+- **"Is the cold email spam?"** Role-based addresses only, real quotes, a daily cap, an opt-out line,
+  and auto-replies only to clear yeses.
+- **"Any real customers?"** Not yet. [N: replied] replies and $0 earned. Say it plainly.
+- **"How does it scale?"** Costs are compute, not people: about $0.05 a research pass, cloud-phone
+  minutes per playtest, solver CPU per level.
+- **"Why these sponsors?"** Naïve runs the team, crons, budgets, and the Marketing, Research, CEO, and
+  Designer agents. Mobilerun is the phone. Monid is the review data. Neon holds the activity log every
+  number here comes from.
+
+## Verified vs. not verified
+
+| Segment | Status | Last verified | By |
+|---|---|---|---|
+| Numbers table | Verified | Sat ~11:00 PM | Console `/api/state`, `/public-stats`, Neon SQL (this pass) |
+| Console tiles reconcile with Neon | Verified | 10:39 PM | Sentinel 11 |
+| Pack run (20 levels + phone) | Verified | 10:07–10:19 PM | Sentinel 5, real run; emails and links checked |
+| Live checkouts | Verified, no real charge | 10:17 PM | Sentinel 6 |
+| Test-mode payment path | Verified | 10:17 PM | Sentinel 6 webhook test |
+| Email-in audit | Verified live earlier tonight | ~10:05 PM | Judge-flow sentinel, inbox checked |
+| QR form to a new address | **Blocked until 3:04 PM or upgrade** | 10:54 PM | Feed: "paused until Sun 3:04 PM PT" |
+| Second send path | **Not running, not tested** | 11:00 PM | Uncommitted code, no env vars |
+| Agency conversation | Verified | 10:46–10:48 PM | Sentinel 7, live thread |
+| Generator test | Verified | 10:27 PM | Sentinel 8 |
+| Generator pack at 10 tries | **Not run live** (simulated; the 10:21 PM run with 6 tries delivered 3 of 5) | n/a | Tests only |
+| X post-now | **Broken; needs Noel's login** | Failed 10:14 PM | Feed |
+| Phone loop | Verified | 10:54 PM | Feed row, `phones=ready/ready` |
+| Research cadence 10–15 min | Observed | 10:33, 10:45, 10:55 PM | Neon rows; 8–14 min passes expected |
+| Tunnel self-heal | Verified | 9:53 PM (37 s) | Sentinel 3 drill |
+| Readiness check | 17/17 | 9:54 PM | Sentinel 3 |
+| 30-minute console soak | Passed | 10:36 PM | Heap flat, no errors |
+| Overnight step-in row | **Not yet written** | n/a | Coordinator, at relay end |
+| Replay at `--port 4547` | **Not run** | n/a | Flag exists in `demo/src/server.ts` |
+| Video and live timing | **Not rehearsed** | n/a | Do at 8:30 AM |
