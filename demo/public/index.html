@@ -219,6 +219,7 @@
   .agent .last { grid-column: 2 / -1; font-size: 0.86rem; line-height: 1.25; color: var(--on-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .agent .ago { color: var(--on-ink-3); font-weight: 700; }
   .agent.working { border-color: var(--c); background: color-mix(in srgb, var(--c) 18%, var(--ink-2)); }
+  .agent.stopped { opacity: 0.6; }
   .agent.working .tile { animation: bob 1.4s ease-in-out infinite; }
   .agent.working .ago { color: var(--c); }
   .agent.working.light .ago { color: var(--c); }
@@ -337,8 +338,10 @@
   .steps-card h3 { margin: 0; display: flex; align-items: center; gap: 0.55rem; font: 700 1rem/1.1 var(--display); letter-spacing: -0.015em; }
   .steps-card h3 .tile { width: 1.15rem; height: 1.15rem; border-radius: 0.3rem; }
   .steps-card h3 small { margin-left: auto; font: 600 0.82rem/1 var(--body); color: var(--ink-soft); letter-spacing: 0; }
-  .steps { display: grid; gap: 0.3rem; min-width: 0; max-height: 3.9rem; align-content: start; padding-right: 0.3rem; }
-  .step { display: flex; gap: 0.55rem; align-items: baseline; min-width: 0; font-size: 0.95rem; font-weight: 600; }
+  .steps { display: grid; gap: 0.3rem; min-width: 0; max-height: 4.17rem; align-content: start; padding-right: 0.3rem; }
+  .step { display: flex; gap: 0.55rem; align-items: baseline; min-width: 0; font-size: 0.95rem; line-height: 1.25; font-weight: 600; }
+  .steps-all { flex: none; font: 800 0.82rem/1 var(--body); color: var(--tomato-d); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .steps .steps-all { justify-self: start; }
   .step time { flex: none; font-weight: 800; color: var(--tomato-d); font-variant-numeric: tabular-nums; }
   .step .s-who { flex: none; font-weight: 800; }
   .step .s-what { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
@@ -494,7 +497,7 @@
   <header>
     <span class="brand">
       <svg viewBox="0 0 528 528" aria-hidden="true"><rect width="528" height="528" rx="112" fill="#1a1d3a"/><rect x="64" y="316" width="132" height="132" rx="30" fill="#22b893"/><rect x="200" y="200" width="132" height="132" rx="30" fill="#ffc53d"/><rect x="332" y="84" width="132" height="132" rx="30" fill="#ff5b4f"/><circle cx="88" cy="330" r="32" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="99" cy="318" r="13" fill="#1a1d3a"/><circle cx="150" cy="338" r="25" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="158" cy="344" r="11" fill="#1a1d3a"/><circle cx="234" cy="216" r="31" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="222" cy="222" r="13" fill="#1a1d3a"/><circle cx="296" cy="214" r="31" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="297" cy="223" r="15" fill="#1a1d3a"/><circle cx="356" cy="98" r="24" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="363" cy="94" r="11" fill="#1a1d3a"/><circle cx="422" cy="92" r="33" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="411" cy="97" r="17" fill="#1a1d3a"/></svg>
-      <span id="company">Level AI</span><small>run by its agents</small>
+      <span id="company">Level AI</span><small>puzzle-game level studio, run by AI agents</small>
     </span>
     <span id="mode" class="mode live">Live</span>
     <span class="dataline" id="dataline" hidden></span>
@@ -521,7 +524,7 @@
 
         <section class="stats" aria-label="Totals from the log">
           <div class="stat clickable" role="button" tabindex="0" data-rows="actions" title="See every agent action"><span class="tile" data-s="circle" style="--c:var(--cobalt);--cd:var(--cobalt-d)"></span><span class="k">Agent actions</span><div class="v" id="actions">0</div><div class="sub" id="compiled-sub" hidden></div></div>
-          <div class="stat clickable" role="button" tabindex="0" data-rows="decisions" title="See every decision"><span class="tile" data-s="star" style="--c:var(--grape);--cd:var(--grape-d)"></span><span class="k">Decisions</span><div class="v" id="decisions">0</div></div>
+          <div class="stat clickable" role="button" tabindex="0" data-rows="decisions" title="See every decision"><span class="tile" data-s="star" style="--c:var(--grape);--cd:var(--grape-d)"></span><span class="k">Decisions</span><div class="v" id="decisions">0</div><div class="sub" id="decisions-sub" hidden></div></div>
           <div class="stat human clickable" role="button" tabindex="0" data-rows="stepins" title="See every human step-in"><span class="tile" data-s="block"></span><span class="k">Human step-ins</span><div class="v" id="stepins">0</div><div class="sub" id="approvals-sub" hidden></div></div>
           <div class="stat clickable" role="button" tabindex="0" data-rows="spend" title="See what was spent"><span class="tile" data-s="square" style="--c:var(--mint);--cd:var(--mint-d)"></span><span class="k" id="spend-k">Spent</span><div class="v" id="spend">$0</div><div class="sub" id="spend-sub" hidden></div></div>
         </section>
@@ -530,7 +533,7 @@
           <div class="qr" id="join-panel" hidden>
             <h3>Become a customer</h3>
             <img id="join-qr" alt="QR code: sign up for free levels">
-            <p>Scan, enter any puzzle game, check your email</p>
+            <p>Scan, then email us any puzzle game</p>
           </div>
           <div class="qr" id="qr-panel" hidden>
             <h3>Play it yourself</h3>
@@ -571,7 +574,7 @@
       <div class="pipe" id="pipe"><span class="none" style="color:var(--on-ink-3)">No studios yet</span></div>
     </section>
     <section class="steps-card" aria-label="Where a person stepped in">
-      <h3><span class="tile" data-s="block"></span>Where a person stepped in <small id="steps-n"></small></h3>
+      <h3><span class="tile" data-s="block"></span>Where a person stepped in <small id="steps-n"></small><button class="steps-all" type="button" id="steps-all" data-rows="stepins" hidden></button></h3>
       <div class="steps scroll" id="steps"><span class="none">None logged</span></div>
     </section>
   </footer>
@@ -587,7 +590,7 @@
       <h2 id="qr-big-title">Become a customer</h2>
       <ol id="qr-big-steps">
         <li><span class="tile" style="--c:var(--sun);--cd:var(--sun-d)">1</span>Scan with your phone camera</li>
-        <li><span class="tile" style="--c:var(--mint);--cd:var(--mint-d)">2</span>Enter any puzzle game you know</li>
+        <li><span class="tile" style="--c:var(--mint);--cd:var(--mint-d)">2</span>Tap &ldquo;Email us your game&rdquo; and name any puzzle game</li>
         <li><span class="tile" style="--c:var(--cobalt);--cd:var(--cobalt-d);color:#fff">3</span>Watch this screen, then check your email</li>
       </ol>
       <div class="esc"><kbd>Q</kbd> or <kbd>Esc</kbd> to go back</div>
@@ -743,6 +746,7 @@ function describe(e) {
   if (a === "solve_level.queued") return "Queued a level for the solver";
   if (a === "check_decision") return "Checked a decision against what happened";
   if (a === "publish_pack") return "Published a level pack";
+  if (a === "platformer.staged") return "Staged new platformer levels";
   if (a === "look") return "Reviewed the company's numbers";
   if (a === "review_studio_state") return "Reviewed the studio's state";
   if (e.agent === "marketing") return a.replace(/\bon x\b/gi, "on X").replace(/^posting on X/i, "Posting on X");
@@ -751,7 +755,7 @@ function describe(e) {
 // The team's own test orders and checks (they never count as customers or earnings).
 const isTeamTest = (e) => !e.human && (/\bLevel AI\b|\(demo run\)/.test(String(e.action || "")) || /\bteam test\b/i.test(String(e.result || "")));
 
-const STAGES = [["found", "Found", "cobalt"], ["sample_made", "Sampled", "grape"], ["emailed", "Emailed", "tomato"], ["replied", "Replied", "sun"], ["pilot_offered", "Offered", "grape"], ["pilot_paid", "Paid", "mint"], ["delivered", "Delivered", "mint"]];
+const STAGES = [["found", "Not emailed yet", "cobalt"], ["sample_made", "Sampled", "grape"], ["emailed", "Emailed", "tomato"], ["replied", "Replied", "sun"], ["pilot_offered", "Offered", "grape"], ["pilot_paid", "Paid", "mint"], ["delivered", "Delivered", "mint"]];
 
 let state = null;
 let clockOffset = 0;
@@ -820,6 +824,9 @@ function renderStats(s) {
   bump($("decisions"), s.decisions.toLocaleString());
   bump($("stepins"), s.stepIns.toLocaleString());
   renderSpend();
+  const ceo = (s.perAgent || []).find((a) => a.agent === "ceo");
+  $("decisions-sub").hidden = !ceo?.lastAt;
+  if (ceo?.lastAt) $("decisions-sub").textContent = `CEO last acted ${hm(ceo.lastAt)}`;
   const lc = s.levelsCompiled ?? 0;
   $("compiled-sub").hidden = !lc;
   $("compiled-sub").textContent = `+${lc.toLocaleString()} levels compiled`;
@@ -827,7 +834,7 @@ function renderStats(s) {
   // Held tool calls a policy program approved: shown beside the step-ins, never hidden or counted as people.
   const ap = s.autoApprovals ?? 0;
   $("approvals-sub").hidden = !ap;
-  $("approvals-sub").textContent = `+${ap.toLocaleString()} auto-approved by policy`;
+  $("approvals-sub").textContent = `+${ap.toLocaleString()} approved by policy`;
   $("approvals-sub").title = `${ap.toLocaleString()} held tool calls a policy program approved (not people). Click for both lists.`;
   const n = s.actionsSinceStepIn ?? 0;
   const acts = `<b>${n.toLocaleString()}</b> agent action${n === 1 ? "" : "s"}`;
@@ -851,6 +858,7 @@ function renderBoard(popLast) {
 
 // ---- Team: stable cards, so a card can light up when its agent acts ----------------------------
 const cards = new Map();
+const CEO_STOPPED_AFTER_MS = 90 * 60_000; // the CEO's cron is hourly, so this means it missed a run
 function renderAgents(perAgent) {
   const now = stageNow();
   const list = $("agents");
@@ -882,12 +890,16 @@ function renderAgents(perAgent) {
     // "Just now" while the agent is working; otherwise its latest action, in words, and how long ago.
     const lastEv = lastEventOf(a.agent);
     const lastText = show(describe(lastEv || { agent: a.agent, action: a.lastAction || "" }));
-    el.querySelector(".last").innerHTML = age < 45_000
+    const stopped = a.agent === "ceo" && a.lastAt && age > CEO_STOPPED_AFTER_MS;
+    el.classList.toggle("stopped", Boolean(stopped));
+    el.querySelector(".last").innerHTML = stopped
+      ? `<span class="ago">Stopped ${esc(hm(a.lastAt))}</span>`
+      : age < 45_000
       ? `<span class="ago">Just now</span> ${esc(lastText)}`
       : `${esc(lastText || m.role)} <span class="ago">${esc(ago(age))}</span>`;
-    el.title = `${m.role}${m.role ? ". " : ""}Click to show only ${m.name} in the feed.`;
+    el.title = `${stopped ? `Runs hourly. No CEO action logged since ${hm(a.lastAt)} PT. ` : ""}${m.role}${m.role ? ". " : ""}Click to show only ${m.name} in the feed.`;
   });
-  $("team-n").textContent = `${state?.stats?.perAgent?.length ?? perAgent.length} agents, latest first`;
+  $("team-n").textContent = `${state?.stats?.perAgent?.length ?? perAgent.length} agents and programs, latest first`;
 }
 function lastEventOf(agent) {
   for (let i = allEvents.length - 1; i >= 0; i--) if (!allEvents[i].human && allEvents[i].agent === agent) return allEvents[i];
@@ -1075,10 +1087,14 @@ function renderSteps() {
   for (let i = stepIns.length - 1; i >= 0; i--) { if (seen.has(stepIns[i].id)) stepIns.splice(i, 1); else seen.add(stepIns[i].id); }
   const n = state?.stats?.stepIns ?? stepIns.length;
   const ap = state?.stats?.autoApprovals ?? 0;
-  $("steps-n").textContent = n ? `${n} in the log${ap ? `, plus ${ap.toLocaleString()} auto-approved calls` : ""}` : "";
+  $("steps-n").textContent = n ? "Newest first" : "";
+  $("steps-all").hidden = !n;
+  $("steps-all").textContent = `See all ${n}`;
+  $("steps-all").title = ap ? `All ${n} step-ins. Not counted: ${ap.toLocaleString()} held tool calls a policy program approved.` : `All ${n} step-ins.`;
   if (!stepIns.length) { $("steps").innerHTML = '<span class="none">None logged</span>'; return; }
   $("steps").innerHTML = stepIns.slice().reverse().map((e) =>
-    `<div class="step" title="${esc(e.why || "")}"><time>${esc(hm(e.at))}</time><span class="s-who">${esc(e.agent === "human" ? "A person" : cap(e.agent))}</span><span class="s-what">${esc(show(e.action))}${e.why ? ` (${esc(show(e.why))})` : ""}</span></div>`).join("");
+    `<div class="step" title="${esc(e.why || "")}"><time>${esc(hm(e.at))}</time><span class="s-who">${esc(e.agent === "human" ? "A person" : cap(e.agent).replace(/_via_(\w+)$/, (_, t) => ` via ${cap(t)}`))}</span><span class="s-what">${esc(show(e.action))}${e.why ? ` (${esc(show(e.why))})` : ""}</span></div>`).join("")
+    + (n > stepIns.length ? `<button class="steps-all" type="button" id="steps-more">${n - stepIns.length} earlier: see all ${n}</button>` : "");
 }
 
 function renderPipeline(p) {
@@ -1089,7 +1105,7 @@ function renderPipeline(p) {
   const parts = STAGES.map(([k, l, tone]) => {
     const n = p.stages[k] ?? 0;
     const [c, cd] = TONES[tone];
-    return `<div class="stage-n clickable${n ? "" : " zero"}" style="--c:${c};--cd:${cd}" data-stage="${k}" role="button" tabindex="0" title="See the studios marked ${l}"><div class="c">${n}</div><div class="bar"><i style="--w:${(n / max) * 100}%"></i></div><div class="l">${l}</div></div>`;
+    return `<div class="stage-n clickable${n ? "" : " zero"}" style="--c:${c};--cd:${cd}" data-stage="${k}" role="button" tabindex="0" title="${k === "found" ? "Found by research, no email sent yet. Emailed studios count in the next stages." : `See the studios marked ${l}`}"><div class="c">${n}</div><div class="bar"><i style="--w:${(n / max) * 100}%"></i></div><div class="l">${l}</div></div>`;
   });
   const pay = p.payments;
   parts.push(`<div class="stage-n money"><div class="c">$${(pay.liveAmountMinor / 100).toFixed(0)}</div><div class="bar"></div><div class="l">Earned (live payments)</div></div>`);
@@ -1295,6 +1311,7 @@ async function openStage(stage) {
   } catch { $("dr-body").innerHTML = '<div class="dr-empty">Couldn\'t load the studios. Try again in a moment.</div>'; }
 }
 document.querySelectorAll("[data-rows]").forEach((el) => el.addEventListener("click", () => openRows(el.dataset.rows)));
+$("steps").addEventListener("click", (e) => { if (e.target.closest("#steps-more")) openRows("stepins"); });
 $("dr-body").addEventListener("click", (e) => { const b = e.target.closest("[data-rows-open]"); if (b) openRows(b.dataset.rowsOpen); });
 $("pipe").addEventListener("click", (e) => { const el = e.target.closest("[data-stage]"); if (el) openStage(el.dataset.stage); });
 

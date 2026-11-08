@@ -45,7 +45,7 @@ Measured Sat 10:55–11:00 PM. They will have moved. Reread them from the "where
 | `[N: …]` | Value at Sat ~11:00 PM | Where to read it |
 |---|---|---|
 | reviews | 36,281 (12 passes, 254 games) | Numbers command, `reviewsRead`; on the console, the Market research card. Say "reviews read": it counts reads, so a review read twice counts twice. |
-| found | 23 studios | `studiosAudited`. The console's "Found" tile shows only studios not yet emailed (16, including 1 agency). Don't read that one as the total. |
+| found | 23 studios | `studiosAudited`. The console's Studios strip shows only studios not yet emailed, labeled "Not emailed yet" (16, including 1 agency). Don't read that one as the total. |
 | emailed | 8 studios | `emailsSent`; the "Emailed" tile. |
 | replied | 0 | Outreach board totals (press **O**). Say it if asked. |
 | playtests | 17 | `playtestsRun`. |
@@ -186,7 +186,7 @@ is down, the pack logs "step-in needed"; say so and show the 9:47 PM email.
 
 ### G. Step-ins
 
-The panel shows only the newest 6. **Click the Human step-ins number** for the full list. As of
+The panel shows the newest few. **Click "See all" on the panel, or the Human step-ins number,** for the full list. As of
 11:01 PM it holds 8: Abhinav's switch-on (4:44 PM), Pinara enabling and re-running the Designer
 (6:21, 6:25 PM), starting and stopping bulk production (7:57, 8:10 PM), publishing the opening
 packs (8:19 PM), and building the Mosslight Trails client (11:01 PM). A policy program also approved 528 held tool calls to our own servers; those are

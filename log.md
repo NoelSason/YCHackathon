@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 11:10 PM PT · Noel · Claude Code (Sentinel 15 console) · main
+- **What:** Recording-readiness pass at 1920×1080 and 1440×900; tiles match the numbers command. Header says what the company is; "Found" is now "Not emailed yet"; the step-in panel shows 3 rows with "See all 8"; the Decisions tile shows "CEO last acted 9:57 PM", and the CEO card dims to "Stopped" after 90 quiet minutes (simulated only); QR copy points to the email route.
+- **Why:** A judge has two minutes; nothing on screen should mislead.
+- **Files:** `demo/public/index.html`, `docs/demo-script.md`
+- **State:** works; demo 21/21; no restart needed.
+- **Next / heads-up:** The CEO stays stopped until its cap is raised (Noel or Abhinav).
+
 ### 2026-11-07 23:05 PT · Pinara (Codex) · branch `pinara/game-ui`
 
 **What:** Built the missing fifth browser game, Mosslight Trails, as an original grid-step adventure with mobile/keyboard controls, fireflies, goal gate, legal-landing markers, a safe-step hint and exact-route autoplay. Extracted the existing platformer rules into a shared engine used by browser/adapter/bots/solver, added the fifth games-hub card, built hosting files, and a safe deployment/publication handoff. Five verified opening trails are staged as draft rows, not falsely published.
