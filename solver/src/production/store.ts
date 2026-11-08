@@ -1,5 +1,5 @@
 import { getAdapter } from "../../../platform/mcp/src/adapters.js";
-import { onTarget } from "../autotune.js";
+import { evidenceProblem } from "../evidence.js";
 import { fingerprint, progression } from "./catalog.js";
 import { readBuffer, BufferFullError } from "./buffer.js";
 import { createHash } from "node:crypto";
@@ -18,7 +18,7 @@ export async function saveAccepted(q: Query, result: AcceptedLevel, series: numb
   progression(result.position);
   const validation = getAdapter(result.game_id)?.validate(result.level);
   const ev = result.evidence;
-  if (!validation?.ok || result.status !== "accepted" || !Number.isInteger(ev.runs) || ev.runs < 200 || !Number.isInteger(ev.wins) || ev.wins < 0 || ev.wins > ev.runs || Math.abs(ev.wins / ev.runs - ev.win_rate) > 0.0001 || result.measured !== ev.win_rate || !onTarget(ev, result.target) || fingerprint(result.game_id, result.level) !== result.fingerprint) throw new Error("checkpoint lacks valid accepted-level evidence");
+  if (!validation?.ok || result.status !== "accepted" || !Number.isInteger(ev.runs) || ev.runs < 200 || !Number.isInteger(ev.wins) || ev.wins < 0 || ev.wins > ev.runs || Math.abs(ev.wins / ev.runs - ev.win_rate) > 0.0001 || result.measured !== ev.win_rate || evidenceProblem(result.game_id, result.level, result.target, ev) !== null || fingerprint(result.game_id, result.level) !== result.fingerprint) throw new Error("checkpoint lacks valid accepted-level evidence");
   const inventory = await readBuffer(q, result.game_id, series);
   if (!inventory.ready.includes(result.position) && !inventory.needed.includes(result.position)) throw new BufferFullError(`buffer full: ${result.game_id} has stock through its ${inventory.target_through} target; preserving existing levels`);
   const id = levelId(result.game_id, result.position, series);

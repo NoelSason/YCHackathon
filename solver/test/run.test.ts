@@ -1,3 +1,4 @@
+import { evidenceStamp } from "../src/evidence.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Adapter } from "../../platform/mcp/src/adapters.js";
@@ -24,6 +25,7 @@ const fake: Adapter = {
 test("counts wins and moves per bot, with the same seeds for every bot", () => {
   const out = runLevel(fake, {}, ["even", "always"], 10, 100);
   assert.deepEqual(out.results.even, {
+    ...evidenceStamp(fake.game_id, {}),
     runs: 10, wins: 5, win_rate: 0.5, avg_moves: 4.5, ci95_low: 0.2366, ci95_high: 0.7634, first_seed: 100,
   });
   assert.equal(out.results.always?.wins, 10);

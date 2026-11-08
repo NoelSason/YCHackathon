@@ -20,6 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 03:16 PT · Pinara (Codex) · branch `pinara/finish-quality`
+
+**What:** Added shared acceptance policy and level/rules-bound evidence; the automatic Tuner requires 200 completed reference games. Existing MCP accept/publish signatures now validate real current evidence instead of trusting a supplied rate. Added an idempotent, audited repair for the two documented target incidents. Remeasurement now resumes without duplicate evidence and does not refresh content timestamps. Legacy checkpoints regenerate missing stock with current evidence. Designer/Tuner prompts cover all five existing adapters and preserve requested targets.
+**Why:** Pinara asked to finish the team-plan quality work, excluding the separate local game-building chatbot. Prevents false acceptance and repeats of the uncommitted-runtime incident.
+**Files:** `solver/src/{policy,evidence,acceptance,autotune,run}.ts`, production repair/remeasure/import code and tests; `platform/mcp/src/tools.ts`; `platform/naive/src/{designer-prompt,roster}.ts`.
+**State:** Targeted evidence, acceptance, incident repair, remeasurement/import, five-game tuning, seeded-run and Designer-schema regressions passed; solver/MCP/Naïve typechecks checked. Production repairs will run from this committed snapshot, not the main checkout. No database repair is claimed yet.
+**Next / heads-up:** Abhinav: shared MCP inputs/outputs stay compatible; deploy the quality guards and repin the CEO to new quality-agent versions after rollout. Noel/Max: browser deployment remains your handoff. Only Pinara quality code is staged: `forge/`, `work/`, env files and all main-checkout edits remain excluded. All human-requested production repairs must write interventions; no test is to be presented as human player data.
+
 ### 2026-11-08 00:52 PT · Pinara (Claude Code) · branch `main`
 
 **What:** **Incident, my mistake, now fixed:** uncommitted tuner code ran in production for about 55

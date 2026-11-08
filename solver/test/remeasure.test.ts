@@ -43,7 +43,10 @@ test("remeasure is reproducible, writes new evidence and the measured rate, and 
     assert.equal(a.length, 2);
     for (const r of a) assert.equal(r.results.human!.runs, 200);
 
+    const dates=await q("select level_id,updated_at from levels order by level_id");
     assert.equal(await record(q, "racer", "test", "unit test", a), 2);
+    assert.equal(await record(q, "racer", "test", "unit test", a), 0, "resume never duplicates evidence");
+    assert.deepEqual(await q("select level_id,updated_at from levels order by level_id"),dates,"remeasurement is not new content");
     const after = await q("select level_id::text as id, level, status, measured_win_rate from levels order by level_id");
     for (let i = 0; i < after.length; i++) {
       assert.deepEqual(after[i]!.level, before[i]!.level, "content unchanged");

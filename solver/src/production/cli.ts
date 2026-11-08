@@ -8,6 +8,7 @@ import { GAMES, LEVEL_CAP, RECIPE_VERSION, recipe, type ProductionGame } from ".
 import type { AcceptedLevel } from "./calibrate.js";
 import { generateOne } from "./runner.js";
 import { lockOutput, readCheckpoint } from "./checkpoint.js";
+import { evidenceProblem } from "../evidence.js";
 import { saveAccepted } from "./store.js";
 
 const args = process.argv.slice(2);
@@ -69,7 +70,12 @@ try {
     for (let pass = 0; pass < (planOnly ? 1 : 3) && !controller.signal.aborted; pass++) {
     for (const position of due) {
       if (controller.signal.aborted) break;
-      const key = `${game}:${position}`, previous = completed.get(key);
+      const key = `${game}:${position}`;
+      let previous = completed.get(key);
+      if (previous && evidenceProblem(game, previous.level, previous.target, previous.evidence)) {
+        // Legacy checkpoints remain on disk; missing stock is regenerated with fresh evidence.
+        completed.delete(key); previous = undefined;
+      }
       if (planOnly) {
         if (!planned.has(key)) await write({ status: "planned", ...recipe(game, position, 0, series) });
         continue;

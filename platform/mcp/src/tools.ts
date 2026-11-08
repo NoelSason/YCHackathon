@@ -4,6 +4,7 @@ import { z } from "zod";
 import { q, one } from "./db.js";
 import { getAdapter, listAdapters } from "./adapters.js";
 // Pinara's "did that decision work?" check (master plan package 11). Read-only.
+import { acceptVerified, verifiedLevel } from "../../../solver/src/acceptance.js";
 import { checkDecision } from "../../../evals/src/decision-check.js";
 
 type Json = Record<string, unknown>;
@@ -185,8 +186,8 @@ export function registerTools(realServer: McpServer, catalog: Catalog = "core") 
       inputSchema: { level_id: z.string().uuid(), measured_win_rate: z.number().min(0).max(1), reason: z.string(), agent: z.string().default("tuner") },
     },
     async ({ level_id, measured_win_rate, reason, agent }) => {
-      const r = await q(`update levels set status='accepted', measured_win_rate=$2, updated_at=now() where level_id=$1 returning level_id`, [level_id, measured_win_rate]);
-      if (!r.length) return err("not_found", "no such level");
+      try { await acceptVerified(q, level_id, measured_win_rate); }
+      catch (e) { return err("invalid_evidence", e instanceof Error ? e.message : String(e)); }
       await q(`insert into activity_log(agent, action, reason, result, ref_kind, ref_id) values ($1,'accept_level',$2,$3,'level',$4)`,
         [agent, reason, `measured ${measured_win_rate}`, level_id]);
       return ok({ ok: true });
@@ -222,6 +223,8 @@ export function registerTools(realServer: McpServer, catalog: Catalog = "core") 
       if (accepted.length !== level_ids.length) {
         return err("not_accepted", `only ${accepted.length}/${level_ids.length} levels are accepted; publish accepted levels only`);
       }
+      try { for (const id of level_ids) await verifiedLevel(q, id, game_id); }
+      catch (e) { return err("invalid_evidence", e instanceof Error ? e.message : String(e)); }
       const row = await one<{ pack_id: string }>(
         `insert into packs(game_id, name, level_ids) values ($1,$2,$3) returning pack_id`,
         [game_id, name, JSON.stringify(level_ids)],

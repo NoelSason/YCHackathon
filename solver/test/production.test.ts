@@ -1,3 +1,4 @@
+import { evidenceStamp } from "../src/evidence.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFile } from "node:fs/promises";
@@ -72,6 +73,7 @@ test("LevelOps import is atomic/idempotent, keeps evidence, honors kill switch, 
     const id = await saveAccepted(q, accepted, 1);
     assert.equal(await saveAccepted(q, accepted, 1), id);
     const conflicting = { ...accepted, level: { ...accepted.level, title: "Different checkpoint" } };
+    conflicting.evidence = { ...accepted.evidence, ...evidenceStamp(accepted.game_id, conflicting.level) };
     await assert.rejects(saveAccepted(q, conflicting, 1), /conflicts with existing level/);
     assert.deepEqual((await q("select level from levels where level_id=$1", [id]))[0]!.level, accepted.level);
     for (const table of ["levels", "solver_runs", "activity_log"]) assert.equal((await q(`select count(*)::int as n from ${table}`))[0]!.n, 1);

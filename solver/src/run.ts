@@ -3,12 +3,15 @@
 // harness and the MCP server always run the same copy of each game's rules.
 import type { Adapter } from "../../platform/mcp/src/adapters.js";
 import { r4, wilson95 } from "./stats.js";
+import { evidenceStamp } from "./evidence.js";
 
 /**
  * One bot's results. `runs`, `wins`, `win_rate`, and `avg_moves` are the shape in
  * platform/CONTRACTS.md §2 (`get_solver_run`). The other fields are additive.
  */
 export interface BotResult {
+  rules_version?: string;
+  level_hash?: string;
   runs: number;
   wins: number;
   win_rate: number;
@@ -74,6 +77,7 @@ export function runLevel(
     }
     const ci = wilson95(wins, runsPerBot);
     results[bot] = {
+      ...evidenceStamp(adapter.game_id, lvl),
       runs: runsPerBot,
       wins,
       win_rate: r4(wins / runsPerBot),
@@ -214,6 +218,7 @@ export async function runLevelSmart(
     if (t.done < runsPerBot) budgetHit = true;
     const ci = wilson95(t.wins, t.done);
     results[bot] = {
+      ...evidenceStamp(adapter.game_id, lvl),
       runs: t.done,
       wins: t.wins,
       win_rate: r4(t.wins / t.done),

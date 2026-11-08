@@ -10,6 +10,8 @@
 // Level content, status, ids, and every older solver run stay exactly as they were: old evidence is
 // never relabeled. Levels now off target are reported (not retuned or hidden); the CEO or Tuner
 // decides what to do with them. Honors the kill switches.
+import { evidenceStamp } from "../evidence.js";
+import { readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import pg from "pg";
 import { getAdapter } from "../../../platform/mcp/src/adapters.js";
@@ -36,7 +38,7 @@ export function remeasureSeed(label: string, levelId: string): number {
   return createHash("sha256").update(`remeasure:${label}:${levelId}`).digest().readUInt32LE(0);
 }
 
-export async function remeasure(q: Query, game: string, label: string): Promise<Remeasured[]> {
+export async function remeasure(q: Query, game: string, label: string, opts: { onProgress?: (done: number, total: number) => void } = {}): Promise<Remeasured[]> {
   const a = getAdapter(game);
   if (!a) throw new Error(`no adapter for ${game}`);
   const bot = referenceBot(a);
@@ -46,11 +48,12 @@ export async function remeasure(q: Query, game: string, label: string): Promise<
       order by level_id`,
     [game],
   );
-  return rows.map((r) => {
+  return rows.map((r,index) => {
     const level = (typeof r.level === "string" ? JSON.parse(r.level) : r.level) as Record<string, unknown>;
     const target = Number(r.target_win_rate);
     const out = runLevel(a, level, [bot], RUNS, remeasureSeed(label, String(r.level_id)));
     const x = out.results[bot]!;
+    opts.onProgress?.(index+1,rows.length);
     return {
       level_id: String(r.level_id),
       title: String(level.title ?? level.name ?? r.level_id),
@@ -71,26 +74,37 @@ export async function record(q: Query, game: string, label: string, reason: stri
   try {
     const killed = await q("select 1 from settings where key in ('kill_switch','production_kill_switch') and value = 'true'::jsonb");
     if (killed.length) throw new Error("kill switch is on; nothing recorded");
+    let written = 0;
     for (const r of items) {
-      const bots = Object.keys(r.results);
-      await q(
-        `insert into solver_runs(level_id, bots, runs_per_bot, status, results, solvable, min_moves, claimed_by, started_at, finished_at)
-         values ($1, $2, $3, 'done', $4, $5, $6, $7, now(), now())`,
-        [r.level_id, JSON.stringify(bots), RUNS, JSON.stringify(r.results), r.solvable, r.min_moves, `remeasure:${label}`],
-      );
-      await q(
-        `update levels set measured_win_rate = $2, updated_at = now()
-          where level_id = $1 and game_id = $3 and created_by = 'production'`,
-        [r.level_id, r.measured, game],
-      );
+      const [level] = await q("select game_id,level,target_win_rate,notes from levels where level_id=$1 and created_by='production' for update", [r.level_id]);
+      if (!level || level.game_id !== game || Math.abs(Number(level.target_win_rate)-r.target)>1e-9) throw Error("level or target changed since remeasurement");
+      const stamp=evidenceStamp(game,level.level as object);
+      for (const result of Object.values(r.results)) {
+        if (result.runs<RUNS || result.level_hash!==stamp.level_hash || result.rules_version!==stamp.rules_version || Math.abs(result.wins/result.runs-result.win_rate)>.000051) throw Error("stale or incomplete remeasurement");
+      }
+      const prior=await q("select results from solver_runs where level_id=$1 and claimed_by=$2 and status='done'",[r.level_id,`remeasure:${label}`]);
+      if (prior.length) {
+        const same=await q("select 1 from solver_runs where level_id=$1 and claimed_by=$2 and results=$3::jsonb",[r.level_id,`remeasure:${label}`,JSON.stringify(r.results)]);
+        if(!same.length)throw Error("label already recorded with different evidence; use a new label");
+        continue;
+      }
+      const bots=Object.keys(r.results);
+      await q(`insert into solver_runs(level_id,bots,runs_per_bot,status,results,solvable,min_moves,claimed_by,started_at,finished_at)
+        values ($1,$2,$3,'done',$4,$5,$6,$7,now(),now())`,[r.level_id,JSON.stringify(bots),RUNS,JSON.stringify(r.results),r.solvable,r.min_moves,`remeasure:${label}`]);
+      let notes:Record<string,unknown>;
+      try { notes=JSON.parse(String(level.notes)); if(!notes || typeof notes!=='object' || Array.isArray(notes))notes={legacy_note:level.notes}; } catch { notes={legacy_note:level.notes}; }
+      notes.quality={rules_version:stamp.rules_version,level_hash:stamp.level_hash,remeasure_label:label,on_target:r.on_target};
+      // Remeasurement is not new content: keep updated_at so readiness cannot be inflated.
+      await q("update levels set measured_win_rate=$2,notes=$3 where level_id=$1",[r.level_id,r.measured,JSON.stringify(notes)]);
+      written++;
     }
     const off = items.filter((r) => !r.on_target).map((r) => r.title);
-    await q(
+    if (written) await q(
       `insert into activity_log(agent, action, reason, result, ref_kind, ref_id) values ('platform', 'production.remeasured', $1, $2, 'game', $3)`,
       [reason, `${items.length} levels remeasured (${RUNS} fresh replays each, label ${label}); ${items.length - off.length} on target; off target: ${off.join(", ") || "none"}`, game],
     );
     await q("commit");
-    return items.length;
+    return written;
   } catch (e) {
     await q("rollback");
     throw e;
@@ -109,7 +123,9 @@ async function main(): Promise<void> {
   const client = await pool.connect();
   const q: Query = async (text, params = []) => (await client.query(text, params)).rows;
   try {
-    const items = await remeasure(q, game, label);
+    const input=opt("--in"),output=opt("--out");
+    const items: Remeasured[]=input ? JSON.parse(await readFile(input,"utf8")) : await remeasure(q, game, label, { onProgress:(done,total)=>{ if(done%5===0 || done===total)console.log(JSON.stringify({event:"remeasure_progress",game,done,total})); } });
+    if(output)await writeFile(output,JSON.stringify(items));
     const off = items.filter((r) => !r.on_target);
     const shift = items.reduce((s, r) => s + (r.stored === null ? 0 : Math.abs(r.measured - r.stored)), 0) / Math.max(1, items.length);
     console.log(JSON.stringify({ game, label, levels: items.length, on_target: items.length - off.length, mean_abs_change_pts: Math.round(shift * 1000) / 10, written: false }));

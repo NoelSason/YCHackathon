@@ -1,3 +1,4 @@
+import { evidenceStamp } from "../evidence.js";
 import { getAdapter } from "../../../platform/mcp/src/adapters.js";
 import { onTarget, referenceBot } from "../autotune.js";
 import { r4, wilson95 } from "../stats.js";
@@ -86,7 +87,7 @@ export function calibrate(r: Recipe, opts: { trainingRuns?: number; verification
       wins += Number(play.won); moves += play.moves_used;
     }
     const ci = wilson95(wins, verificationRuns);
-    const evidence: BotResult = { runs: verificationRuns, wins, win_rate: r4(wins / verificationRuns), avg_moves: r4(moves / verificationRuns), ci95_low: r4(ci.low), ci95_high: r4(ci.high), first_seed: validationSeed };
+    const evidence: BotResult = { ...evidenceStamp(r.game_id, level), runs: verificationRuns, wins, win_rate: r4(wins / verificationRuns), avg_moves: r4(moves / verificationRuns), ci95_low: r4(ci.low), ci95_high: r4(ci.high), first_seed: validationSeed };
     if (onTarget(evidence, r.target)) {
       if (minimum !== null && value < minimum) throw new Error("tuned allowance is below exact minimum");
       return { ...r, level, status: "accepted", fingerprint: fingerprint(r.game_id, level), measured: evidence.win_rate, evidence, training_runs: trainingRuns, verification_rounds: round, min_moves: minimum, elapsed_ms: Math.round(performance.now() - t0), bot };
