@@ -4,16 +4,17 @@
 import { readFileSync } from "node:fs";
 import { naive } from "./client.js";
 import { CEO } from "./roster.js";
+import { withRetry } from "./retry.js";
 
 const team = JSON.parse(readFileSync(new URL("../team.json", import.meta.url), "utf8")) as { agents: Record<string, string> };
 const agentId = team.agents.ceo;
 if (!agentId) { console.error("no ceo in team.json; run npm run setup"); process.exit(1); }
 
-const s0 = await naive.sessions.create({
+const s0 = await withRetry(() => naive.sessions.create({
   agent_id: agentId,
   message: CEO.cron?.input ?? "CEO run.",
   budget_micro_usd: Math.round((CEO.cron?.budget_usd ?? 0.5) * 1_000_000),
-});
+}), "create session");
 console.log(`CEO session ${s0.id} (watch it in the Studio)`);
 
 let seen = 0;
@@ -21,7 +22,7 @@ const deadline = Date.now() + 15 * 60_000;
 let s = s0;
 while (Date.now() < deadline) {
   await new Promise((r) => setTimeout(r, 5000));
-  const ev = await naive.sessions.events(s.id, { after_seq: seen, limit: 100 });
+  const ev = await withRetry(() => naive.sessions.events(s.id, { after_seq: seen, limit: 100 }), "events");
   for (const e of ev.data) {
     seen = Math.max(seen, e.seq);
     if (e.type === "tool.started" || e.type === "tool.completed" || e.type === "tool.confirm" || e.type === "message.completed" || e.type === "budget.exceeded") {
@@ -29,7 +30,7 @@ while (Date.now() < deadline) {
       console.log(`  ${e.type}\t${d.length > 240 ? d.slice(0, 240) + "…" : d}`);
     }
   }
-  s = await naive.sessions.get(s.id);
+  s = await withRetry(() => naive.sessions.get(s.id), "session");
   if (s.status !== "running" && s.stop_reason) break;
 }
 console.log(`\nstatus=${s.status} stop_reason=${s.stop_reason ?? "-"}`);

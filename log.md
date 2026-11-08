@@ -20,6 +20,19 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 18:30 PT · Abhinav (Claude) · branch `main`
+
+**What:** Platform redeployed at 18:26 with the `get_company_metrics` split and Pinara's
+`check_decision` tool (22 tools live). `npm run setup` re-applied nine agents (five deployments,
+incl. Pinara's designer cron). CEO re-run started: `ses_dgf2ak056kn4yqnr3gr0mme0jh`. Naïve's
+API is returning `429 the service is at capacity`; `ceo-now`, `inspect`, and `approval-test`
+now retry 429/503 with backoff instead of crashing.
+**Why:** Testing the `read_people` fix; the watcher must survive hackathon-time rate limits.
+**Files:** `platform/naive/src/retry.ts`, `run-ceo.ts`, `inspect-session.ts`, `approval-test.ts`.
+**State:** Typechecks. The CEO session ran unwatched; result unknown until inspected.
+**Next / heads-up:** Abhinav: `npm run inspect -- ses_dgf2ak056kn4yqnr3gr0mme0jh` to read the
+result. **Everyone:** expect 429s from Naïve tonight; retry, don't rerun.
+
 ### 2026-11-07 6:35 PM PT · Noel · Claude Code (games-hosting subagent) · main
 - **What:** All games are on the site. Hub https://levelai.vercel.app/games, Splash Sort /games/watersort/, Turbo Lanes /games/racer/, Lot Escape /games/lotescape/ (Preview), Gem Match card → /play (Preview until match3 levels are accepted). "Games" link added to the header nav on index, join, play, playtest, privacy, and terms. `site/build-games.sh` rebuilds the bundles from games/*, without changing game code, and writes `site/games/published.json` (games the level API serves). Once the level API serves a game, its card links its newest agent-made level first.
 - **Why:** Noel: host the games so we can see them.

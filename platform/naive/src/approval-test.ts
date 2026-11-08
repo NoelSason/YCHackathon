@@ -3,6 +3,7 @@
 // Prints the session's stop_reason: "end_turn" = no approval needed; "awaiting_approval" = a step-in.
 import { naive, PLATFORM_MCP_URL } from "./client.js";
 import { MODEL, PLATFORM_MCP_NAME } from "./roster.js";
+import { withRetry } from "./retry.js";
 
 if (!PLATFORM_MCP_URL) { console.error("PLATFORM_MCP_URL is not set"); process.exit(1); }
 
@@ -36,7 +37,7 @@ const deadline = Date.now() + 5 * 60_000;
 let s = session;
 while (Date.now() < deadline) {
   await new Promise((r) => setTimeout(r, 5000));
-  s = await naive.sessions.get(session.id);
+  s = await withRetry(() => naive.sessions.get(session.id), "session");
   process.stdout.write(`  status=${s.status} stop_reason=${s.stop_reason ?? "-"}\n`);
   if (s.status !== "running" && s.stop_reason) break;
 }
