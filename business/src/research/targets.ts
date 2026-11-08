@@ -56,13 +56,15 @@ export interface FindTargetsOptions {
   maxGames?: number;
   minSignals?: number;
   chart?: string;
+  /** App ids to skip (already contacted, or read recently). */
+  skip?: Set<string>;
 }
 
 export async function findTargets(monid: MonidRunner, opts: FindTargetsOptions = {}): Promise<Target[]> {
   const maxGames = opts.maxGames ?? 10;
   const minSignals = opts.minSignals ?? 2;
   const games = (await fetchTopPuzzleGames(monid, opts.chart)).filter(
-    (g) => !BIG_STUDIOS.some((re) => re.test(g.developer)),
+    (g) => !BIG_STUDIOS.some((re) => re.test(g.developer)) && !opts.skip?.has(g.appId),
   );
   const targets: Target[] = [];
   for (const game of games.slice(0, maxGames)) {

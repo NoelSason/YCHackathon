@@ -128,6 +128,10 @@ export async function toolDraftOutreach(
   if (!lead.appId) throw new Error("Lead has no app id, so there's no evidence to pitch on.");
   const target = targetsByApp.get(lead.appId);
   if (!target) throw new Error("No research for this app in this session. Run find_targets first.");
+  const evidence = target.primarySignal ? target.signalCounts[target.primarySignal] : 0;
+  if (lead.source === "research" && evidence < 3) {
+    return { draftId: "", subject: "", body: "", blockedReason: `Only ${evidence} review(s) show the problem. Cold outreach needs at least 3.` };
+  }
 
   const pilot = await pilotOffer(ctx, lead);
   const draft = composeOutreach({

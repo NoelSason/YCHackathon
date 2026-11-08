@@ -9,16 +9,26 @@ import { findGenericContact } from "../research/contacts.js";
  * guarded tools the Sales agent uses (daily cap, opt-outs, honest numbers, legal footer), at most
  * `perRun` emails a run. Each step is logged, so the dashboard shows it working.
  */
+const CHARTS = ["topselling_free", "topgrossing"];
+const recentlyRead = new Map<string, number>();
+let cycleCount = 0;
+
 export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: number; perRun?: number; minScore?: number } = {}) {
   const log = (agent: string, action: string, why: string | null, result: string | null) =>
     ctx.store.logActivity({ at: new Date().toISOString(), agent, action, why, result, costUsd: null, human: false });
   if (!ctx.monid) return { sent: 0, reason: "Monid not configured" };
 
   const perRun = opts.perRun ?? 2;
-  await log("research", "scanning the top puzzle games for unhappy players", "outreach loop", null);
-  const targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 8, minSignals: 3 });
-  const known = new Set((await ctx.store.listLeads()).map((l) => l.appId).filter(Boolean));
-  const fresh = targets.filter((t) => !known.has(t.appId) && t.score >= (opts.minScore ?? 2));
+  const chart = CHARTS[cycleCount++ % CHARTS.length]!;
+  const known = new Set((await ctx.store.listLeads()).map((l) => l.appId).filter((x): x is string => Boolean(x)));
+  const cutoff = Date.now() - 6 * 3600_000;
+  for (const [id, at] of recentlyRead) if (at < cutoff) recentlyRead.delete(id);
+  const skip = new Set([...known, ...recentlyRead.keys()]);
+  await log("research", `scanning the ${chart === "topgrossing" ? "top-grossing" : "top free"} puzzle games for unhappy players`, "outreach loop", null);
+  const targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 12, minSignals: 2, chart, skip });
+  for (const t of targets) recentlyRead.set(t.appId, Date.now());
+  // Cold outreach needs real evidence: at least 3 reviews showing the same problem.
+  const fresh = targets.filter((t) => t.primarySignal !== null && t.signalCounts[t.primarySignal] >= 3 && t.score >= (opts.minScore ?? 1.2));
   await log("research", `found ${fresh.length} new studios worth pitching`, fresh.slice(0, 3).map((t) => t.appTitle).join(", ") || null, null);
 
   let sent = 0;

@@ -31,6 +31,30 @@ kicks it immediately and lets us watch it.
 **Next / heads-up:** Switch-on plan: 6:00 `npm run kill -- on`, then `npm run ceo-now`, then
 `EXPECT_RUNNING=1 npm run check` from `platform/checks`.
 
+### 2026-11-07 16:38 PT · Noel (Claude Code) · branch `main`
+
+**What:**
+- **My 3 readiness checks are in `platform/checks`:** `phone_playtest` (the iPhone is ready, plus recent playtests after
+  switch-on), `billing` (Stripe configured, the offer answers, real vs test revenue; read-only), and `live_phone_view`
+  (the demo stage serves fresh phone screenshots).
+- **`outreach` check fixed:** the 20/day cap counts only cold emails. Signup welcomes and playtest reports don't count.
+- **Outreach needs real evidence:** at least 3 reviews showing the same problem, enforced in the loop and in
+  `draft_outreach`. The loop's first send (Oakever Games) went out at 16:32 with only 1 matching review, before this rule
+  existed. That's on me.
+- **Outreach loop widened:** it alternates the top-free and top-grossing charts and skips games read in the last 6 h.
+- **New `GET /public-stats`** (aggregate counts only) for the website's proof section. `/health` is now forwarded
+  through the site.
+- **Corrected 5 of my log timestamps** that were ahead of the clock. They now match the commit times.
+**Files:** `platform/checks/src/checks/10..14`, `business/src/`, `business/live.sh`, `log.md`.
+**State:** 67 business tests pass. Checks run: 10/15 green. Mine: `outreach` and `phone_playtest` green.
+`business_health` and `billing` were red because `/health` wasn't forwarded (fixed on the next `live.sh` start).
+`billing` stays red until a Stripe key exists, which is correct. `live_phone_view` was red because the demo stage
+wasn't running; it's running now.
+**Next / heads-up:** **Abhinav:** `deployments` is red: `no such deployment: dep_71hgm7qph0x4yd232efkn31ne9`. **Max:**
+`publish_play` is red (no pack yet).
+
+---
+
 ### 2026-11-07 16:35 PT · Abhinav (Claude) · branch `main`
 
 **What:** Business bearer re-vaulted for the permanent URL `https://levelai.vercel.app/mcp`
@@ -71,7 +95,7 @@ delivery), live phone view. **Max:** owed: dashboard numbers all from Neon. Add 
 `platform/checks/src/checks/` (see its README). **Max:** the dashboard's "checks" panel reads the
 latest `checks` row per `name`.
 
-### 2026-11-07 17:25 PT · Noel (Claude Code) · branch `main`
+### 2026-11-07 16:27 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Fully automatic intake, App Store support, a developer integration, an always-on outreach loop, and "Now testing" on the demo stage.**
 - **Live progress:** `/leads` and `/playtest-orders` now return an `id`. `GET /signup-status?id=` streams each step ("Reading
@@ -97,7 +121,7 @@ handler. Not yet verified live: the Hunter response shape (the first loop run wi
 
 ---
 
-### 2026-11-07 17:05 PT · Noel (Claude Code) · branch `main`
+### 2026-11-07 16:18 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Business MCP now has a permanent URL: `https://levelai.vercel.app/mcp`.** The site forwards it to the laptop's
 current tunnel, the same way it forwards `/join` and `/playtest`. `live.sh` writes it to `.env` as `BUSINESS_MCP_URL`.
@@ -126,7 +150,7 @@ restarts, the URL changes and Abhinav must `ROTATE=1 npm run vault && npm run se
 one. Keep the tunnel up from 6 PM, or deploy the server as a Neon Function for a fixed URL.
 **Abhinav:** building the demo-readiness checks runner (`platform/checks/`) next.
 
-### 2026-11-07 16:55 PT · Noel (Claude Code) · branch `main`
+### 2026-11-07 16:15 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Permanent public links:** https://levelai.vercel.app/playtest and https://levelai.vercel.app/join. The site
 forwards these pages (and their form posts and webhooks) to the laptop's current tunnel. On each start, `business/live.sh`
@@ -138,7 +162,7 @@ rewrites `site/vercel.json` and redeploys the site, so links in emails, social p
 
 ---
 
-### 2026-11-07 16:45 PT · Noel (Claude Code) · branch `main`
+### 2026-11-07 16:14 PT · Noel (Claude Code) · branch `main`
 
 **What:** **The Marketing agent posts automatically through Naïve's Social API.**
 - **New `post_update` business tool:** it publishes a short "[For Hire]" post, offering either levels for studios or an
@@ -219,7 +243,7 @@ is attached. **Noel:** send Abhinav `BUSINESS_MCP_URL` and `BUSINESS_MCP_TOKEN` 
 repo-root `.env` is only on your laptop. Then `npm run vault && npm run setup` attaches your
 tools to the agents.
 
-### 2026-11-07 16:30 PT · Noel (Claude Code) · branch `main`
+### 2026-11-07 16:10 PT · Noel (Claude Code) · branch `main`
 
 **What:** **A revenue product and a real website.**
 - **Phone playtest offer (`/playtest` on the business server):** a team enters its app link and gets the app played

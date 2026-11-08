@@ -176,6 +176,18 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       return json(200, progressStatus(id));
     }
 
+    if (request.method === "GET" && url.pathname === "/public-stats") {
+      // Aggregate counts only, for the website's proof section. No names, no emails.
+      const leads = await ctx.store.listLeads();
+      const acts = await ctx.store.listActivity(500);
+      return json(200, {
+        studiosAudited: leads.filter((l) => l.source === "research").length,
+        playtestsRun: acts.filter((a) => /^playtested /.test(a.action)).length,
+        emailsSent: acts.filter((a) => /^outreach sent|^emailed the playtest report/.test(a.action)).length,
+        signups: leads.filter((l) => l.source === "inbound_form").length,
+      });
+    }
+
     if (request.method === "GET" && url.pathname === "/offer") {
       return json(200, { playtestPriceUsd: ctx.stripe && config.PLAYTEST_PRICE_USD ? config.PLAYTEST_PRICE_USD : null });
     }
