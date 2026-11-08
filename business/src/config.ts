@@ -12,6 +12,10 @@ const EnvSchema = z.object({
 
   // Naïve
   NAIVE_API_KEY: z.string().optional(),
+  /** Team-workspace key with billing:write, used only for social posting (activation and posts). */
+  NAIVE_API_KEY_SOCIAL: z.string().optional(),
+  /** Identity in the team workspace that owns Level AI's connected social accounts. */
+  NAIVE_SOCIAL_IDENTITY_ID: z.string().optional(),
   NAIVE_BASE_URL: z.string().default("https://api.vetta.sh"),
   /** The Sales Reader agent's id (agt_...), woken when a reply arrives. */
   SALES_READER_AGENT_ID: z.string().optional(),

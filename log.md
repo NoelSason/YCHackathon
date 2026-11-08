@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 6:05 PM PT · Noel · Claude Code · main
+- **What:** Social posting is set up in the team Naïve workspace. Noel added `NAIVE_API_KEY_SOCIAL` (team workspace, billing:write). I created identity `idn_ktrxjg2jbb1bmz7shpjpj05rjt` "Level AI" there and activated social (`activated: true`, no accounts yet). `post_update` now posts through that key and identity (`NAIVE_SOCIAL_IDENTITY_ID`), falling back to the old identity if unset. Mobilerun support ticket #373 filed (Apple sign-in, App Store catalog, iOS uninstall).
+- **Why:** The Marketing agent needs connected accounts to post.
+- **Files:** `business/src/config.ts`, `business/src/mcp/tools.ts`, `business/.env.example`
+- **State:** partly works: activation done, 140 tests pass; posting waits on Noel connecting accounts in the portal.
+- **Next / heads-up:** Noel's old `NAIVE_API_KEY` is a separate personal workspace (0 agents). The team's agents are only visible with the social key.
+
 ### 2026-11-07 5:58 PM PT · Noel · Claude Code · main
 - **What:** A solver worker now runs on Noel's laptop under `solver-keepalive.sh` (restarts it if it exits). It claims queued runs with SKIP LOCKED, so it's safe next to Pinara's worker. Games: match3, platformer, racer, stub, watersort.
 - **Why:** Readiness check `solver_queue` was red: "no live worker heartbeat".
