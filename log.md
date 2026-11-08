@@ -20,6 +20,48 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:10 PT · Pinara (Claude Code) · branch `main`
+
+**What:**
+- **Solver harness v1** (`solver/`, package 8). A worker claims queued `solver_runs`, plays each
+  level with each requested bot through the platform's adapter registry
+  (`platform/mcp/src/adapters.ts`, imported, not changed), and writes `results`, `solvable`, and
+  `min_moves`, or a readable `error`.
+- Each finished or failed run adds one `activity_log` row as agent `platform`.
+- Runs stuck in `running` for over 15 minutes are marked failed.
+- Designer and Tuner prompts tightened in `platform/naive/src/roster.ts`.
+
+**Why:** `solve_level` only queues work. Without the harness, no level gets a difficulty number,
+and the Tuner polls forever.
+**Files:** `solver/`, `platform/naive/src/roster.ts`, `AGENTS.md` (repo layout).
+**State:** Works on the stub game.
+- `npm test`: 13/13 pass, including the queue against `platform/db/schema.sql` in PGlite.
+- Typecheck is clean.
+- End to end on a throwaway local Postgres 17 with the real schema, using `npm run drain`: 300 stub
+  games in 2 ms, written back as `random 40% (120/300)`. An unknown bot failed with a readable
+  error.
+- **Verified on Neon at 3:57 PM:** `npm run drain` processed the 3 stub runs queued by the smoke
+  tests (about 130 ms each, `done`, results in the contract's shape, 3 `solver_run.done` rows in
+  `activity_log`).
+- The roster changes are not applied in Naïve until `npm run setup` runs again.
+
+**Next / heads-up:**
+- **Abhinav:**
+  - `get_solver_run` results now carry additive per-bot fields `ci95_low`, `ci95_high`, and
+    `first_seed`. The contract's fields are unchanged.
+  - Real adapters registered in `adapters.ts` reach the harness with no change on my side.
+  - Please re-run `npm run setup` (or send me the key) so the new prompts apply.
+  - Open question: where the worker runs overnight. Render was dropped, and a Neon Function can't
+    poll. Until we decide, it runs on my laptop.
+- **Max:** the harness needs `simulate` to be deterministic per seed and fast (200 games per bot by
+  default). If `solve` exists, it runs inline, so it needs its own step limit.
+- **Prompt changes:**
+  - The Tuner's reference bot is `search` when the game has one, otherwise the game's first bot,
+    because the stub only has `random`.
+  - A failed solver run is retried once, then the level is rejected with the error.
+  - The Designer falls back to `validate_level` errors while game skills aren't attached, and uses
+    the game's default target when a card gives none.
+
 ### 2026-11-07 16:10 PT · Abhinav (Claude) · branch `main`
 
 **What:** **Approval-rule test: PASSED.** With the platform bearer in Naïve's vault

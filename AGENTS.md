@@ -224,3 +224,6 @@ After a pull, read the new entries at the top of `log.md` before you start work.
   `platform/naive/src/roster.ts` (`businessTools`). See `business/README.md`.
 - `demo/` and `demo.sh` (Noel): the demo stage. `./demo.sh` opens one live screen built from the
   activity log, with the phone view and the step-ins. See `demo/README.md`.
+- `solver/` (Pinara): the Solver harness. It claims queued `solver_runs`, plays each level with the
+  game's bots through the platform's adapter registry, and writes the results. See
+  `solver/README.md`.
