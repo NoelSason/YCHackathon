@@ -20,6 +20,20 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:20 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Naïve Team setup complete.** Both MCP bearers are in the vault (platform
+`vcr_sx1891qk…`, business `vcr_s34ythd5…`, keyed to their URLs). `npm run setup` re-applied all
+eight agents with Noel's business tools attached (research, sales, finance, playtest). Cron
+deployments still **disabled** until the 6:00 PM switch-on. `team.json` is in the repo.
+**Why:** Package 6 done. Agents can now reach both servers unattended.
+**Files:** `platform/naive/team.json` (committed from Abhinav's laptop).
+**State:** Works: approval test OK, business bearer stored, agents updated.
+**Next / heads-up:** **Noel:** the business URL is a `trycloudflare.com` tunnel; if `live.sh`
+restarts, the URL changes and Abhinav must `ROTATE=1 npm run vault && npm run setup` with the new
+one. Keep the tunnel up from 6 PM, or deploy the server as a Neon Function for a fixed URL.
+**Abhinav:** building the demo-readiness checks runner (`platform/checks/`) next.
+
 ### 2026-11-07 16:55 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Permanent public links:** https://levelai.vercel.app/playtest and https://levelai.vercel.app/join. The site
