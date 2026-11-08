@@ -44,3 +44,19 @@ create table if not exists biz_api_keys (
   created_at timestamptz not null default now(),
   revoked_at timestamptz
 );
+
+-- Market research: one row per store-chart pass by the outreach loop. Counts only, no review text.
+create table if not exists biz_market_research (
+  id                  uuid primary key default gen_random_uuid(),
+  ts                  timestamptz not null default now(),
+  chart               text not null,
+  games_read          int not null,
+  reviews_read        int not null,
+  too_hard            int not null default 0,
+  too_easy            int not null default 0,
+  wants_more_levels   int not null default 0,
+  repetitive          int not null default 0,
+  games_with_evidence int not null default 0,
+  top_game            text,
+  top_reason          text
+);

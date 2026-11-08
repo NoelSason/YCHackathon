@@ -60,6 +60,8 @@ export interface FindTargetsOptions {
   category?: string;
   /** App ids to skip (already contacted, or read recently). */
   skip?: Set<string>;
+  /** Called for every game read, pass or not, so the loop can report market research totals. */
+  onRead?: (target: Target) => void;
 }
 
 export async function findTargets(monid: MonidRunner, opts: FindTargetsOptions = {}): Promise<Target[]> {
@@ -72,6 +74,7 @@ export async function findTargets(monid: MonidRunner, opts: FindTargetsOptions =
   for (const game of games.slice(0, maxGames)) {
     const reviews = await fetchRecentReviews(monid, game.appId);
     const target = buildTarget(game, reviews);
+    opts.onRead?.(target);
     const total = Object.values(target.signalCounts).reduce((a, b) => a + b, 0);
     if (total >= minSignals) targets.push(target);
   }

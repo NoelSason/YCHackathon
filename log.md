@@ -20,6 +20,12 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:33 PM PT · Noel · Claude Code · main
+- **What:** Market research on every outreach cycle. Each chart pass now reads up to 20 games and saves the totals to `biz_market_research` (games, reviews, too hard, too easy, wants more levels, repetitive, games with a clear problem, the strongest one). It also logs a line the console shows. There's a public `GET /market-research` (counts only), and `/public-stats` gains `reviewsRead`. The watchdog now also catches a dead tunnel: 3 failed public health checks → reruns `live.sh`. The tunnel had died silently and taken levelai.vercel.app's API down for a few minutes; restored.
+- **Why:** Real, growing numbers for the demo; the site should never silently lose its backend overnight.
+- **Files:** `business/src/{store.ts,app.ts,outreach/autopilot.ts,research/targets.ts,db/schema.sql}`, `business/live.sh`, `business/keepalive.sh`
+- **State:** works; 85 tests pass, table applied to Neon, `/market-research` live (fills in as cycles run).
+- **Next / heads-up:** none.
 ### 2026-11-07 17:35 PT · Abhinav (Claude) · branch `main`
 
 **What:** **First fix for the `read_people` stall.** `get_company_metrics` no longer returns

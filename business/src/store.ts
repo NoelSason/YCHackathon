@@ -41,6 +41,25 @@ export interface Store {
 
   logActivity(entry: ActivityEntry): Promise<void>;
   listActivity(limit?: number): Promise<ActivityEntry[]>;
+
+  /** One market-research pass over a store chart: what the players of its games say about levels. */
+  addResearchRun(run: ResearchRun): Promise<void>;
+  listResearchRuns(limit?: number): Promise<ResearchRun[]>;
+}
+
+export interface ResearchRun {
+  at: string;
+  chart: string;
+  gamesRead: number;
+  reviewsRead: number;
+  tooHard: number;
+  tooEasy: number;
+  wantsMoreLevels: number;
+  repetitive: number;
+  /** Games where at least 3 reviews describe the same level problem. */
+  gamesWithEvidence: number;
+  topGame: string | null;
+  topReason: string | null;
 }
 
 const now = (): string => new Date().toISOString();
@@ -163,6 +182,14 @@ export class MemoryStore implements Store {
 
   async listActivity(limit = 100): Promise<ActivityEntry[]> {
     return this.activity.slice(-limit).reverse();
+  }
+
+  private research: ResearchRun[] = [];
+  async addResearchRun(run: ResearchRun): Promise<void> {
+    this.research.push(run);
+  }
+  async listResearchRuns(limit = 50): Promise<ResearchRun[]> {
+    return this.research.slice(-limit).reverse();
   }
 }
 
@@ -355,6 +382,31 @@ export class PlatformStore implements Store {
       result: str(row.result),
       costUsd: row.cost_usd === null ? null : Number(row.cost_usd),
       human: false,
+    }));
+  }
+
+  async addResearchRun(r: ResearchRun): Promise<void> {
+    await this.q(
+      `insert into biz_market_research (ts, chart, games_read, reviews_read, too_hard, too_easy, wants_more_levels, repetitive, games_with_evidence, top_game, top_reason)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [r.at, r.chart, r.gamesRead, r.reviewsRead, r.tooHard, r.tooEasy, r.wantsMoreLevels, r.repetitive, r.gamesWithEvidence, r.topGame, r.topReason],
+    );
+  }
+
+  async listResearchRuns(limit = 50): Promise<ResearchRun[]> {
+    const rows = await this.q(`select * from biz_market_research order by ts desc limit $1`, [limit]);
+    return rows.map((row) => ({
+      at: iso(row.ts),
+      chart: String(row.chart),
+      gamesRead: Number(row.games_read),
+      reviewsRead: Number(row.reviews_read),
+      tooHard: Number(row.too_hard),
+      tooEasy: Number(row.too_easy),
+      wantsMoreLevels: Number(row.wants_more_levels),
+      repetitive: Number(row.repetitive),
+      gamesWithEvidence: Number(row.games_with_evidence),
+      topGame: str(row.top_game),
+      topReason: str(row.top_reason),
     }));
   }
 }

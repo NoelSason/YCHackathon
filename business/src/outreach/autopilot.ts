@@ -1,4 +1,5 @@
 import type { ToolContext } from "../mcp/tools.js";
+import type { Target } from "../types.js";
 import { rememberTarget, toolDraftOutreach, toolSaveLead, toolSendOutreach } from "../mcp/tools.js";
 import { findTargets } from "../research/targets.js";
 import { findGenericContact } from "../research/contacts.js";
@@ -38,13 +39,15 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
   const skip = new Set([...known, ...recentlyRead.keys()]);
   await log("research", `scanning the ${chart.label} games for unhappy players`, "outreach loop", null);
   let targets;
+  const read: Target[] = [];
   try {
-    targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 12, minSignals: 2, chart: chart.chart, category: chart.category, skip });
+    targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 20, minSignals: 2, chart: chart.chart, category: chart.category, skip, onRead: (t) => read.push(t) });
   } catch (err) {
     await log("research", `couldn't read the ${chart.label} chart`, err instanceof Error ? err.message.slice(0, 160) : "unknown error", "will try the next chart next cycle");
     return { sent: 0, reason: "store chart unavailable" };
   }
-  for (const t of targets) recentlyRead.set(t.appId, Date.now());
+  for (const t of read) recentlyRead.set(t.appId, Date.now());
+  await recordResearch(ctx, chart.label, read, log);
   // Cold outreach needs real evidence: at least 3 reviews showing the same problem.
   const fresh = targets.filter((t) => t.primarySignal !== null && t.signalCounts[t.primarySignal] >= 3 && t.score >= (opts.minScore ?? 1.2));
   await log("research", `found ${fresh.length} new studios worth pitching`, fresh.slice(0, 3).map((t) => t.appTitle).join(", ") || null, null);
@@ -70,4 +73,42 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
     if (res.status === "sent") sent++;
   }
   return { sent, reason: null };
+}
+
+/** Totals for one chart pass, saved and logged so the dashboard and site can show real numbers. */
+export function summarizeResearch(chart: string, read: Target[], at = new Date().toISOString()) {
+  const sum = (k: keyof Target["signalCounts"]) => read.reduce((n, t) => n + (t.signalCounts[k] ?? 0), 0);
+  const withEvidence = read.filter((t) => t.primarySignal !== null && t.signalCounts[t.primarySignal] >= 3);
+  const top = [...withEvidence].sort((a, b) => b.score - a.score)[0] ?? null;
+  return {
+    at,
+    chart,
+    gamesRead: read.length,
+    reviewsRead: read.reduce((n, t) => n + t.reviewsAnalyzed, 0),
+    tooHard: sum("too_hard"),
+    tooEasy: sum("too_easy"),
+    wantsMoreLevels: sum("wants_more_levels"),
+    repetitive: sum("repetitive"),
+    gamesWithEvidence: withEvidence.length,
+    topGame: top ? top.appTitle : null,
+    topReason: top ? top.reason : null,
+  };
+}
+
+async function recordResearch(
+  ctx: ToolContext,
+  label: string,
+  read: Target[],
+  log: (agent: string, action: string, why: string | null, result: string | null) => Promise<void>,
+) {
+  if (!read.length) return;
+  const r = summarizeResearch(label, read);
+  await ctx.store.addResearchRun(r).catch(() => undefined);
+  const complaints = r.tooHard + r.tooEasy + r.wantsMoreLevels + r.repetitive;
+  await log(
+    "research",
+    `read ${r.reviewsRead.toLocaleString("en-US")} player reviews of ${r.gamesRead} ${label} games`,
+    `${complaints} reviews are about the levels: ${r.tooHard} too hard, ${r.tooEasy} too easy, ${r.wantsMoreLevels} want more levels, ${r.repetitive} repetitive`,
+    r.gamesWithEvidence ? `${r.gamesWithEvidence} games show a clear level problem; strongest: ${r.topGame}` : "no game showed a clear level problem",
+  );
 }

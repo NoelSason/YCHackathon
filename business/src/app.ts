@@ -191,6 +191,22 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
         playtestsRun: acts.filter((a) => /^playtested /.test(a.action)).length,
         emailsSent: acts.filter((a) => /^outreach sent|^emailed the playtest report/.test(a.action)).length,
         signups: leads.filter((l) => l.source === "inbound_form").length,
+        reviewsRead: (await ctx.store.listResearchRuns(500)).reduce((n, r) => n + r.reviewsRead, 0),
+      });
+    }
+
+    if (request.method === "GET" && url.pathname === "/market-research") {
+      // Aggregate counts from the outreach loop's chart passes. No review text, no contacts.
+      const runs = await ctx.store.listResearchRuns(100);
+      const total = (k: "gamesRead" | "reviewsRead" | "tooHard" | "tooEasy" | "wantsMoreLevels" | "repetitive" | "gamesWithEvidence") =>
+        runs.reduce((n, r) => n + r[k], 0);
+      return json(200, {
+        totals: {
+          passes: runs.length, gamesRead: total("gamesRead"), reviewsRead: total("reviewsRead"),
+          tooHard: total("tooHard"), tooEasy: total("tooEasy"), wantsMoreLevels: total("wantsMoreLevels"),
+          repetitive: total("repetitive"), gamesWithEvidence: total("gamesWithEvidence"),
+        },
+        runs: runs.slice(0, 20),
       });
     }
 

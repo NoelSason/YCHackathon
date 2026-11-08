@@ -142,3 +142,17 @@ describe("large results", () => {
     expect(await resolveDownload({ organic_results: [1] }, fake)).toEqual({ organic_results: [1] });
   });
 });
+
+describe("market research summary", () => {
+  it("totals what players say about levels across every game read", async () => {
+    const { summarizeResearch } = await import("../src/outreach/autopilot.js");
+    const mk = (title: string, counts: Record<string, number>, analyzed: number, score: number) => ({
+      appId: title, appTitle: title, developer: "d", storeUrl: "", downloads: null, reviewsAnalyzed: analyzed,
+      signalCounts: { too_easy: 0, too_hard: 0, wants_more_levels: 0, repetitive: 0, ...counts },
+      primarySignal: (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null) as never,
+      examples: [], reason: `${title} reason`, score,
+    });
+    const r = summarizeResearch("top free word", [mk("A", { too_hard: 4 }, 100, 4), mk("B", { too_easy: 1 }, 150, 0.6), mk("C", {}, 80, 0)] as never, "2026-11-07T00:00:00Z");
+    expect(r).toMatchObject({ gamesRead: 3, reviewsRead: 330, tooHard: 4, tooEasy: 1, gamesWithEvidence: 1, topGame: "A" });
+  });
+});
