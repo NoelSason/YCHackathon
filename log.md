@@ -20,6 +20,22 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:00 PT · Noel (Claude Code) · branch `main`
+
+**What:**
+- **Console outages fixed at the cause:** my `pkill -f "tsx src/server.ts"` (used to restart the business server) also
+  killed the demo server. Restarts now stop processes by port. New `demo/keepalive.sh` (running) restarts the console
+  within ~10 s if it's ever down.
+- **Team test rows kept out of the numbers:** the pipeline's "1 Offered" was Noel's own Stripe test order. That row is
+  now `source = 'internal_test'`, and `TEAM_EMAILS` (in `.env`) tags any future signup or order from the team the same
+  way. Internal tests read back as `manual`, so they never count as research or signups. The demo agent is excluding
+  them on the stage and the outreach board.
+**Files:** `business/src/store.ts`, `business/src/config.ts`, `business/src/app.ts`,
+`business/test/platform-store.test.ts`, `demo/keepalive.sh`.
+**State:** 71 tests pass. The business server restarted; the console stayed up through it.
+
+---
+
 ### 2026-11-07 17:00 PT · Abhinav (Claude) · branch `main`
 
 **What:** Platform seeds a `games` row for every registered adapter on function start (idempotent),

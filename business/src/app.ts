@@ -36,7 +36,7 @@ export const MAX_BODY_BYTES = 1_000_000;
 export function buildContext(config: Config): ToolContext {
   return {
     config,
-    store: createStore(config.DATABASE_URL),
+    store: createStore(config.DATABASE_URL, config.TEAM_EMAILS.split(",").map((e) => e.trim()).filter(Boolean)),
     monid: config.MONID_API_KEY ? new MonidCli() : null,
     mail: config.AGENTMAIL_API_KEY && config.AGENTMAIL_INBOX_ID ? new AgentMailSender(config.AGENTMAIL_API_KEY, config.AGENTMAIL_INBOX_ID) : null,
     stripe: config.STRIPE_SECRET_KEY ? stripeClient(config.STRIPE_SECRET_KEY, config.BILLING_ALLOW_LIVE === "1") : null,

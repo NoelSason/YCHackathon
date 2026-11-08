@@ -74,6 +74,13 @@ describe("PlatformStore on the platform schema", () => {
     expect(await q("select who, what, kind from interventions")).toEqual([{ who: "noel", what: "restarted the phone", kind: "manual" }]);
   });
 
+  it("stores the team's own signups as internal tests that never count as research or signups", async () => {
+    const team = new PlatformStore(q, new Set(["noel@team.example"]));
+    const l = await team.upsertLead({ ...baseLead, email: "Noel@Team.example", source: "inbound_form" });
+    expect((await q("select source from studios where studio_id = $1", [l.id]))[0]!.source).toBe("internal_test");
+    expect((await team.getLead(l.id))!.source).toBe("manual");
+  });
+
   it("suppresses opt-outs case-insensitively", async () => {
     await store.suppress("Stop@X.example", "replied stop");
     expect(await store.isSuppressed("stop@x.example")).toBe(true);

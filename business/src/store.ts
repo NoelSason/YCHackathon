@@ -173,7 +173,8 @@ export type Query = (text: string, params?: unknown[]) => Promise<Row[]>;
 const str = (v: unknown): string | null => (v === null || v === undefined ? null : String(v));
 const iso = (v: unknown): string => (v instanceof Date ? v.toISOString() : String(v));
 const toDbSource = (s: Lead["source"]): string => (s === "inbound_form" ? "inbound_qr" : s);
-const fromDbSource = (s: unknown): Lead["source"] => (s === "inbound_qr" ? "inbound_form" : s === "manual" ? "manual" : "research");
+// Team test rows ("internal_test") read back as "manual", so they never count as research or signups.
+const fromDbSource = (s: unknown): Lead["source"] => (s === "inbound_qr" ? "inbound_form" : s === "research" ? "research" : "manual");
 
 function rowToLead(r: Row): Lead {
   return {
@@ -198,7 +199,8 @@ function rowToLead(r: Row): Lead {
  * step-ins → interventions. Drafts and blocked emails exist only as activity_log rows.
  */
 export class PlatformStore implements Store {
-  constructor(private readonly q: Query) {}
+  /** `teamEmails`: the team's own addresses. Their signups and orders are stored as internal tests. */
+  constructor(private readonly q: Query, private readonly teamEmails: Set<string> = new Set()) {}
 
   async upsertLead(input: Omit<Lead, "id" | "createdAt" | "updatedAt"> & { id?: string }): Promise<Lead> {
     const email = input.email ? normalizeEmail(input.email) : null;
@@ -216,7 +218,8 @@ export class PlatformStore implements Store {
     const r = await this.q(
       `insert into studios (studio_id, name, app_id, contact_name, contact_email, source, stage, reason, sample_url, crm_contact_id)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *`,
-      [input.id ?? randomUUID(), input.company, input.appId, input.contactName, email, toDbSource(input.source), input.stage,
+      [input.id ?? randomUUID(), input.company, input.appId, input.contactName, email,
+       email && this.teamEmails.has(email) ? "internal_test" : toDbSource(input.source), input.stage,
        input.reason, input.sampleUrl, input.crmContactId],
     );
     return rowToLead(r[0]!);
@@ -361,6 +364,6 @@ export function neonQuery(databaseUrl: string): Query {
   return async (text, params = []) => (await sql.query(text, params)) as Row[];
 }
 
-export function createStore(databaseUrl: string | undefined): Store {
-  return databaseUrl ? new PlatformStore(neonQuery(databaseUrl)) : new MemoryStore();
+export function createStore(databaseUrl: string | undefined, teamEmails: string[] = []): Store {
+  return databaseUrl ? new PlatformStore(neonQuery(databaseUrl), new Set(teamEmails.map(normalizeEmail))) : new MemoryStore();
 }
