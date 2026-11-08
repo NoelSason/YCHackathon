@@ -208,6 +208,8 @@ export function step(level: Level, grid: Grid, s: CarState, action: Action): { n
     n.stun = s.stun - 1;
     return { next: n, ev };
   }
+  // Decay before pickups: a pad touched sideways must refresh even an active boost.
+  n.boost = Math.max(0, s.boost - 1);
   const wasCleared = (key: number): boolean => {
     const offset = s.row - Math.floor(key / 8);
     return ev.cleared.includes(key) || (offset >= 0 && offset <= 2 &&
@@ -279,7 +281,6 @@ export function step(level: Level, grid: Grid, s: CarState, action: Action): { n
   // Then forward. Only the cell an object is placed in needs checking here: a car's second cell
   // can't be reached from behind without first meeting the car itself.
   const rows = s.boost > 0 ? 2 : 1;
-  if (s.boost > 0) n.boost = s.boost - 1;
   let advanced = 0;
   for (let k = 0; k < rows; k++) {
     n.row += 1;
