@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<base href="/games/platformer/">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#102b27"><meta name="description" content="Find your way through a moonlit forest. An original turn-based trail game with solver-proven routes.">
+<title>Mosslight Trails · Level AI</title><link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<main id="app">
+<header><a href="/games">← ALL GAMES</a><span>LEVEL AI · TRAIL COLLECTION</span></header>
+<section class="intro"><div class="moon" aria-hidden="true"></div><p class="eyebrow">A SMALL JOURNEY INTO THE GREEN</p><h1>Mosslight<br><em>Trails.</em></h1><p class="lede">Follow the fireflies. Find the lantern.</p></section>
+<section class="mission"><div><small id="mode">PRACTICE TRAIL</small><h2 id="title">Opening the forest…</h2></div><button id="restart" type="button" disabled class="subtle">↻ Restart</button><p>Reach the glowing gate. Fireflies are optional treasures.</p></section>
+<section class="stats"><div><small>STEPS</small><strong id="moves">0</strong></div><div><small>FIREFLIES</small><strong id="coins">0 / 0</strong></div><div><small>JUMP / DROP</small><strong id="limits">—</strong></div></section>
+<div class="scene"><div class="stars" aria-hidden="true"></div><div class="scene-label">MOONLIT WOODLAND <span>MOVE AT YOUR OWN PACE</span></div><div id="viewport" class="viewport"><div id="world" class="world" role="group" aria-label="Trail map"></div></div><div class="legend"><span>✦ Firefly</span><span>◈ Goal</span><span>▲ Thorns</span><span class="landing">◌ Available landing</span></div></div>
+<p id="hint" class="hint" role="status">Tap a glowing landing spot, or use the arrow buttons.</p>
+<div class="controls"><button id="left" type="button" disabled aria-label="Step left">← <span>STEP LEFT</span></button><button id="guide" type="button" disabled>✦ <span>Show a step</span></button><button id="right" type="button" disabled aria-label="Step right"><span>STEP RIGHT</span> →</button></div>
+<p class="key-help">← → move · ↑ ↓ choose a landing · Enter confirm · R restart</p>
+<p id="notice" class="notice hidden" role="status"></p>
+<div class="collection"><span>TRAIL COLLECTION</span><span>Every path is solver-checked</span></div><nav id="samples" aria-label="Practice trails"></nav>
+<footer>Original grid-step adventure · Built by Level AI</footer>
+</main>
+<div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ov-title"><div class="card"><div class="badge">◈</div><p class="eyebrow">THE FOREST OPENS</p><h2 id="ov-title">Lantern found.</h2><p id="ov-text"></p><button id="ov-next" type="button">Next trail →</button><button id="ov-replay" type="button" class="subtle">Walk this trail again</button></div></div>
+<script type="module" src="./app.js"></script>
+</body></html>

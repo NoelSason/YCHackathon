@@ -17,7 +17,7 @@
 # this script leaves them alone. Retake a thumbnail by screenshotting the game's board.
 #
 # match3 isn't built here: its web player is site/play.html (built from player/), at /play.
-# platformer has no browser game yet, and games/editors/ is an editor workflow, not a game.
+# Mosslight Trails uses the platformer shared grid-step engine. Editors are separate workflows.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -26,7 +26,7 @@ SITE_URL="${SITE_URL:-https://levelai.vercel.app}"
 # Where the games send player events and load ?level=<id> from: the platform's public API.
 export PLATFORM_URL="${PLATFORM_URL:-https://br-broad-violet-bem8cpy5-platform.compute.c-9.us-east-2.aws.neon.tech}"
 
-ALL_GAMES=(watersort racer lotescape)
+ALL_GAMES=(watersort racer lotescape platformer)
 GAMES=("${@:-${ALL_GAMES[@]}}")
 
 mkdir -p "$OUT"
@@ -51,16 +51,18 @@ for id in "${GAMES[@]}"; do
   ' "$OUT/$id/index.html" "$id"
 done
 
-# Which games the public level API serves (HTTP 200). Probe failures count as "not served".
+# Which games the public level API serves. Preserve known working values on transient outages.
 node -e '
   const [site, out, ...ids] = process.argv.slice(1);
   (async () => {
+    let previous = {};
+    try { previous = JSON.parse(require("fs").readFileSync(`${out}/published.json`, "utf8")); } catch {}
     const result = {};
     for (const id of ["match3", ...ids]) {
       try {
         const r = await fetch(`${site}/levels-latest?game=${id}&limit=1`, { signal: AbortSignal.timeout(10000) });
-        result[id] = r.ok;
-      } catch { result[id] = false; }
+        result[id] = r.ok ? true : [400, 404].includes(r.status) ? false : previous[id] === true;
+      } catch { result[id] = previous[id] === true; }
     }
     require("fs").writeFileSync(`${out}/published.json`, JSON.stringify(result, null, 2) + "\n");
     console.log("published.json", JSON.stringify(result));

@@ -1,16 +1,66 @@
-# Platformer adapter
+# Mosslight Trails (`platformer`)
 
-`adapter/index.ts` implements the studio's original grid-platformer contract: schema, validation,
-seeded bots, a shortest-route solver, and a saved-level URL. Its mechanics are deliberately small
-and data-driven. `SKILL.md` is the level designer's guide.
+An original grid-step trail game, now with a mobile/desktop browser client. It uses the original
+adapter's exact movement model; it is not a physics simulation or a fork of a commercial game.
+No ROMs, Nintendo assets, copied levels, music, or third-party character art are used. Forest
+scenery and the guide character are original CSS.
 
-The adapter currently uses an independent grid-step model and is not connected to a forked browser
-game. The previously referenced Super Mario Bros. remake is not used because it requires
-third-party ROM content. No Mario code, trademarks, art, levels, or ROMs are included.
+- `src/engine.ts`: the existing schema, validation, legal landings and exact route search, extracted
+  without changing their semantics from `adapter/index.ts`. Browser, bots and adapter import it.
+- `src/levels.ts`: five authored practice trails and a deterministic terrain builder.
+- `ui/main.ts`, `public/`: keyboard/touch client, live levels/packs, player events and solver replay.
+- `adapter/index.ts`: existing bots and platform contract, now linked to `/games/platformer/`.
+- `/platformer/` remains a query-preserving redirect for older adapter links.
 
-The [Systematic editor project](https://github.com/Lolo23450/systematic) is MIT licensed and has
-JSON import/export, but its current implementation stores editor-specific multilayer tile IDs and
-keeps movement rules inside a DOM-driven game loop. It does not expose the same headless rules for
-the browser and solver. It was reviewed as a candidate and not integrated. Do not describe this
-adapter as a fork or claim browser playability until a compatible source project and shared rules
-implementation are connected.
+## Play and build
+
+```sh
+npm ci
+npm run dev       # localhost:5190
+npm run typecheck
+npm test
+npm run build     # dist/; serve at /games/platformer/
+```
+
+`?level=<uuid>` loads live level JSON from the platform. `?pack=<uuid>` loads the published pack
+from the site's `/api/packs` endpoint. With no options it tries the live playlist, then explicitly
+labels a practice fallback if the service is unavailable. `?sample=1..5` chooses authored practice.
+`?autoplay=1` replays the exact route for QA; it is an engine demonstration, not a human playtest.
+
+## Rules and controls
+
+Each move advances one column left or right, onto a legal landing supported by `#`. The rise and
+drop obey `jump_height` and `fall_limit`. The existing model checks landing cells, not a continuous
+jump arc or head collision; thorns (`^`) are blocked landings. Tap a glowing landing for precise
+branch selection; arrows/left-right buttons choose the closest landing in that direction. Up/down
+cycles targets; Enter confirms. A guide hint reveals one safe step. Restart is R or the button.
+Reach G to win; fireflies C are optional and are only counted once on revisits. Practice does not
+send player telemetry. Live first moves send attempts, wins send results, and leaving open runs
+sends quits with the existing event contract.
+
+## Quality limits
+
+The current greedy bot follows the exact route and wins all valid levels; its 100% rate is a
+reference-route check, not a calibrated human difficulty claim. The random bot also uses the shared
+legal-landings function. Route length and jump/drop limits can describe a trail, but must not be
+presented as measured human difficulty. Production publication needs actual bot/solver evidence;
+no level is labeled agent-authored if a human integration run created it.
+
+## Production rollout
+
+The hosting bundle is checked in at `site/games/platformer/`; the games hub includes the fifth
+card. The existing site's deployment owner can finish the rollout from their authenticated clone:
+
+```sh
+bash site/deploy-platformer.sh
+```
+
+This uses the existing Vercel project link and untracked live API rewrite config, builds the game,
+deploys the site, verifies that the actual production route/client are present, then publishes the
+five verified opening levels. It refuses to create/relink a project or deploy without the existing
+rewrite config. Runtime `.env` keys stay server-side and are never copied into the browser bundle.
+
+`cd solver && npm run publish:platformer` stages the five levels as **drafts**, with 200 games each
+of `greedy` and `random` plus exact proof. `npm run publish:platformer -- --publish` refuses to
+publish if `/games/platformer/` or its real JS client is not live. Until deployment is verified,
+the new client must be described as ready for deployment, not already playable in production.

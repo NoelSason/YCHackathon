@@ -19,5 +19,6 @@ and rules are authoritative; do not invent tile symbols, fields, or movement rul
 ## Completion report
 
 Report the level ID, validation and solver output, bot metrics, and any playtest performed. Do not
-infer a difficulty score from route length alone or claim browser playability before the game is
-connected.
+infer a human difficulty score from route length alone. The browser client now shares `src/engine.ts`
+with the adapter, at `/games/platformer/`; distinguish local checks from verified live deployment.
+The greedy bot is an exact-route reference and wins all valid levels, not a human skill model.
