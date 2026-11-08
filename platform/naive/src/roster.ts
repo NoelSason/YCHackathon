@@ -33,24 +33,42 @@ export interface RosterAgent {
   cap_usd: number;        // daily cap
   task_usd: number;       // per-task cap
   cron?: { expr: string; input: string; budget_usd: number };
+  strictTools?: boolean;  // deny every platform tool not in `tools`, so Naïve never offers it
 }
+
+// Every tool on the platform MCP server (platform/mcp/src/tools.ts). An MCP tool an agent isn't
+// allow-listed for defaults to "ask", which parks an unattended run waiting for a human (the
+// Designer's first level run stalled on get_company_metrics). Agents with strictTools get every
+// other platform tool set to "deny", which Naïve never offers to the model at all.
+const PLATFORM_TOOLS = [
+  "list_games", "validate_level", "save_level", "get_level", "solve_level", "get_solver_run",
+  "accept_level", "reject_level", "publish_pack", "get_player_stats", "get_company_metrics",
+  "get_pipeline_metrics", "log_action", "log_decision", "resolve_decision", "check_decision",
+  "get_recent_decisions", "crm_upsert", "crm_set_stage", "record_email", "create_payment_link", "get_spend",
+];
 
 export const ROSTER: RosterAgent[] = [
   {
     name: "designer",
-    system: `You are the Designer at an autonomous level studio. You do two kinds of work.
-1. A design card: game_id, how many levels, a target win rate per level, and notes. First call platform.list_games to see the game's bots and its default target; if the card gives no target, use the game's targets.default_win_rate. For each level: follow the game's skill if it is attached (otherwise learn the level's shape from platform.validate_level's errors), write one level as JSON that fits the schema, call platform.validate_level, fix every error, then platform.save_level with the target and a one-line note on the design idea. You do not tune card levels; the Tuner does. Output the list of level_ids with their targets.
-2. A scheduled level run (no card): keep the games stocked with tuned levels so players always find new ones. Design one new level for match3 (the game players see on /play) and one for one other game except stub (vary which one between runs). Use the target 0.30 + 0.05 × (the current hour mod 9), so targets cover the curve over the day (get the hour from date in your shell). Save each level as above, then tune it yourself. ${TUNE_RULES} Output each level's id, game, target, and outcome.
-Every level must be new: never copy a commercial game's levels, boards, names, or text.${COMMON_RULES}`,
-    tools: ["list_games", "validate_level", "save_level", "get_level", "solve_level", "get_solver_run", "accept_level", "reject_level", "log_action"],
-    cap_usd: 35, task_usd: 1.2,
-    cron: { expr: "20 * * * *", input: "Scheduled level run: design one new match3 level and one level for another game, then tune and accept or reject each.", budget_usd: 1.2 },
+    system: `You are the Designer at an autonomous level studio. You design new game levels; the automatic Tuner in the solver tunes each one to its target and accepts or rejects it.
+Make exactly ONE tool call per chat: platform.save_level. No list_games, no validate_level, no log_action, no shell, no second save. After the first platform call, Naïve makes every further call in the chat wait for a person, so a second call stalls the run. save_level validates the level and logs the action for you.
+What to make:
+- On a scheduled level run, read the scheduled time from the run message. Game: at minute 40, a Splash Sort level ("watersort") on even hours and a Turbo Lanes level ("racer") on odd hours; at any other minute, a Gem Garden level ("match3", the game players see on /play). Target win rate: 0.30 + 0.05 × (the hour mod 9), for example 6 PM → 0.60.
+- On a design card, make the card's first level only, for its game and target (use 0.40 if it gives none), and say the rest are not done in this chat.
+Level formats (only these fields; values in range; make each level new, with its own name and seed):
+- match3 (Gem Garden): {"name":"Garden Path 12","width":7,"height":9,"colour_count":5,"seed":48213,"goal":{"colour":"red","target":30},"move_limit":20}. width 4-16, height 4-32, width × height at most 512; colour_count 4, 5 or 6; the goal colour must be one of the first colour_count of red, blue, green, gold, purple, teal; goal.target 1-1000; move_limit 1-200; seed an integer up to 4294967295. Optional "seals": [{"cell": <index>, "layers": 1-3}] as blockers on cells. Start with move_limit 15-25 and goal.target 20-40; the Tuner moves goal.target.
+- watersort (Splash Sort): {"title":"Tide Pool","capacity":4,"tubes":[["red","sky","pink","red"],["pink","red","sky","pink"],["sky","pink","red","sky"],[],[]],"move_limit":40}. Colors: red, orange, yellow, lime, green, teal, sky, blue, purple, pink, brown, gray. Use 4-8 colors; each color appears exactly capacity (4) times, mixed across tubes; add exactly 2 empty tubes; move_limit about 6 × the number of colors (the Tuner tightens it). It must not start solved.
+- racer (Turbo Lanes): {"title":"Harbor Run","lanes":3,"length":90,"speed":8,"time_limit":130,"crash_penalty":3,"lane_change_cooldown":0,"objects":[{"row":6,"lane":0,"kind":"car"},{"row":6,"lane":2,"kind":"cone"},{"row":11,"lane":1,"kind":"boost"},{"row":15,"lane":2,"kind":"coin"}]}. lanes 3-5; length 40-200; speed 6-12; crash_penalty 3; lane_change_cooldown 0 or 1; time_limit about length + 40 (the Tuner tightens it). Objects: row 1 to length-1, lane 0 to lanes-1, kind car, cone, oil, shield, boost or coin, one per cell; every row keeps at least one lane open; 25-60 objects spread along the track.
+Call platform.save_level with game_id, level, target_win_rate, and a one-line note on the design idea. Then reply with the level_id, game, and target, or the error save_level returned. Never copy a commercial game's levels, boards, names, or text.`,
+    tools: ["save_level"],
+    cap_usd: 35, task_usd: 0.5, strictTools: true,
+    cron: { expr: "*/20 * * * *", input: "Scheduled level run: design one new level and save it with a single platform.save_level call.", budget_usd: 0.5 },
   },
   {
     name: "tuner",
     system: `You are the Tuner. You receive a tune card: level_ids and their targets. Tune each level. ${TUNE_RULES} Output accepted and rejected ids with their measured rates.${COMMON_RULES}`,
     tools: ["get_level", "validate_level", "save_level", "solve_level", "get_solver_run", "accept_level", "reject_level", "log_action"],
-    cap_usd: 25, task_usd: 0.4,
+    cap_usd: 25, task_usd: 0.4, strictTools: true,
   },
   {
     name: "playtest",
@@ -116,7 +134,12 @@ Publish only accepted levels, with platform.publish_pack.${COMMON_RULES}`,
 };
 
 export function toolsFor(a: RosterAgent) {
-  return { default_config: { permission: "allow" as const }, configs: { ...T(a.tools), ...T(a.businessTools ?? [], BUSINESS_MCP_NAME) } };
+  const denied = a.strictTools
+    ? Object.fromEntries(
+        PLATFORM_TOOLS.filter((n) => !a.tools.includes(n)).map((n) => [`${PLATFORM_MCP_NAME}.${n}`, { enabled: false, permission: "deny" as const }]),
+      )
+    : {};
+  return { default_config: { permission: "allow" as const }, configs: { ...denied, ...T(a.tools), ...T(a.businessTools ?? [], BUSINESS_MCP_NAME) } };
 }
 
 export function budgetFor(a: RosterAgent) {

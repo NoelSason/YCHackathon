@@ -6,6 +6,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import pg from "pg";
 import { getAdapter, listAdapters } from "../../platform/mcp/src/adapters.js";
 import { failStale, processNext, unplayableQueued, writeHeartbeat, type Query } from "./queue.js";
+import { tuneNextDesign } from "./autotune.js";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -28,6 +29,9 @@ const staleMinutes = Number(process.env.STALE_MINUTES ?? 15);
 const threads = Number(process.env.SOLVER_THREADS ?? Math.max(1, os.availableParallelism() - 2));
 const maxSeconds = Number(process.env.SOLVER_MAX_SECONDS ?? 240);
 const once = process.argv.includes("--once");
+// The automatic Tuner (src/autotune.ts) tunes the Designer's new levels when the queue is idle.
+// AUTOTUNE=0 turns it off on this worker.
+const autotune = process.env.AUTOTUNE !== "0";
 // The games this worker can play: the adapter registry as it was when the worker started. A game
 // added later needs a pull and a restart; until then its runs stay queued (see claimNext) and the
 // heartbeat and log below say which game is waiting.
@@ -45,7 +49,7 @@ for (const sig of ["SIGINT", "SIGTERM"] as const) {
 
 const log = (o: Record<string, unknown>) => console.log(JSON.stringify({ ts: new Date().toISOString(), worker: workerId, ...o }));
 
-log({ event: "started", once, games, poll_ms: pollMs, stale_minutes: staleMinutes, threads, max_seconds: maxSeconds });
+log({ event: "started", once, games, poll_ms: pollMs, stale_minutes: staleMinutes, threads, max_seconds: maxSeconds, autotune });
 let lastStaleCheck = 0;
 let lastHeartbeat = 0;
 let lastUnplayable = "";
@@ -71,6 +75,11 @@ while (!stopping) {
     const out = await processNext(q, workerId, getAdapter, { threads, maxSeconds, games });
     errorsInARow = 0;
     if (out.kind === "idle") {
+      const tuned = autotune ? await tuneNextDesign(q, workerId, getAdapter, { games, threads, maxSeconds: Math.min(maxSeconds, 120) }) : { kind: "idle" as const };
+      if (tuned.kind !== "idle") {
+        log({ event: `autotune_${tuned.kind}`, ...tuned });
+        continue;
+      }
       if (once) break;
       await sleep(pollMs);
     } else {
