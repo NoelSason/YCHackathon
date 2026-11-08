@@ -20,6 +20,38 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 20:12 PT · Pinara (Claude Code) · branch `main`
+
+**What:** Turbo Lanes and Splash Sort show a level badge next to the mission heading. It reads,
+for example, **LEVEL 35 · YOU**, or **LEVEL 35 · ENGINE** when autoplay (the solver) is playing
+(filled badge). The number comes from:
+- practice levels: "PRACTICE 2 OF 4";
+- pack levels: "LEVEL 3 OF 10";
+- live levels: the number in their title ("Circuit 0035" → 35), otherwise their place in the live
+  list.
+
+**Why:** Pinara: players and demo viewers should see which level is being played, and whether a
+person or the engine is playing it.
+**Files:** `games/{racer,watersort}/public/{index.html,style.css}`,
+`games/{racer,watersort}/ui/main.ts`, `site/games/{racer,watersort}/` (rebuilt).
+**State:** Works:
+- The typecheck is clean. Racer tests pass 21/21 and watersort 14/14.
+- In headless Chromium at 390×844, the badge read "PRACTICE 2 OF 4 · YOU", then "LEVEL 35 · YOU"
+  and "LEVEL 35 · ENGINE" (Turbo Lanes), and "LEVEL 282 · YOU" and "LEVEL 282 · ENGINE" (Splash
+  Sort). The live "Next" flow still plays 3 levels in a row with 0 errors.
+- Live levels were loaded from the production platform. The list came from a local stub of
+  `/levels-latest`, because that route was down.
+
+**Next / heads-up:**
+- **Noel:**
+  1. The site still needs your redeploy for this and the 20:06 push.
+  2. `levelai.vercel.app/levels-latest` returned 502, then 530, again around 20:10, so the
+     tunnel to the business server is dropping repeatedly. While it's down, `/play` and the
+     `/games` hub can't list levels.
+- **Anyone running `site/build-games.sh` while that route is down:** it rewrites
+  `site/games/published.json` to all `false`, which hides every game on the hub. Restore it
+  before committing.
+
 ### 2026-11-07 8:12 PM PT · Abhinav · Claude Code · main
 
 **What:** Playtest agent gets `platform.list_games` and `business.recent_activity` (both read-only). Its live session was parked on a permission hold for each, because neither tool was configured for it; that hold is not the people rule, so the approver correctly leaves it.

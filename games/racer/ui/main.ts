@@ -92,6 +92,7 @@ function load(level: Level, levelId: string | null, sample: number | null): void
   el<HTMLButtonElement>("pause").disabled = true;
   el("road").classList.remove("paused");
   el("track-title").textContent = level.title ?? "Custom circuit";
+  showLevelBadge();
   el("objective").textContent = `Reach the finish in ${(level.time_limit / level.speed).toFixed(1)}s · Traffic, cones and oil cost you time · Boosts double your speed · A shield blocks one hit`;
   buildWorld();
   renderSamples();
@@ -224,6 +225,29 @@ function startPackLevel(n: number): void {
   const l = pack.levels[pack.n - 1]!;
   load(checked(l.level), UUID_RE.test(l.level_id) ? l.level_id : null, null);
   el("track-title").textContent = `${run.level.title ?? "Track"} · ${pack.n} of ${pack.levels.length}`;
+  showLevelBadge();
+}
+
+/**
+ * The level badge: which level is on screen and who is playing it. Practice levels count within the
+ * practice set, pack levels within the pack, and live levels use the number in their title
+ * ("Circuit 0068" → 68), else their place in the live list.
+ */
+function levelNumber(): string {
+  if (pack) return `LEVEL ${pack.n} OF ${pack.levels.length}`;
+  if (run.sample !== null) return `PRACTICE ${run.sample} OF ${SAMPLES.length}`;
+  const m = /(\d+)\s*$/.exec(run.level.title ?? "");
+  if (m) return `LEVEL ${Number(m[1])}`;
+  const i = run.levelId ? liveIds.indexOf(run.levelId) : -1;
+  return i >= 0 ? `LEVEL ${i + 1}` : "LEVEL";
+}
+
+function showLevelBadge(): void {
+  const badge = el("level-badge");
+  const engine = run.autoplay !== null;
+  badge.innerHTML = `<b>${levelNumber()} · ${engine ? "ENGINE" : "YOU"}</b>`;
+  badge.classList.toggle("engine", engine);
+  badge.title = engine ? "The solver is driving this level (autoplay)" : "You are playing this level";
 }
 
 function steer(dir: Action): void {
@@ -527,6 +551,7 @@ async function fetchLevel(id: string): Promise<Level> {
 
 function startAutoplay(): void {
   run.autoplay = solveLevel(run.level).inputs;
+  showLevelBadge();
   begin();
 }
 

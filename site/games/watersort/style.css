@@ -259,3 +259,9 @@ button:focus-visible { outline:3px solid #257d68; outline-offset:5px; }
 .samples button[aria-current="true"] .sample-number { color:#267d68; }
 @media(hover:hover) { .samples button:hover { background:#fff; border-color:#66a58c; } }
 @media(max-width:350px) { .samples .btn.ghost { padding:10px; grid-template-columns:21px 1fr; gap:4px; } .collection-label>span { display:none; } }
+
+/* Level badge: which level, and whether you or the engine (autoplay) is playing. */
+.level-badge { display:inline-block; margin-left:8px; padding:2px 8px; border:1px solid currentColor; border-radius:999px; font-weight:700; letter-spacing:1.4px; white-space:nowrap; }
+.level-badge.engine { background:currentColor; }
+.level-badge.engine b { color:#07060f; }
+.level-badge b { font-weight:700; }

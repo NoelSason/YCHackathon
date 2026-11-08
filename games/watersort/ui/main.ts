@@ -111,6 +111,8 @@ function start(level: Level, levelId: string | null, sample: number | null): voi
     hintPair: null,
   };
   el("title").textContent = level.title ?? (sample ? `Practice ${sample}` : "Level");
+  engine = false;
+  showLevelBadge();
   el("overlay").classList.add("hidden");
   renderSamples();
   render();
@@ -503,6 +505,30 @@ function startPackLevel(n: number): void {
   const l = pack.levels[pack.n - 1]!;
   start(checked(l.level), UUID_RE.test(l.level_id) ? l.level_id : null, null);
   el("title").textContent = `${game.level.title ?? "Level"} · ${pack.n} of ${pack.levels.length}`;
+  showLevelBadge();
+}
+
+let engine = false; // true while autoplay (the solver) is pouring
+
+/**
+ * The level badge: which level is on screen and who is playing it. Practice levels count within the
+ * practice set, pack levels within the pack, and live levels use the number in their title
+ * ("Circuit 0068" → 68), else their place in the live list.
+ */
+function levelNumber(): string {
+  if (pack) return `LEVEL ${pack.n} OF ${pack.levels.length}`;
+  if (game.sample !== null) return `PRACTICE ${game.sample} OF ${SAMPLES.length}`;
+  const m = /(\d+)\s*$/.exec(game.level.title ?? "");
+  if (m) return `LEVEL ${Number(m[1])}`;
+  const i = game.levelId ? liveIds.indexOf(game.levelId) : -1;
+  return i >= 0 ? `LEVEL ${i + 1}` : "LEVEL";
+}
+
+function showLevelBadge(): void {
+  const badge = el("level-badge");
+  badge.innerHTML = `<b>${levelNumber()} · ${engine ? "ENGINE" : "YOU"}</b>`;
+  badge.classList.toggle("engine", engine);
+  badge.title = engine ? "The solver is playing this level (autoplay)" : "You are playing this level";
 }
 
 let autoTimer: number | undefined;
@@ -518,6 +544,8 @@ function autoplay(): void {
     return notice(`Autoplay stopped: ${e instanceof Error ? e.message : String(e)}`);
   }
   if (!inputs) return notice("Autoplay: this level has no solution.");
+  engine = true;
+  showLevelBadge();
   const replayGame = game;
   let k = 0;
   autoTimer = window.setInterval(() => {

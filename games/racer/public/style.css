@@ -283,3 +283,10 @@ button:focus-visible { outline:3px solid var(--neon2); outline-offset:4px; }
 @media(hover:hover) { .samples button:hover { background:#ffffff10; border-color:#88e7d066; } }
 @media(max-width:380px) { .mission { grid-template-columns:1fr; } .mission-actions { grid-row:2; } .mini { flex:1; } .mission p { grid-row:3; } .samples small { font-size:7px; } .collection-label>span { display:none; } }
 .samples strong { white-space:normal; overflow:visible; line-height:1.3; min-height:2.6em; }
+
+/* Level badge: which level, and whether you or the engine (autoplay) is playing. */
+.level-badge { display:inline-block; margin-left:8px; padding:2px 8px; border:1px solid currentColor; border-radius:999px; font-weight:700; letter-spacing:1.4px; white-space:nowrap; }
+.level-badge.engine { background:currentColor; }
+.level-badge.engine b { color:#07060f; }
+.level-badge b { font-weight:700; }
+.mission small .level-badge { display:table; margin:6px 0 0; }
