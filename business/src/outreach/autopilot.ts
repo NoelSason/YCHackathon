@@ -99,6 +99,7 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
     };
     await findTargets(ctx.monid, {
       maxGames: opts.maxGames ?? 30, minSignals: 2, chart: chart.chart, category: chart.category, skip, verify,
+      onSkip: (game, err) => console.error(`outreach loop: skipped ${game.title}: ${err instanceof Error ? err.message.slice(0, 120) : "unknown"}`),
       // Pitch each studio as soon as its game qualifies, so a restart mid-pass doesn't lose the emails.
       onRead: async (t) => {
         read.push(t);

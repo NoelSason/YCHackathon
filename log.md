@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 6:08 PM PT · Noel · Claude Code · main
+- **What:** One game's reviews failing to load, or a failed send, now skips that game instead of ending the whole chart pass. Confirmed the send-as-you-go change live: Hidden Folks B.V. was emailed at 5:57 PM the moment its game qualified.
+- **Why:** "couldn't read the top paid casual chart" at 5:57 PM came from one game's error mid-pass.
+- **Files:** `business/src/research/targets.ts`, `business/src/outreach/autopilot.ts`
+- **State:** works; 140 tests pass, server restarted.
+- **Next / heads-up:** `NEW_NAIVE_KEY` (added by Noel) is in his personal workspace (0 agents, identity idn_debsb…), not the team one. Social posting uses the team workspace via `NAIVE_API_KEY_SOCIAL`.
+
 ### 2026-11-07 6:05 PM PT · Noel · Claude Code · main
 - **What:** Social posting is set up in the team Naïve workspace. Noel added `NAIVE_API_KEY_SOCIAL` (team workspace, billing:write). I created identity `idn_ktrxjg2jbb1bmz7shpjpj05rjt` "Level AI" there and activated social (`activated: true`, no accounts yet). `post_update` now posts through that key and identity (`NAIVE_SOCIAL_IDENTITY_ID`), falling back to the old identity if unset. Mobilerun support ticket #373 filed (Apple sign-in, App Store catalog, iOS uninstall).
 - **Why:** The Marketing agent needs connected accounts to post.
