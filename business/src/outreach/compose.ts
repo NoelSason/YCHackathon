@@ -17,7 +17,8 @@ export interface OutreachDraft {
 export interface ComposeInput {
   lead: Pick<Lead, "contactName" | "company">;
   target: Pick<Target, "appTitle" | "reviewsAnalyzed" | "signalCounts" | "primarySignal" | "examples">;
-  sampleUrl: string;
+  /** A playable sample made for them. Without one, the email offers to make one. */
+  sampleUrl: string | null;
   pilot: { levels: number; priceLabel: string; paymentUrl: string | null };
   sender: { name: string; company: string; postalAddress: string };
 }
@@ -55,14 +56,24 @@ export function composeOutreach(input: ComposeInput): OutreachDraft {
     OPENERS[kind](n, total, target.appTitle),
     ...(quote ? ["", `One player put it this way: "${quote}"`] : []),
     "",
-    `We make and tune puzzle levels. Before a level ships, our test players play it hundreds of times, so its difficulty is measured, not guessed. I made a short sample set in the style of ${target.appTitle} for you to try:`,
-    sampleUrl,
-    "",
-    pilot.paymentUrl
-      ? `If it's useful, a pilot pack of ${pilot.levels} levels, tuned to the difficulty curve you choose, is ${pilot.priceLabel}. You can start it here: ${pilot.paymentUrl}`
-      : `If it's useful, a pilot pack of ${pilot.levels} levels, tuned to the difficulty curve you choose, is ${pilot.priceLabel}. Just reply and I'll send the details.`,
-    "",
-    "Happy to answer questions by reply.",
+    ...(sampleUrl
+      ? [
+          `We make and tune puzzle levels. Before a level ships, our test players play it hundreds of times, so its difficulty is measured, not guessed. I made a short sample set in the style of ${target.appTitle} for you to try:`,
+          sampleUrl,
+        ]
+      : [
+          "We make and tune puzzle levels. Before a level ships, our test players play it hundreds of times, so its difficulty is measured, not guessed.",
+          "",
+          `If it would help, reply and we'll make you a free sample set in the style of ${target.appTitle}, tuned to the difficulty you want. We also do pilot packs of ${pilot.levels} levels, tuned to the curve you choose.`,
+        ]),
+    ...(sampleUrl
+      ? [
+          "",
+          pilot.paymentUrl
+            ? `If it's useful, a pilot pack of ${pilot.levels} levels, tuned to the difficulty curve you choose, is ${pilot.priceLabel}. You can start it here: ${pilot.paymentUrl}`
+            : `If it's useful, we also do pilot packs of ${pilot.levels} levels, tuned to the difficulty curve you choose. Just reply and I'll send the details.`,
+        ]
+      : []),
     "",
     sender.name,
     sender.company,
@@ -77,6 +88,8 @@ export function composeOutreach(input: ComposeInput): OutreachDraft {
     subject: SUBJECTS[kind](target.appTitle),
     body: lines.join("\n"),
     facts: [
+      // Numbers inside the player's own words come from the review itself.
+      ...numbersIn(quote ?? "").map((value) => ({ value, source: "the quoted review" })),
       { value: String(total), source: "reviews analyzed (Monid: dataforseo /google-play/app-reviews)" },
       { value: String(n), source: `reviews matching ${kind}` },
       { value: String(pilot.levels), source: "pilot pack size (team setting)" },

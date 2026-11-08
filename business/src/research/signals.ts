@@ -44,6 +44,7 @@ const PATTERNS: Record<SignalKind, RegExp[]> = {
 
 /** Praise or negation ("not too hard", "aren't too hard", "not impossible") isn't a complaint. */
 const NEGATED = [
+  /\b(not|isn'?t|aren'?t|wasn'?t|weren'?t|neither|is not|are not) (being )?(too |that |so |overly )?(easy|hard|difficult),? (or|nor) (too |that |so |overly )?(easy|hard|difficult)\b/g,
   /\b(not|isn'?t|aren'?t|wasn'?t|weren'?t|never|neither|is not|are not) (being )?(too|that|so|very|overly|super|really) (easy|hard|difficult)\b/g,
   /\b(not|isn'?t|aren'?t|wasn'?t|never) (being )?impossible\b/g,
   /\bnor too (easy|hard|difficult)\b/g,
@@ -80,11 +81,12 @@ export function excerpt(text: string, max = 140): string {
   return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), max - 20)).trimEnd()}…`;
 }
 
-export function classifyReview(text: string): SignalKind[] {
-  const found = new Set<SignalKind>();
-  const lower = text.toLowerCase();
-  const reviewIsTechnical = TECHNICAL.test(lower);
-  for (const raw of lower.split(/(?<=[.!?\n])\s+/)) {
+/** Each signal found in a review, with the sentence that shows it (so quotes are never out of context). */
+export function classifyWithEvidence(text: string): Map<SignalKind, string> {
+  const found = new Map<SignalKind, string>();
+  const reviewIsTechnical = TECHNICAL.test(text.toLowerCase());
+  for (const original of text.split(/(?<=[.!?\n])\s+/)) {
+    const raw = original.toLowerCase();
     if (OTHER_GAMES.test(raw)) continue;
     let t = raw;
     for (const re of NEGATED) t = t.replace(re, " ");
@@ -92,10 +94,15 @@ export function classifyReview(text: string): SignalKind[] {
     for (const kind of SIGNAL_ORDER) {
       // A level that's "impossible" because an ad won't load is a technical problem, not difficulty.
       if (technical && (kind === "too_hard" || kind === "repetitive")) continue;
-      if (PATTERNS[kind].some((re) => re.test(t))) found.add(kind);
+      if (!found.has(kind) && PATTERNS[kind].some((re) => re.test(t))) found.set(kind, original.trim());
     }
-    if (!technical && !reviewIsTechnical && !OTHER_GAMES.test(t) && STUCK.some((re) => re.test(t))) found.add("too_hard");
+    if (!found.has("too_hard") && !technical && !reviewIsTechnical && STUCK.some((re) => re.test(t))) found.set("too_hard", original.trim());
   }
+  return found;
+}
+
+export function classifyReview(text: string): SignalKind[] {
+  const found = classifyWithEvidence(text);
   return SIGNAL_ORDER.filter((k) => found.has(k));
 }
 
@@ -104,8 +111,8 @@ export function extractSignals(reviews: RawReview[]): ReviewSignal[] {
   for (const r of reviews) {
     const text = r.review_text?.trim();
     if (!text) continue;
-    for (const kind of classifyReview(text)) {
-      signals.push({ kind, quote: excerpt(text), rating: ratingOf(r), timestamp: r.timestamp ?? null });
+    for (const [kind, sentence] of classifyWithEvidence(text)) {
+      signals.push({ kind, quote: excerpt(sentence), rating: ratingOf(r), timestamp: r.timestamp ?? null });
     }
   }
   return signals;

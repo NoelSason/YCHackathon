@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import QRCode from "qrcode";
+import { loadOutreach } from "./outreach.js";
 import { computeStats, type StageEvent } from "./events.ts";
 import { DEFAULT_ACTIVITY, DEFAULT_STEPINS, LiveFeed, ReplayFeed, SampleFeed, parseTables, type Feed, type HealthItem, type Pipeline } from "./feeds.ts";
 import { PhoneView } from "./phone.ts";
@@ -152,6 +153,16 @@ const server = createServer(async (req, res) => {
         res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
         res.end(page());
         return;
+      case "/outreach":
+        res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+        res.end(readFileSync(join(demoDir, "public", "outreach.html"), "utf8"));
+        return;
+      case "/api/outreach": {
+        const board = await loadOutreach(env.DATABASE_URL);
+        res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+        res.end(JSON.stringify(board));
+        return;
+      }
       case "/api/state":
         res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
         res.end(JSON.stringify(snapshot()));

@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
+  toolAuditGame,
   toolDraftOutreach,
   toolFindTargets,
   toolFinance,
@@ -32,6 +33,15 @@ export function buildMcpServer(ctx: ToolContext): McpServer {
       inputSchema: { maxGames: z.number().int().min(1).max(15).optional() },
     },
     async (args) => json(await toolFindTargets(ctx, args)),
+  );
+
+  server.registerTool(
+    "audit_game",
+    {
+      description: "Read one specific Google Play game's newest reviews and find level-design complaints. Use it for a studio you already know about. Costs about $0.002 of Monid credit.",
+      inputSchema: { appId: z.string(), title: z.string(), developer: z.string() },
+    },
+    async (args) => json(await toolAuditGame(ctx, args)),
   );
 
   server.registerTool(

@@ -82,6 +82,8 @@ export async function handleInboundReply(reply: InboundReply, store: Store): Pro
     return { kind: "unknown_sender", reply };
   }
 
+  await store.addInboundEmail({ leadId: lead.id, subject: reply.subject, summary: reply.text.slice(0, 500), externalId: reply.messageId });
+
   if (isOptOut(reply.text)) {
     await store.suppress(reply.from, "replied stop");
     await store.setStage(lead.id, "opted_out");
@@ -89,7 +91,6 @@ export async function handleInboundReply(reply: InboundReply, store: Store): Pro
     return { kind: "opted_out", leadId: lead.id };
   }
 
-  await store.addInboundEmail({ leadId: lead.id, subject: reply.subject, summary: reply.text.slice(0, 500), externalId: reply.messageId });
   if (lead.stage === "emailed") await store.setStage(lead.id, "replied");
   await store.logActivity({ at, agent: "sales-inbox", action: `reply from ${lead.company}`, why: null, result: "sent to the Sales Reader", costUsd: null, human: false });
   return { kind: "needs_reader", leadId: lead.id, reply };

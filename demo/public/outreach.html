@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Level AI · Outreach</title>
+<style>
+  :root { --bg: #0b0d10; --panel: #141821; --line: #232a37; --text: #eef1f5; --muted: #8d97a8; --accent: #7c5cff; --go: #3ddc97; --warn: #ffb547; --mono: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  body { padding: 2.2vh 2.4vw; min-height: 100vh; font-size: clamp(14px, 1.05vw, 22px); }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 1em; margin-bottom: 1.6vh; }
+  h1 { margin: 0; font-size: 2em; letter-spacing: -.02em; }
+  h1 small { color: var(--muted); font-weight: 500; font-size: .5em; margin-left: .6em; }
+  .back { color: var(--muted); text-decoration: none; font: 500 .85em var(--mono); }
+  .totals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1vw; margin-bottom: 2vh; }
+  .tot { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 1.2vh 1.2vw; }
+  .tot .n { font-size: 2.4em; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .tot .l { color: var(--muted); margin-top: .4em; font-size: .9em; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 30em), 1fr)); gap: 1vw; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 1.4vh 1.2vw; display: flex; flex-direction: column; gap: .55em; }
+  .card.fresh { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .top { display: flex; justify-content: space-between; gap: .8em; align-items: baseline; }
+  .co { font-weight: 700; font-size: 1.15em; }
+  .badge { font: 600 .75em var(--mono); text-transform: uppercase; letter-spacing: .04em; padding: .25em .6em; border-radius: 999px; background: #222a38; color: var(--muted); white-space: nowrap; }
+  .badge.emailed { background: rgba(124,92,255,.18); color: #b9a8ff; }
+  .badge.replied, .badge.pilot_offered { background: rgba(255,181,71,.16); color: var(--warn); }
+  .badge.pilot_paid, .badge.delivered { background: rgba(61,220,151,.16); color: var(--go); }
+  .src { color: var(--muted); font-size: .8em; }
+  .reason { color: var(--text); }
+  .quote { color: #cfd6e2; font-style: italic; border-left: 3px solid var(--accent); padding-left: .7em; }
+  .meta { color: var(--muted); font: .82em var(--mono); display: flex; gap: 1.2em; flex-wrap: wrap; }
+  .reply { background: rgba(255,181,71,.08); border: 1px solid rgba(255,181,71,.25); border-radius: 10px; padding: .6em .8em; }
+  .reply b { color: var(--warn); font-weight: 600; }
+  .none { color: var(--muted); padding: 4vh 0; text-align: center; grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Outreach <small id="updated">live</small></h1>
+  <a class="back" href="/">← back to the company</a>
+</header>
+<section class="totals">
+  <div class="tot"><div class="n" id="t-researched">0</div><div class="l">studios found by research</div></div>
+  <div class="tot"><div class="n" id="t-signups">0</div><div class="l">signed up at our table</div></div>
+  <div class="tot"><div class="n" id="t-emailed">0</div><div class="l">emailed by agents</div></div>
+  <div class="tot"><div class="n" id="t-replied">0</div><div class="l">replied</div></div>
+  <div class="tot"><div class="n" id="t-won">0</div><div class="l">paid</div></div>
+</section>
+<section class="grid" id="grid"><div class="none">Loading…</div></section>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const when = (iso) => iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " · " + new Date(iso).toLocaleDateString([], { weekday: "short" }) : "";
+const STAGE = { found: "found", sample_made: "sample made", emailed: "emailed", replied: "replied", pilot_offered: "pilot offered", pilot_paid: "paid", delivered: "delivered", lost: "not now", opted_out: "opted out" };
+let seen = new Set();
+async function refresh() {
+  try {
+    const b = await (await fetch("/api/outreach", { cache: "no-store" })).json();
+    if (!b.live) { $("grid").innerHTML = '<div class="none">Not connected to the company database.</div>'; return; }
+    for (const k of ["researched", "signups", "emailed", "replied", "won"]) $("t-" + k).textContent = b.totals[k];
+    $("updated").textContent = "live · updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+    if (!b.rows.length) { $("grid").innerHTML = '<div class="none">No studios yet.</div>'; return; }
+    const first = seen.size === 0;
+    $("grid").innerHTML = b.rows.map((r) => {
+      const key = r.company + (r.sentAt || "") + (r.replyAt || "");
+      const fresh = !first && !seen.has(key);
+      seen.add(key);
+      return `<article class="card${fresh ? " fresh" : ""}">
+        <div class="top"><span class="co">${esc(r.company)}</span><span class="badge ${esc(r.stage)}">${esc(STAGE[r.stage] || r.stage)}</span></div>
+        <div class="src">${r.source === "inbound_qr" ? "Signed up at our table" : "Found by the Research agent"}</div>
+        ${r.reason ? `<div class="reason">${esc(r.reason)}</div>` : ""}
+        ${r.quote ? `<div class="quote">“${esc(r.quote)}”</div>` : ""}
+        ${r.subject ? `<div class="meta"><span>✉ ${esc(r.subject)}</span><span>${esc(when(r.sentAt))}</span></div>` : ""}
+        ${r.replyAt ? `<div class="reply"><b>Reply · ${esc(when(r.replyAt))}</b><br>${esc(r.replySummary || "")}</div>` : ""}
+      </article>`;
+    }).join("");
+  } catch { $("updated").textContent = "reconnecting…"; }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

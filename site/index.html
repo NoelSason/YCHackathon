@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Level AI · Puzzle levels, made and tested</title>
+<meta name="description" content="Level AI makes puzzle levels for mobile games. Every level is played hundreds of times before it ships, so its difficulty is measured, not guessed.">
+<style>
+  :root { --bg: #0b0d12; --card: #141925; --text: #f2f4f8; --muted: #9aa3b4; --accent: #7c5cff; --line: #222a3a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 22px 0; display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-weight: 800; letter-spacing: -.02em; font-size: 20px; }
+  .logo span { color: var(--accent); }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 22px; font-size: 15px; }
+  .hero { padding: 72px 0 56px; }
+  h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1.05; letter-spacing: -.03em; margin: 0 0 18px; max-width: 14ch; }
+  .lede { color: var(--muted); font-size: clamp(18px, 2.2vw, 21px); max-width: 38em; margin: 0 0 30px; }
+  .btn { display: inline-block; background: var(--accent); color: #fff; padding: 14px 22px; border-radius: 12px; text-decoration: none; font-weight: 600; }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); margin-left: 10px; }
+  section { padding: 44px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 28px; letter-spacing: -.02em; margin: 0 0 22px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+  .card h3 { margin: 0 0 8px; font-size: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 16px; }
+  .n { color: var(--accent); font-weight: 700; font-size: 14px; margin-bottom: 6px; display: block; }
+  footer { padding: 36px 0 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Level<span>AI</span></div>
+    <nav><a href="#how">How it works</a><a href="#studios">For studios</a><a href="#contact">Contact</a></nav>
+  </header>
+
+  <div class="hero">
+    <h1>Puzzle levels, made and tested before you ship them.</h1>
+    <p class="lede">Level AI makes levels for mobile puzzle games. Every level is played hundreds of times before it reaches your players, so its difficulty is measured, not guessed.</p>
+    <a class="btn" href="mailto:levelai@agentmail.to?subject=Free%20levels%20for%20my%20game">Get free levels for your game</a>
+    <a class="btn ghost" href="#how">How it works</a>
+  </div>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <div class="grid">
+      <div class="card"><span class="n">1</span><h3>We listen to your players</h3><p>We read what your players say about difficulty: where they get stuck, where they get bored, and when they run out of levels.</p></div>
+      <div class="card"><span class="n">2</span><h3>We design new levels</h3><p>Fresh levels in your game's style, aimed at the difficulty curve you choose.</p></div>
+      <div class="card"><span class="n">3</span><h3>We test every level</h3><p>Each level is played hundreds of times and tuned until it hits its target, then checked on real phones.</p></div>
+      <div class="card"><span class="n">4</span><h3>You ship</h3><p>You get ready-to-use levels, with how hard each one is and how players are likely to do.</p></div>
+    </div>
+  </section>
+
+  <section id="studios">
+    <h2>For studios</h2>
+    <div class="grid">
+      <div class="card"><h3>Free sample set</h3><p>Tell us your game and we'll make a short set of levels in its style, free.</p></div>
+      <div class="card"><h3>Pilot packs</h3><p>A pack of 20 levels, tuned to the difficulty curve you pick. Email us for pricing.</p></div>
+      <div class="card"><h3>Playtests on real phones</h3><p>We play your levels on real devices and report what loads, what breaks, and where players will get stuck.</p></div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <h2>Contact</h2>
+    <p>Email <a href="mailto:levelai@agentmail.to" style="color:var(--text)">levelai@agentmail.to</a>. Questions about an order or a refund go to the same address.</p>
+  </section>
+
+  <footer>
+    <p>Level AI is a small studio where AI agents design and test levels, with a human team behind them.</p>
+    <p>1752 Shattuck Avenue, Berkeley, CA 94704 · <a href="mailto:levelai@agentmail.to">levelai@agentmail.to</a></p>
+    <p>© 2026 Level AI</p>
+  </footer>
+</div>
+</body>
+</html>

@@ -77,6 +77,7 @@ export function composeWelcome(args: {
     body: lines.join("\n"),
     facts: target
       ? [
+          ...(quote ? (quote.match(/\d[\d,.]*\d|\d/g) ?? []).map((v) => ({ value: v.replace(/,/g, ""), source: "the quoted review" })) : []),
           { value: String(target.reviewsAnalyzed), source: "reviews analyzed (Monid)" },
           { value: String(n), source: `reviews matching ${kind ?? "none"}` },
         ]

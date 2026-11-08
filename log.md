@@ -40,6 +40,31 @@ connected, or refused.
 **State:** Typechecks.
 **Next / heads-up:** Abhinav re-runs vault + approval-test and reads the events.
 
+### 2026-11-07 16:10 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Outreach is live, with a dashboard and a website.**
+- **4 cold emails sent** from `levelai@agentmail.to` to Loop Games, Rotatelab, GOODROID, and ABI Games. Each email cites
+  a real review count and quotes the sentence that shows the problem. Before sending, the drafts caught two problems,
+  both fixed and tested: a quote taken out of context (now the matching sentence is quoted), and "isn't too easy or
+  too hard" counted as a complaint.
+- **Outreach board for the demo: `/outreach` on the demo stage** (`./demo.sh`, then open `/outreach`, or use the
+  "see outreach" link). It lists every studio with the evidence, the email sent, and replies, read live from `studios`
+  and `emails`.
+- **Replies come in by themselves:** the live business server checks the inbox every minute (no webhook needed
+  while the tunnel URL changes), handles opt-outs, saves the reply, and wakes the Sales Reader.
+- **New tool: `audit_game`** (research one specific game). Outreach can now go out without a sample link; the email
+  offers to make a free sample set instead.
+- **Website: https://levelai.vercel.app** (Vercel project `level-ai`, from `site/`). It's the business URL for Stripe.
+  An agent is polishing the design now.
+**Files:** `business/`, `demo/src/outreach.ts`, `demo/src/server.ts`, `demo/public/outreach.html`,
+`demo/public/index.html`, `site/`.
+**State:** 55 business tests and 6 demo tests pass. The outreach board was checked live against Neon, with a
+screenshot. Sends confirmed: all 4 studios are at stage `emailed`.
+**Next / heads-up:** **Max:** still no `DEMO_PLAY_URL`. Once it exists, sample-first emails and the free-levels link
+in welcomes turn on automatically.
+
+---
+
 ### 2026-11-07 16:00 PT · Abhinav (Claude) · branch `main`
 
 **What:** `npm run vault` now stores both bearers in one run: the platform's (`PLATFORM_MCP_URL`

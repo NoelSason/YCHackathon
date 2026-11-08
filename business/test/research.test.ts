@@ -29,6 +29,8 @@ describe("classifyReview", () => {
   it("ignores the 11 false-positive patterns found by hand on Nov 7", () => {
     const none = [
       "the puzzles aren't too hard",
+      "Really fun game that isn't too easy or too hard.",
+      "not too easy, nor too hard",
       "balanced with not being too easy or hard",
       "Some games are way too easy.",
       "it's not impossible to win now",
@@ -55,6 +57,12 @@ describe("classifyReview", () => {
     expect(classifyReview("level 376 is actually quite literally impossible without using a single power-up")).toContain("too_hard");
     expect(classifyReview("the levels get repetitive after a while")).toContain("repetitive");
     expect(classifyReview("please add more levels")).toContain("wants_more_levels");
+  });
+
+  it("quotes the sentence that shows the problem, not the start of the review", () => {
+    const review = "2nd update - I emailed the developers, and they listened. Level 12 is impossible though. Love the art.";
+    const [sig] = extractSignals([{ review_text: review, rating: 3 }]);
+    expect(sig).toMatchObject({ kind: "too_hard", quote: "Level 12 is impossible though." });
   });
 
   it("ignores ad and price complaints, which we can't fix", () => {

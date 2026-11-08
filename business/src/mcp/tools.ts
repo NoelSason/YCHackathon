@@ -5,7 +5,8 @@ import type { Config } from "../config.js";
 import type { Store } from "../store.js";
 import type { Lead, PipelineStage, Target } from "../types.js";
 import type { MonidRunner } from "../research/monid.js";
-import { findTargets } from "../research/targets.js";
+import { buildTarget, findTargets } from "../research/targets.js";
+import { fetchRecentReviews } from "../research/monid.js";
 import { composeOutreach, type OutreachDraft } from "../outreach/compose.js";
 import { checkOutreach, checkReply } from "../outreach/guard.js";
 import { idempotencyKey, sendOutreach, type MailSender } from "../outreach/send.js";
@@ -55,6 +56,19 @@ export async function toolFindTargets(ctx: ToolContext, args: { maxGames?: numbe
     result: targets.slice(0, 3).map((t) => t.appTitle).join(", ") || "none", costUsd: null, human: false,
   });
   return targets;
+}
+
+/** Research one specific game (not from the chart): read its newest reviews and keep the result for outreach. */
+export async function toolAuditGame(ctx: ToolContext, args: { appId: string; title: string; developer: string }): Promise<Target> {
+  if (!ctx.monid) throw new Error("Monid isn't configured.");
+  const reviews = await fetchRecentReviews(ctx.monid, args.appId);
+  const target = buildTarget({ appId: args.appId, title: args.title, developer: args.developer, rating: null, downloads: null }, reviews);
+  targetsByApp.set(target.appId, target);
+  await ctx.store.logActivity({
+    at: new Date().toISOString(), agent: "research", action: `audited ${args.title}`,
+    why: target.reason, result: target.primarySignal ? `pitch angle: ${target.primarySignal}` : "no difficulty complaints", costUsd: null, human: false,
+  });
+  return target;
 }
 
 export async function toolSaveLead(
@@ -112,7 +126,6 @@ export async function toolDraftOutreach(
   const lead = await ctx.store.getLead(args.leadId);
   if (!lead) throw new Error("No such lead.");
   if (!lead.appId) throw new Error("Lead has no app id, so there's no evidence to pitch on.");
-  if (!lead.sampleUrl) throw new Error("Make the sample pack first (set_sample_url).");
   const target = targetsByApp.get(lead.appId);
   if (!target) throw new Error("No research for this app in this session. Run find_targets first.");
 
@@ -120,11 +133,11 @@ export async function toolDraftOutreach(
   const draft = composeOutreach({
     lead,
     target,
-    sampleUrl: lead.sampleUrl,
+    sampleUrl: lead.sampleUrl ?? null,
     pilot,
     sender: { name: args.senderName, company: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "" },
   });
-  const extraAllowed = [lead.sampleUrl, pilot.paymentUrl ?? "", pilot.priceLabel, ctx.config.COMPANY_POSTAL_ADDRESS ?? ""];
+  const extraAllowed = [lead.sampleUrl ?? "", pilot.paymentUrl ?? "", pilot.priceLabel, ctx.config.COMPANY_POSTAL_ADDRESS ?? ""];
   const blockedReason = await checkOutreach(lead, draft, {
     store: ctx.store, dailyCap: ctx.config.OUTREACH_DAILY_CAP, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS, extraAllowedNumbers: extraAllowed,
   });

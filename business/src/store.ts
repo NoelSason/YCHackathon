@@ -26,6 +26,7 @@ export interface Store {
   /** Records a studio's reply as it arrives, so the Sender can answer that exact message later. */
   addInboundEmail(input: { leadId: string; subject: string; summary: string; externalId: string | null }): Promise<void>;
   lastInboundMessageId(leadId: string): Promise<string | null>;
+  hasInboundMessage(externalId: string): Promise<boolean>;
 
   isSuppressed(email: string): Promise<boolean>;
   suppress(email: string, reason: string): Promise<void>;
@@ -107,6 +108,10 @@ export class MemoryStore implements Store {
 
   async addInboundEmail(input: { leadId: string; subject: string; summary: string; externalId: string | null }): Promise<void> {
     this.inbound.push({ leadId: input.leadId, externalId: input.externalId });
+  }
+
+  async hasInboundMessage(externalId: string): Promise<boolean> {
+    return this.inbound.some((m) => m.externalId === externalId);
   }
 
   async lastInboundMessageId(leadId: string): Promise<string | null> {
@@ -247,6 +252,10 @@ export class PlatformStore implements Store {
   async addInboundEmail(input: { leadId: string; subject: string; summary: string; externalId: string | null }): Promise<void> {
     await this.q(`insert into emails (studio_id, direction, subject, summary, external_id) values ($1, 'in', $2, $3, $4)`,
       [input.leadId, input.subject, input.summary.slice(0, 500), input.externalId]);
+  }
+
+  async hasInboundMessage(externalId: string): Promise<boolean> {
+    return (await this.q(`select 1 from emails where direction = 'in' and external_id = $1 limit 1`, [externalId])).length > 0;
   }
 
   async lastInboundMessageId(leadId: string): Promise<string | null> {
