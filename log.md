@@ -20,6 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 04:17 PT · Pinara (Codex) · branch `pinara/finish-quality`
+
+**What:** Added `docs/AGENT-HANDOFF-2026-11-08.md`, a detailed owner-by-owner pickup checklist, and linked it from `AGENTS.md` and Pinara's completion record. It includes deployment dependencies, bounded Lot Escape retry, racer publication, worker restart/checkpoints, metrics fixes, phone QA, real-player evals, business verification and demo gates.
+**Why:** Pinara asked for other teammates' agents to pick up remaining integration safely. Her planned implementation is complete, while final quality sign-off/data evidence and the master-plan on-call responsibility remain explicit; roles are not reassigned.
+**Files:** `AGENTS.md`, `docs/AGENT-HANDOFF-2026-11-08.md`, `docs/pinara-quality-handoff.md`, `log.md`.
+**State:** Documentation only. Verified local Markdown links/fences, referenced CLI flags/scripts and paths, and `git diff --check`. Fresh read-only observations around 04:12: live Lot Escape schema still 404, other four 200; Pinara's final `f0d2719` heartbeat includes all five; Noel's older worker lacks Lot Escape. Other stored full-suite checks are from 22:32–22:48 yesterday and are not current proof. No new deployment, agent session, email or payment was triggered.
+**Next / heads-up:** Abhinav: A1/A2/A3/A4 (MCP/Lot Escape, CEO pins/cron/kill switch, autonomy classification and fresh full readiness). Max with Noel hosting access: M1/M2/M3 (site/manifest, guarded racer pack, attempt-vs-people metrics). Noel: N1/N2/N3/D1 (old worker, phones, business checks, demo backup). Pinara/Abhinav backup: Q1 after backend deploy, Q2 when actual player data exists. See the handoff for commands, dependencies and pass criteria. No chatbot, dirty main-checkout code, secrets, runtime or gameplay changes in this push.
+
 ### 2026-11-08 04:09 PT · Pinara (Codex) · branch `pinara/finish-quality`
 
 **What:** Completed current 200-game verification of the four hosted Naïve-authored game paths: match-3 56%, racer 51%, watersort 53.5%, platformer 45.5%, all at unchanged 50% targets (match-3 uses the documented CI allowance). Two untunable sort designs remain rejected; the six-colour retry accepted. Added portable built-client telemetry checks and fixed Lot Escape's mobile page-exit event. Guarded acceptance against zero wins with no exact proof. Saved machine-readable production/session/readiness evidence and current Designer v14/Tuner v13 deployment metadata.

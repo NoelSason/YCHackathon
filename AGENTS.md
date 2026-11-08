@@ -37,6 +37,10 @@ the product, and handle day-to-day operations.
 **`docs/master-plan.md` is the source of truth** for roles, times, backups, contracts, and the cut
 order. If another doc disagrees, the master plan wins.
 
+**November 8 restart handoff:** Read [the detailed owner/agent checklist](docs/AGENT-HANDOFF-2026-11-08.md)
+and the newest `log.md` entry before restarting workers or deploying. It records completed Pinara
+quality work, production dependencies, commands and pass criteria; master-plan ownership is unchanged.
+
 Rules for agents:
 
 - **Know who you're working for.** If it isn't clear which teammate you're helping, ask before you

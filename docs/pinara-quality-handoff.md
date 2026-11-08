@@ -1,5 +1,8 @@
 # Pinara quality completion and host handoff
 
+For the owner-by-owner pickup checklist, commands and completion gates, read
+[the detailed agent handoff](AGENT-HANDOFF-2026-11-08.md).
+
 Scope: master-plan packages 8, 10 and 11 and Pinara's two game clients. The separate local
 `forge/` game-building chatbot and unfinished main-checkout edits are excluded.
 
