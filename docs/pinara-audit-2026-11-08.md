@@ -29,9 +29,11 @@ Read from Neon at 23:57 PT, not manually entered into the product:
 | Lot Escape | 118 | 18 |
 | Mosslight Trails | 100 | 0 |
 
+A later read-only validation checked all 1,133 ready levels against their shared schemas, with zero failures; the exact solver also proved all 102 racer levels still beatable under the corrected mechanics.
+
 All 1,250 recorded solver runs were done; none queued, running or failed. The eval report's mean absolute bot-target error was 3.2 percentage points. Its historical hit benchmark remains the stricter four-round/five-point benchmark; it has not been relaxed to inflate results.
 
-All five production HTML routes returned 200. The public `/levels-latest` endpoint then repeatedly returned 530, while the separately hosted platform `/health` and saved-level endpoints worked. Route availability alone is not an end-to-end pass. New GitHub bundles must still be deployed by the hosting operator.
+All five production HTML routes returned 200. The public `/levels-latest` endpoint then repeatedly returned 530, while the separately hosted platform `/health` and saved-level endpoints worked. After Noel's concurrent tunnel repair, requests intermittently returned 400 (`request failed`) or 200; the API still needs a clean end-to-end check. The build probe now preserves previously verified games on failed requests so an outage cannot hide their cards. Route availability alone is not an end-to-end pass. New GitHub bundles must still be deployed by the hosting operator.
 
 ## Remaining work and owners
 
@@ -43,7 +45,7 @@ All five production HTML routes returned 200. The public `/levels-latest` endpoi
 | Full Naïve Designer → Tuner → Solver demonstration and prompt eval after changes | Pinara/Abhinav. The deterministic compiler is a utility, not proof that an autonomous Naïve session made a decision. Keep agent budgets and audit logs. |
 | Expected-vs-result evidence for the latest CEO decision | Pinara/Abhinav. Decision `91d3b2a2-3b53-4612-9ab4-9702a2dc6fb5` returned `not_enough_data`, with 0 scoped completions before and after. |
 | Real phone check/recording and full demo readiness command | Noel/Max/Abhinav, under the master-plan checklist. Headless desktop checks do not replace Mobilerun evidence. |
-| Runtime rollout | The producer processes load source at startup. Restart only the owning process deliberately; do not kill or replace Claude's separate lot/platformer watcher. |
+| Runtime rollout | Codex's three-game watcher was gracefully reloaded from committed `6d91752`, with the original checkpoint. It reports all three buffers healthy and performs no generation while stocked. This maintenance was recorded as a human intervention and activity. Claude's separate lot/platformer watcher was untouched and remains on its existing runtime. |
 
 Five previously verified authored platformer drafts remain staged separately from the 100 production levels. Their pack launch should be finished after the public pack API is healthy; do not claim a broken pack URL as shipped.
 

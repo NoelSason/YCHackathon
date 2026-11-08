@@ -52,8 +52,7 @@ const PLATFORM = "https://br-broad-violet-bem8cpy5-platform.compute.c-9.us-east-
 async function savedLevel(id: string): Promise<PublicLevel> {
   let value: PublicLevel;
   try { value = await getJson<PublicLevel>(`/levels/${encodeURIComponent(id)}`); }
-  catch (e) {
-    if (e instanceof NotFound) throw e;
+  catch {
     const raw = await getJson<PublicLevel & { status?: string }>(`${PLATFORM}/levels/${encodeURIComponent(id)}`);
     if (raw.status && raw.status !== "accepted" && raw.status !== "published") throw new NotFound(id);
     // The platform's basic endpoint omits difficulty metadata; never invent a measurement.

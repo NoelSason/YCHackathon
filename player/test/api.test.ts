@@ -29,6 +29,10 @@ test('verified gardens match producer ids, advance past packs, resume, and survi
     assert.equal(result.continuation, 52);
     assert.equal(result.levels[0]!.measured_win_rate, null, 'missing metadata is not invented');
     assert.ok(requests.some(r => r.startsWith('https://')));
+    for (const status of [400,404,500]) {
+      globalThis.fetch = async input => String(input).startsWith('https://') ? Response.json(raw) : new Response('',{status});
+      assert.equal((await loadPlaylist(new URLSearchParams('series=51'))).levels[0]!.level_id,id);
+    }
     assert.equal(await seriesPosition({ ...raw, level_id: 'not-the-real-id' }), 0);
     const last = { ...raw, level_id: await productionId(100), level: { ...raw.level, name: 'Garden 0100' } };
     globalThis.fetch = async () => Response.json({name:'First 100',levels:[last]});

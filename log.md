@@ -20,6 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 00:11 PT · Pinara (Codex) · branch `pinara/game-ui`
+
+**What:** Completed runtime rollout for Codex's three-game stock watcher on committed `6d91752`, preserving its checkpoint and 100-ahead rule; Claude's lot/platformer watcher untouched. Recorded maintenance as a human intervention and platform activity. Match-3 fallback now also handles the public proxy returning 400/404, with draft/wrong-game rejection preserved. Build probes keep known-working game cards during failed API requests.
+**Why:** Real production requests changed from 530 to intermittent 400/200 during Noel's concurrent tunnel repair; 400 can be a proxy failure, not proof a level/game is absent. The running producer needed to load the requested mechanics/import fixes.
+**Files:** `player/src/api.ts`, `player/test/api.test.ts`, `site/play.js*`, `site/build-games.sh`, audit doc. Runtime only under `/private/tmp/levelai-buffer-runtime-6d91752`.
+**State:** works for tested paths: player API regression, typecheck/build, seven-pointer-swap match-3 win and resume passed against the real fallback API. Three producer buffers report healthy with zero needed jobs. All 1,133 ready production levels validate; all 102 racer levels exactly solve under corrected rules. Site build retained all five games during failed probes. No levels deleted or rewritten.
+**Next / heads-up:** Noel/Max: deploy rebuilt client bundles and finish verifying list/pack API recovery (some requests still 400); GitHub source updates are not deployment evidence. The audit doc lists human calibration and remaining Naïve/phone checks. Abhinav/Noel: this requested producer restart is explicitly in `interventions`, so it must count as a human step-in. Claude's main-checkout work and separate watcher remain untouched.
+
 ### 2026-11-08 00:07 PT · Pinara (Codex) · branch `pinara/game-ui`
 
 **What:** Closed the fifth game's stock-flow gap: match-3 defaults to the ordered verified Gardens, remembers completed progress, and continues beyond a fixed pack into the 100-ahead buffer (cap 1,000). Added saved-level fallback to the existing durable platform API when the laptop API fails, without inventing missing difficulty metadata. Labeled bot results honestly. Fixed a separately reproduced racer bug: sideways pads now refresh an active boost. Added the audit/handoff document.
