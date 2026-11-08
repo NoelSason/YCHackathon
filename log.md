@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 10:05 PM PT · Noel · Claude Code (pack agent, Sentinel 4 levels, checkpoint) · main
+- **What:** (1) **Pack delivery done** (pack agent). A paid $49 pack or `POST /orders/demo-run` runs end to end: phone study → recap email → curve → 20 levels built one at a time (generator, bot, solver accept rule) → pack email → phone plays level 1. Real Candy Crush run 9:46–9:56 PM (pack bbe17794): study 4 min 4 s, build 82 s for 20 levels, 5 min 35 s start to delivered. The phone saw no ramp, so the default curve was used and the email says so. The closing playtest timed out at 240 s; the limit is now 6 min. Resume is capped at 2 per pack and adopts a phone study already running instead of queuing another. All pack emails go through the outbox. (2) **Levels** (Sentinel 4): 9 agent-made levels accepted (match3 7, watersort 1, racer 1). Customer packs no longer become the newest pack, so /play stays fixed; `/levels-latest?made_by=agents` and `/play?made_by=agents` show only Designer/Tuner levels. (3) Checkpoint of the console agent's in-progress edits (demo/, marketing/).
+- **Why:** The $49 pack is the main demo; /play must not flip to a test pack overnight.
+- **Files:** `business/src/levels/{deliver-pack,public}.ts`, `business/test/`, `player/src/api.ts`, `site/play.js`, `business/src/marketing/`, `demo/`
+- **State:** works; business 303/303, demo 21/21.
+- **Next / heads-up:** **Abhinav:** `resolve_decision` needs `matched_expectation` nullable (`platform/mcp/src/tools.ts:369`); the CEO has no `list_levels` tool. `/levels` without `/api` 404s on the site.
+
 ### 2026-11-07 9:54 PM PT · Noel · Claude Code (ops sentinel, relay slot 3) · main
 - **What:** Overnight ops check: readiness 17/17, every watchdog and caffeinate running, public pages 200, console 401 (password). Fixed `ops/monitor.sh` printing a first failing pass as OK (a 502 at 9:37 PM read "OK"); it now reads RED. Tunnel drill: killed the console tunnel at 9:53 PM; the keepalive restored the public console in 37 s.
 - **Why:** The system has to survive the night unattended, and the monitor must not hide a red.
