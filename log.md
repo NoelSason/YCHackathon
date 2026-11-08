@@ -27,6 +27,15 @@ This is the team's build log. It isn't the company's agent activity log, which t
 **Files:** business/src/marketing/phone-post.ts, business/src/outreach/autopilot.ts, business/src/agency/outreach.ts.
 **State:** Works. Business 332 tests pass. .env: X every 30 minutes, phone loop every 20 minutes on a mid-priced model.
 **Next / heads-up:** Five 9:20-9:24 AM phone runs on the cheapest model played too little to count and were relabeled "quick phone check" so the playtest count stays honest. The 9:30 AM X post's log row was corrected to posted, from the task's own trajectory. Solver worker on Noel's laptop restarted from current code; it now handles Lot Escape.
+### 2026-11-08 09:27 PT · Pinara (Claude Code) · branch `main`
+
+**What:** added `docs/demo-video-script.md`, the demo video's narration in three parts with
+on-screen notes, start times, and the numbers it quotes.
+**Why:** so the team can read or reuse the exact script from the 1:59 demo video.
+**Files:** `docs/demo-video-script.md`.
+**State:** docs only. The text matches the narration in the final video.
+**Next / heads-up:** the numbers are from 8:48 AM PT. Check the console before reading it live.
+`docs/demo-script.md` (Noel's) is unchanged.
 
 ---
 
