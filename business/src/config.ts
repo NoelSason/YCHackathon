@@ -52,13 +52,13 @@ const EnvSchema = z.object({
 
   // Outreach policy
   OUTREACH_SEND: z.enum(["0", "1"]).default("0"),
-  OUTREACH_DAILY_CAP: z.coerce.number().int().positive().default(20),
+  OUTREACH_DAILY_CAP: z.coerce.number().int().positive().default(40),
   INBOUND_DAILY_CAP: z.coerce.number().int().positive().default(200),
   /** The team's own emails, comma-separated. Their signups and orders are kept out of the numbers. */
   TEAM_EMAILS: z.string().default(""),
   /** Run the outreach loop on the live server: research, find public contacts, send evidence emails. */
   OUTREACH_AUTOPILOT: z.enum(["0", "1"]).default("0"),
-  OUTREACH_AUTOPILOT_MINUTES: z.coerce.number().int().positive().default(20),
+  OUTREACH_AUTOPILOT_MINUTES: z.coerce.number().int().positive().default(10),
   COMPANY_NAME: z.string().default("Level AI"),
   COMPANY_POSTAL_ADDRESS: z.string().optional(),
   PUBLIC_BASE_URL: z.string().default("http://localhost:8787"),

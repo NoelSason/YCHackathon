@@ -81,3 +81,22 @@ describe("developer keys and the studio MCP", () => {
     expect((await handle(new Request("http://x/signup-status?id=nope"))).status).toBe(400);
   });
 });
+
+describe("studio contacts", () => {
+  it("emails only role-based addresses and prefers the store listing's", async () => {
+    const { isRoleAddress, domainOf, findGenericContact } = await import("../src/research/contacts.js");
+    expect(isRoleAddress("support@loopgames.net")).toBe(true);
+    expect(isRoleAddress("hulusi@loopgames.net")).toBe(false);
+    expect(domainOf("https://www.loopgames.net/")).toBe("loopgames.net");
+    expect(domainOf("https://www.facebook.com/x")).toBeNull();
+    const calls: string[] = [];
+    const monid = { async run(a: { endpoint: string; body?: unknown }) {
+      calls.push(a.endpoint);
+      if (a.endpoint === "/google-play/app-info") return { developer_email: "hulusi@loopgames.net", developer_website: "https://loopgames.net/" };
+      if ((a.body as { domain?: string }).domain === "loopgames.net") return { data: { emails: [{ value: "contact@loopgames.net", type: "generic" }] } };
+      return { data: { emails: [] } };
+    } };
+    expect(await findGenericContact(monid, "Loop Games", "com.loop.packedloop")).toBe("contact@loopgames.net");
+    expect(calls).toEqual(["/google-play/app-info", "/domain-search"]);
+  });
+});

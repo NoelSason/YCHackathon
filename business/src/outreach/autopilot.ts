@@ -18,26 +18,25 @@ const MIN_EVIDENCE = 3;
  */
 // Rotate through puzzle-adjacent charts so the loop keeps finding studios it hasn't read yet.
 // (Two puzzle charts alone ran dry by 4:50 PM Nov 7: "found 0 new studios" every cycle.)
-const CHARTS: Array<{ chart: string; category: string; label: string }> = [
-  { chart: "topselling_free", category: "GAME_PUZZLE", label: "top free puzzle" },
-  { chart: "topgrossing", category: "GAME_PUZZLE", label: "top-grossing puzzle" },
-  { chart: "topselling_free", category: "GAME_CASUAL", label: "top free casual" },
-  { chart: "topselling_free", category: "GAME_BOARD", label: "top free board" },
-  { chart: "topselling_free", category: "GAME_WORD", label: "top free word" },
-  { chart: "topgrossing", category: "GAME_CASUAL", label: "top-grossing casual" },
-  { chart: "topselling_paid", category: "GAME_PUZZLE", label: "top paid puzzle" },
+const CATEGORIES: Array<[string, string]> = [
+  ["GAME_PUZZLE", "puzzle"], ["GAME_CASUAL", "casual"], ["GAME_WORD", "word"], ["GAME_BOARD", "board"], ["GAME_CARD", "card"],
 ];
+const CHART_KINDS: Array<[string, string]> = [["topselling_free", "top free"], ["topgrossing", "top-grossing"], ["topselling_paid", "top paid"]];
+// 15 passes: every chart kind for each category, interleaved so consecutive passes differ.
+const CHARTS: Array<{ chart: string; category: string; label: string }> = CHART_KINDS.flatMap(([chart, cl]) =>
+  CATEGORIES.map(([category, gl]) => ({ chart, category, label: `${cl} ${gl}` })),
+);
 const recentlyRead = new Map<string, number>();
 // Start the rotation from the clock, so a server restart moves on to a new chart instead of
 // re-reading the first one.
-let cycleCount = Math.floor(Date.now() / (20 * 60_000));
+let cycleCount = Math.floor(Date.now() / (10 * 60_000));
 
 export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: number; perRun?: number; minScore?: number } = {}) {
   const log = (agent: string, action: string, why: string | null, result: string | null) =>
     ctx.store.logActivity({ at: new Date().toISOString(), agent, action, why, result, costUsd: null, human: false });
   if (!ctx.monid) return { sent: 0, reason: "Monid not configured" };
 
-  const perRun = opts.perRun ?? 2;
+  const perRun = opts.perRun ?? 3;
   const chart = CHARTS[cycleCount++ % CHARTS.length]!;
   const known = new Set((await ctx.store.listLeads()).map((l) => l.appId).filter((x): x is string => Boolean(x)));
   const cutoff = Date.now() - 6 * 3600_000;
@@ -57,7 +56,7 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
       if (line) await log("research", line.action, line.why, line.result).catch(() => undefined);
       return target;
     };
-    targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 20, minSignals: 2, chart: chart.chart, category: chart.category, skip, onRead: (t) => read.push(t), verify });
+    targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 30, minSignals: 2, chart: chart.chart, category: chart.category, skip, onRead: (t) => read.push(t), verify });
   } catch (err) {
     await log("research", `couldn't read the ${chart.label} chart`, err instanceof Error ? err.message.slice(0, 160) : "unknown error", "will try the next chart next cycle");
     return { sent: 0, reason: "store chart unavailable" };
@@ -71,7 +70,7 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
   for (const t of fresh) {
     if (sent >= perRun) break;
     rememberTarget(t);
-    const email = await findGenericContact(ctx.monid, t.developer).catch(() => null);
+    const email = await findGenericContact(ctx.monid, t.developer, t.appId).catch(() => null);
     if (!email) {
       await log("research", `no public contact for ${t.developer}`, "only role-based addresses are used", "skipped");
       continue;

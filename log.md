@@ -20,6 +20,12 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:47 PM PT · Noel · Claude Code · main
+- **What:** More research and outreach. The outreach loop now cycles 15 store charts (top free, top-grossing, and top paid × puzzle, casual, word, board, card), reads up to 30 games per pass, runs every 10 min (was 20), and sends up to 3 emails per pass. The daily cold cap is now 40 (was 20). Contacts: the Google Play listing's developer email is used first if it's role-based, then Hunter generic addresses for the listing's website domain, then Hunter by company name. Personal addresses are never used.
+- **Why:** Noel: much more market research and outreach. Most strong targets had been skipped with "no public contact."
+- **Files:** `business/src/research/contacts.ts`, `business/src/outreach/autopilot.ts`, `business/src/config.ts`, `business/test/integration-features.test.ts`
+- **State:** works; 135 tests pass, server restarted.
+- **Next / heads-up:** Monid spend is about $0.30/hr at this pace (balance ~$19).
 ### 2026-11-07 17:46 PT · Pinara (Codex) · branch `main`
 
 **What:** Redesigned Splash Sort with mineral-glass tubes and Turbo Lanes with a midnight motorsport UI. Added visible objectives, progress, numbered tubes, legal-target cues, three solver-backed hints per sort attempt, racer restart, oil hazards and one-hit collectible shields.
