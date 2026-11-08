@@ -31,12 +31,17 @@ for (const t of targets) {
     if (!t.required) console.log(`skipped  ${t.label}: BUSINESS_MCP_URL / BUSINESS_MCP_TOKEN not set`);
     continue;
   }
-  const have = creds.find((c) => c.mcp_server_url === t.url);
-  if (have && !process.env.ROTATE) {
-    console.log(`exists   ${t.label} for ${t.url} (${have.id}); ROTATE=1 to replace`);
+  // Credentials are immutable and unique by label (`key`), so a URL change means delete + recreate.
+  const sameLabel = creds.filter((c) => c.key === t.label);
+  const current = sameLabel.find((c) => c.mcp_server_url === t.url);
+  if (current && !process.env.ROTATE) {
+    console.log(`exists   ${t.label} for ${t.url} (${current.id}); ROTATE=1 to replace`);
     continue;
   }
-  if (have) await naive.vaults.credentials.delete(vault.id, have.id);
+  for (const old of sameLabel) {
+    await naive.vaults.credentials.delete(vault.id, old.id);
+    console.log(`deleted  ${t.label} for ${old.mcp_server_url ?? "?"} (${old.id})`);
+  }
   const c = await naive.vaults.credentials.create(vault.id, { kind: "static_bearer", key: t.label, value: t.token, mcp_server_url: t.url });
   console.log(`stored   ${t.label} for ${t.url} as ${(c as { id: string }).id}`);
 }

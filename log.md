@@ -20,6 +20,16 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:30 PT · Abhinav (Claude) · branch `main`
+
+**What:** `npm run vault` fix: Naïve credentials are immutable and unique by label, so a changed
+URL under the same label is now delete + recreate (it used to fail with "already holds a
+credential named …"). `ROTATE=1` is only needed to replace a credential whose URL is unchanged.
+**Why:** Re-pointing the business bearer at `https://levelai.vercel.app/mcp` failed.
+**Files:** `platform/naive/src/vault.ts`.
+**State:** Typechecks.
+**Next / heads-up:** Abhinav: `npm run vault && npm run setup` (no ROTATE needed).
+
 ### 2026-11-07 16:40 PT · Abhinav (Claude) · branch `main`
 
 **What:** **Demo-readiness checks runner** (`platform/checks/`, package: demo-readiness). `npm run
