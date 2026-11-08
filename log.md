@@ -20,6 +20,47 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 23:30 PT · Pinara (Claude Code) · branch `main`
+
+**What:** **"100 ahead" now works from real play in all four of these games.**
+- **Turbo Lanes and Splash Sort walk the verified series in order.**
+  - "Next" after Circuit/Tide n loads n+1 by the producer's deterministic id, and after the last
+    practice level it continues where this browser left off (else level 1).
+  - The newest-30 list is now only a fallback.
+  - Before this, "Next" walked the newest levels, so players never won levels 1, 2, 3 … in order,
+    and the producer's stock rule (wins in order + 100) could never advance from real play.
+- **A production watcher for the two new games is running** on Pinara's laptop since 23:26:
+  `cli.ts --database --watch --games lotescape,platformer`. Both report `buffer_healthy` (100
+  ready, played through 0).
+- The existing three-game watcher, started at 20:10 from `/private/tmp/levelai-buffer-runtime`,
+  is untouched.
+
+**Why:** Pinara: when a person plays 50 levels in production, 50 more are generated, so there are
+always 100 extra. The rule existed (`solver/src/production/buffer.ts`), but the game pages didn't
+play in the order it counts.
+**Files:** `games/racer/ui/main.ts`, `games/watersort/ui/main.ts`, `site/games/{racer,watersort}/`,
+`solver/test/production-buffer.test.ts`.
+**State:** Works:
+- **Browser:** headless Chromium against the production platform, with `/events` intercepted:
+  - Circuit 0001 → 0002 → 0003 and Tide 0001 → 0002 → 0003 (the exact expected ids).
+  - Last practice level → level 1.
+  - 0 errors.
+- **Buffer test:** for lotescape and platformer, winning 1–50 in order asks for 101–150; a real
+  production level for 101 is accepted, and 151 is refused. Buffer tests pass 4/4.
+- **Tests and typechecks:** racer 21/21, watersort 14/14, typechecks clean.
+- **Site check:** `levelai.vercel.app/levels-latest` returned errors again during the site build's
+  probe, about 23:28; my guard kept `site/games/published.json` unchanged.
+
+**Next / heads-up:**
+- **Noel:**
+  1. Please redeploy the site. The four game pages from 23:15–23:30 go live with it.
+  2. The `/levels-latest` tunnel keeps dropping for minutes at a time.
+- **Match-3 `/play`** (Noel's player) stays on a fixed pack, so match-3 progress still can't
+  advance the buffer from real play. That's for Noel, if wanted.
+- **The two watchers run on Pinara's laptop.** If it sleeps or restarts, the stock stops topping
+  up: `cd solver && caffeinate -i node --env-file=.env --import tsx src/production/cli.ts
+  --database --watch --games lotescape,platformer --out production/new-games-watch-v1-1.jsonl`.
+
 ### 2026-11-07 23:25 PT · Pinara (Claude Code) · branch `main`
 
 **What:** **Mosslight Trails is in the level pipeline end to end, and 100 verified trails are live

@@ -56,3 +56,29 @@ test("actual wins advance the matching game/series; buffer blocks new excess imp
     assert.equal((await q("select count(*)::int as n from levels where notes like '%550%'"))[0]!.n,1);
   } finally {await db.close();}
 });
+
+test("lotescape and platformer follow the same rule: winning 1-50 in order asks for 101-150, and saving fills it", async () => {
+  const db=await PGlite.create({extensions:{pgcrypto}});
+  try {
+    await db.exec(await readFile(new URL("../../platform/db/schema.sql",import.meta.url),"utf8"));
+    const q=async(sql:string,values:unknown[]=[]) => (await db.query<Record<string,unknown>>(sql,values)).rows;
+    await db.exec("insert into games(game_id,name) values ('lotescape','Lot Escape'),('platformer','Mosslight Trails')");
+    for (const game of ["lotescape","platformer"] as const) {
+      for (let position=1; position<=100; position++) {
+        const [row]=await q("insert into levels(game_id,level,status,created_by,notes,target_win_rate) values ($1,'{}','accepted','production',$2,0.75) returning level_id::text as id",[game,JSON.stringify({producer:RECIPE_VERSION,series:1,position})]);
+        if (position<=50) await q("insert into player_events(game_id,level_id,session_id,type) values ($1,$2,'player','win')",[game,row!.id]);
+      }
+      const state=await readBuffer(q,game,1);
+      assert.equal(state.played_through,50,game);
+      assert.equal(state.target_through,150,game);
+      assert.deepEqual(state.needed,Array.from({length:50},(_,i)=>i+101),game);
+    }
+    // A real production level for the next slot is accepted into the buffer; one past it is refused.
+    let made: ReturnType<typeof calibrate> | undefined;
+    for (let attempt=0; attempt<8 && !made; attempt++) { try { made=calibrate(recipe("platformer",101,attempt)); } catch { /* next layout */ } }
+    assert.ok(made);
+    await saveAccepted(q,made,1);
+    assert.equal((await readBuffer(q,"platformer",1)).needed.length,49);
+    await assert.rejects(saveAccepted(q,{...made,position:151},1),BufferFullError);
+  } finally {await db.close();}
+});
