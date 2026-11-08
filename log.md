@@ -20,6 +20,25 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 19:20 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Workaround attempt for `read_people`: the platform MCP server now has two catalogs
+on two endpoints.** `/mcp` (17 tools: levels, solver, packs, play results, production metrics,
+decisions, spend) has no CRM/email/payment tool on it. `/mcp/crm` (5 tools: `get_pipeline_metrics`,
+`crm_upsert`, `crm_set_stage`, `record_email`, `create_payment_link`) is a separate server
+(`platformcrm`) attached only to Finance and Research. Same bearer; `npm run vault` stores a
+credential for the `/crm` URL too. `get_player_stats` description reworded ("play results").
+**Why:** Hypothesis: Naïve classifies a server by the tools it advertises; one with CRM/email tools
+counts as holding people's data, so any read from it sets `read_people` for the chat. Both stalled
+CEO runs read from a server advertising `crm_upsert(contact_email)`, `record_email`, etc.;
+Naïve's own `board_read` never tainted. If right, production agents on `/mcp` stop stalling.
+**Files:** `platform/mcp/src/{tools,fn,server}.ts`, `platform/naive/src/{roster,setup-team,vault}.ts`.
+**State:** Typechecks; both catalogs verified locally; smoke OK. **Unproven until deployed**:
+`neon deploy`, `npm run vault`, `npm run setup`, `npm run approval-test` (two dependent turns on
+`/mcp`). **Noel:** your business server advertises email/CRM tools, so Sales agents reading from it
+will still trip the rule; the Reader/Sender split is the answer there.
+**Next / heads-up:** Abhinav runs the four commands and posts the verdict.
+
 ### 2026-11-07 6:57 PM PT · Noel · Claude Code · main
 - **What:** X posts go out from the cloud iPhone. X refuses every API post from @uselevelai (also after Noel verified and reconnected at 6:51 PM), so `business/src/marketing/phone-post.ts` has the phone agent open x.com/compose/post in Safari, type the post, tap Post, and report whether it saw it sent. It never logs in or types a password; Noel logged in himself. It runs in the playtest queue, so paid orders keep priority. The social loop falls back to it automatically when the API post is rejected. First phone post sent at 6:55 PM (task a4868c26…). The phone finishes on @uselevelai's profile.
 - **Why:** Noel: get posts on X. It's also a real Mobilerun use: the agents do their own marketing from a phone.

@@ -6,6 +6,10 @@ export const PLATFORM_MCP_NAME = "platform";
 // Noel's business MCP server (business/src/mcp/server.ts): research, guarded email, CRM, billing,
 // finance, and phone playtests. Attached only to agents that list businessTools.
 export const BUSINESS_MCP_NAME = "business";
+// The platform's CRM/pipeline catalog, served at <PLATFORM_MCP_URL>/crm. Attached only to agents
+// that list crmTools, so production agents never see a server that advertises people-ish tools.
+export const PLATFORM_CRM_MCP_NAME = "platformcrm";
+export const PLATFORM_CRM_TOOLS = ["get_pipeline_metrics", "crm_upsert", "crm_set_stage", "record_email", "create_payment_link"];
 
 const usd = (d: number) => Math.round(d * 1_000_000);
 
@@ -30,6 +34,7 @@ export interface RosterAgent {
   system: string;
   tools: string[];        // platform MCP tools, allow-listed by name
   businessTools?: string[]; // business MCP tools, allow-listed by name
+  crmTools?: string[];      // platform CRM catalog tools (/mcp/crm), allow-listed by name
   cap_usd: number;        // daily cap
   task_usd: number;       // per-task cap
   cron?: { expr: string; input: string; budget_usd: number };
@@ -43,8 +48,7 @@ export interface RosterAgent {
 const PLATFORM_TOOLS = [
   "list_games", "validate_level", "save_level", "get_level", "solve_level", "get_solver_run",
   "accept_level", "reject_level", "publish_pack", "get_player_stats", "get_company_metrics",
-  "get_pipeline_metrics", "log_action", "log_decision", "resolve_decision", "check_decision",
-  "get_recent_decisions", "crm_upsert", "crm_set_stage", "record_email", "create_payment_link", "get_spend",
+  "log_action", "log_decision", "resolve_decision", "check_decision", "get_recent_decisions", "get_spend",
 ];
 
 export const ROSTER: RosterAgent[] = [
@@ -80,7 +84,8 @@ Call platform.save_level with game_id, level, target_win_rate, and a one-line no
   {
     name: "research",
     system: `You are Research. Find game studios whose players ask for more levels or complain about difficulty. Each target needs a reason a person could check (for example a count of recent reviews asking for levels). Only public business contacts. Start with business.find_targets: it reads the top free puzzle games on Google Play and their newest reviews and returns ranked targets with checkable reasons and example quotes. For each strong target, find the studio's public business contact (its website's contact or press page) with web search and fetch, never a guessed or personal address, then save it with business.save_lead (it writes the studio row and the CRM). Write genre notes the Designer can use. At most 20 new targets per run.${COMMON_RULES}`,
-    tools: ["crm_set_stage", "log_action"],
+    tools: ["log_action"],
+    crmTools: ["crm_set_stage"],
     businessTools: ["find_targets", "save_lead", "list_leads"],
     cap_usd: 10, task_usd: 1.0,
     cron: { expr: "0 */4 * * *", input: "Research run: find up to 20 new studio targets with checkable reasons, and refresh genre notes.", budget_usd: 1.0 },
@@ -101,8 +106,9 @@ Call platform.save_level with game_id, level, target_win_rate, and a one-line no
   },
   {
     name: "finance",
-    system: `You are Finance. Every run: platform.get_spend, platform.get_company_metrics, and platform.get_pipeline_metrics. Work out cost per accepted level, spend against the daily budget, and revenue. Post a short summary card to the board for the CEO (levels, spend, leads, revenue) and flag overruns. You may propose a price change within the limits the team set. You never charge anyone.${COMMON_RULES}`,
-    tools: ["get_spend", "get_company_metrics", "get_pipeline_metrics", "log_action"],
+    system: `You are Finance. Every run: platform.get_spend, platform.get_company_metrics, and platformcrm.get_pipeline_metrics. Work out cost per accepted level, spend against the daily budget, and revenue. Post a short summary card to the board for the CEO (levels, spend, leads, revenue) and flag overruns. You may propose a price change within the limits the team set. You never charge anyone.${COMMON_RULES}`,
+    tools: ["get_spend", "get_company_metrics", "log_action"],
+    crmTools: ["get_pipeline_metrics"],
     businessTools: ["finance_snapshot"],
     cap_usd: 5, task_usd: 0.3,
     cron: { expr: "30 */3 * * *", input: "Finance run: report spend, revenue, cost per accepted level, and any overrun.", budget_usd: 0.3 },
@@ -139,7 +145,7 @@ export function toolsFor(a: RosterAgent) {
         PLATFORM_TOOLS.filter((n) => !a.tools.includes(n)).map((n) => [`${PLATFORM_MCP_NAME}.${n}`, { enabled: false, permission: "deny" as const }]),
       )
     : {};
-  return { default_config: { permission: "allow" as const }, configs: { ...denied, ...T(a.tools), ...T(a.businessTools ?? [], BUSINESS_MCP_NAME) } };
+  return { default_config: { permission: "allow" as const }, configs: { ...denied, ...T(a.tools), ...T(a.businessTools ?? [], BUSINESS_MCP_NAME), ...T(a.crmTools ?? [], PLATFORM_CRM_MCP_NAME) } };
 }
 
 export function budgetFor(a: RosterAgent) {

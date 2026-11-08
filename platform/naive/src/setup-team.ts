@@ -3,7 +3,7 @@
 // Writes platform/naive/team.json (ids only, no secrets) for the other scripts and the dashboard.
 import { writeFileSync } from "node:fs";
 import { naive, PLATFORM_MCP_URL } from "./client.js";
-import { ROSTER, CEO, MODEL, PLATFORM_MCP_NAME, BUSINESS_MCP_NAME, toolsFor, budgetFor, type RosterAgent } from "./roster.js";
+import { ROSTER, CEO, MODEL, PLATFORM_MCP_NAME, BUSINESS_MCP_NAME, PLATFORM_CRM_MCP_NAME, toolsFor, budgetFor, type RosterAgent } from "./roster.js";
 
 if (!PLATFORM_MCP_URL) {
   console.error("PLATFORM_MCP_URL is not set (the deployed MCP server, ending in /mcp)");
@@ -12,8 +12,12 @@ if (!PLATFORM_MCP_URL) {
 const mcp_servers = [{ name: PLATFORM_MCP_NAME, url: PLATFORM_MCP_URL }];
 // Noel's business MCP server. Its bearer also goes in Naïve's vault, keyed to BUSINESS_MCP_URL.
 const BUSINESS_MCP_URL = process.env.BUSINESS_MCP_URL;
-const serversFor = (a: RosterAgent) =>
-  a.businessTools?.length && BUSINESS_MCP_URL ? [...mcp_servers, { name: BUSINESS_MCP_NAME, url: BUSINESS_MCP_URL }] : mcp_servers;
+const PLATFORM_CRM_MCP_URL = `${PLATFORM_MCP_URL.replace(/\/+$/, "")}/crm`;
+const serversFor = (a: RosterAgent) => [
+  ...mcp_servers,
+  ...(a.businessTools?.length && BUSINESS_MCP_URL ? [{ name: BUSINESS_MCP_NAME, url: BUSINESS_MCP_URL }] : []),
+  ...(a.crmTools?.length ? [{ name: PLATFORM_CRM_MCP_NAME, url: PLATFORM_CRM_MCP_URL }] : []),
+];
 if (!BUSINESS_MCP_URL) console.warn("BUSINESS_MCP_URL is not set: agents get platform tools only (no research, email, billing, or phone tools).");
 // Auth for that server is NOT set here: Naïve rejects inline Authorization headers. Put the bearer
 // in Naïve's vault keyed to PLATFORM_MCP_URL (static_bearer) from the dashboard or CLI.

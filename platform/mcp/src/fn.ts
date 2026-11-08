@@ -4,7 +4,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { attachDatabasePool } from "@neon/functions";
-import { registerTools } from "./tools.js";
+import { registerTools, type Catalog } from "./tools.js";
 import { pool, q } from "./db.js";
 import { getAdapter, listAdapters } from "./adapters.js";
 
@@ -118,15 +118,16 @@ async function handle(request: Request): Promise<Response> {
     return rows.length ? json(rows[0]) : json({ error: "level not found" }, 404);
   }
 
-  if (path === "/mcp") {
+  if (path === "/mcp" || path === "/mcp/crm") {
     if (!TOKEN || request.headers.get("authorization") !== `Bearer ${TOKEN}`) {
       return json({ error: "unauthorized" }, 401);
     }
+    const catalog: Catalog = path === "/mcp/crm" ? "crm" : "core";
     const server = new McpServer({
-      name: "level-studio-platform",
-      version: "0.1.0",
+      name: catalog === "crm" ? "level-studio-crm" : "level-studio-platform",
+      version: "0.2.0",
     });
-    registerTools(server);
+    registerTools(server, catalog);
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
@@ -143,7 +144,7 @@ async function handle(request: Request): Promise<Response> {
   return json(
     {
       error: "not found",
-      routes: ["/health", "POST /events", "/games/:id/schema", "GET /levels/:id", "/mcp"],
+      routes: ["/health", "POST /events", "/games/:id/schema", "GET /levels/:id", "/mcp", "/mcp/crm"],
     },
     404,
   );

@@ -7,6 +7,7 @@ import { naive, PLATFORM_MCP_URL } from "./client.js";
 
 const targets: Array<{ label: string; url: string | undefined; token: string | undefined; required: boolean }> = [
   { label: "platform mcp bearer", url: PLATFORM_MCP_URL, token: process.env.MCP_BEARER_TOKEN, required: true },
+  { label: "platform crm mcp bearer", url: PLATFORM_MCP_URL ? `${PLATFORM_MCP_URL.replace(/\/+$/, "")}/crm` : undefined, token: process.env.MCP_BEARER_TOKEN, required: true },
   { label: "business mcp bearer", url: process.env.BUSINESS_MCP_URL, token: process.env.BUSINESS_MCP_TOKEN, required: false },
 ];
 if (!targets[0]!.url || !targets[0]!.token) {

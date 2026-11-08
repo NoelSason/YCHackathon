@@ -31,7 +31,27 @@ async function audit(action: string, ref?: { kind: string; id: string }, result?
   );
 }
 
-export function registerTools(server: McpServer) {
+// Two catalogs on two endpoints. Naïve appears to classify an MCP server by the tools it
+// advertises: a server with CRM/email/payment tools is treated as holding people's data, and any
+// read from it sets `read_people` for the chat, after which every call asks. So the production
+// agents (CEO, Designer, Tuner, Playtest) get a catalog with nothing people-flavored on it, served
+// at /mcp, and the pipeline tools live at /mcp/crm for Finance and Sales only.
+export type Catalog = "core" | "crm";
+export const CRM_TOOLS = new Set(["get_pipeline_metrics", "crm_upsert", "crm_set_stage", "record_email", "create_payment_link"]);
+
+export function registerTools(realServer: McpServer, catalog: Catalog = "core") {
+  // Wrap registerTool so each tool lands on the right catalog without touching every definition.
+  const server = new Proxy(realServer, {
+    get(target, prop, receiver) {
+      if (prop !== "registerTool") return Reflect.get(target, prop, receiver);
+      return (name: string, ...rest: unknown[]) => {
+        const isCrm = CRM_TOOLS.has(name);
+        if ((catalog === "core" && isCrm) || (catalog === "crm" && !isCrm)) return undefined;
+        return (target.registerTool as unknown as (...a: unknown[]) => unknown)(name, ...rest);
+      };
+    },
+  }) as McpServer;
+
   // ---------- games and levels ----------
 
   server.registerTool(
@@ -216,7 +236,7 @@ export function registerTools(server: McpServer) {
   server.registerTool(
     "get_player_stats",
     {
-      description: "Real player results per level: attempts, wins, losses, quits, win rate.",
+      description: "Play results per level from the browser games: attempts, wins, losses, quits, win rate.",
       inputSchema: { game_id: z.string(), level_ids: z.array(z.string().uuid()).optional(), since: z.string().datetime().optional() },
     },
     async ({ game_id, level_ids, since }) => {

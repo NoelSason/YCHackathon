@@ -3,7 +3,7 @@
 import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { registerTools } from "./tools.js";
+import { registerTools, type Catalog } from "./tools.js";
 import { q, pool } from "./db.js";
 import { getAdapter } from "./adapters.js";
 
@@ -63,14 +63,15 @@ app.get("/levels/:level_id", async (req, res) => {
 });
 
 // MCP endpoint. Naïve injects the bearer from its vault; local clients send it directly.
-app.all("/mcp", async (req, res) => {
+app.all(["/mcp", "/mcp/crm"], async (req, res) => {
   const auth = req.header("authorization") ?? "";
   if (auth !== `Bearer ${TOKEN}`) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }
-  const server = new McpServer({ name: "level-studio-platform", version: "0.1.0" });
-  registerTools(server);
+  const catalog: Catalog = req.path === "/mcp/crm" ? "crm" : "core";
+  const server = new McpServer({ name: catalog === "crm" ? "level-studio-crm" : "level-studio-platform", version: "0.2.0" });
+  registerTools(server, catalog);
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   res.on("close", () => { void transport.close(); void server.close(); });
   try {
