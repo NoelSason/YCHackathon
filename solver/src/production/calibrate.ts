@@ -52,7 +52,8 @@ export function calibrate(r: Recipe, opts: { trainingRuns?: number; verification
     if (!solution.solvable) throw new Error("exact solver rejected the recipe");
     minimum = solution.min_moves ?? null;
   }
-  const ceiling = r.game_id === "watersort" ? Math.min(300, (minimum ?? 20) + 40) : 1000;
+  // move_limit games have a 300 cap in their schemas; a generous ceiling above the exact minimum.
+  const ceiling = r.game_id === "watersort" || r.game_id === "lotescape" ? Math.min(300, (minimum ?? 20) + 40) : 1000;
   const probe = allowance(r, ceiling), values: number[] = [];
   const firstSeed = (r.seed ^ 0x91e10da5) >>> 0;
   for (let i = 0; i < trainingRuns; i++) {

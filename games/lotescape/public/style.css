@@ -89,3 +89,4 @@ h1{margin:0;font:700 22px var(--sans)}
 footer{margin-top:15px;color:#8fa4c0;font:11px var(--mono);gap:12px}
 footer button{border:0;background:none;color:#ffd77f;font:inherit;cursor:pointer;white-space:nowrap}
 @media(max-width:520px){.shell{padding-top:16px}.lot-frame{padding:8px;border-radius:20px}.lot{padding:22px}.intro h2{font-size:32px}footer{font-size:10px}.exit.right,.exit.left{width:20px}.exit.up,.exit.down{height:20px}.exit svg{width:15px;height:15px}}
+.level-indicator.engine{background:var(--accent);color:#0b1626;border-color:transparent}

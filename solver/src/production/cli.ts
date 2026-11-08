@@ -27,7 +27,7 @@ const pollMs = Number(option("--poll-seconds", "60")) * 1000;
 if (watch && (!database || planOnly)) throw new Error("--watch requires --database and cannot plan only");
 if (!Number.isFinite(pollMs) || pollMs < 5000 || pollMs > 3600000) throw new Error("poll seconds must be 5–3600");
 const out = resolve(option("--out", `production/${RECIPE_VERSION}-${series}${planOnly ? '-plan' : ''}.jsonl`));
-if (!Number.isInteger(start) || !Number.isInteger(count) || start < 1 || count < 1 || start + count - 1 > LEVEL_CAP || !Number.isInteger(series) || series < 0 || !Number.isFinite(maxMs) || maxMs < 1000 || maxMs > 60000 || !games.length || new Set(games).size !== games.length || games.some(g => !GAMES.includes(g))) throw new Error("invalid options: positions 1–1000, unique games racer/watersort/match3, deadline 1–60 seconds");
+if (!Number.isInteger(start) || !Number.isInteger(count) || start < 1 || count < 1 || start + count - 1 > LEVEL_CAP || !Number.isInteger(series) || series < 0 || !Number.isFinite(maxMs) || maxMs < 1000 || maxMs > 60000 || !games.length || new Set(games).size !== games.length || games.some(g => !GAMES.includes(g))) throw new Error(`invalid options: positions 1–1000, unique games ${GAMES.join("/")}, deadline 1–60 seconds`);
 if (database && planOnly) throw new Error("plans are unverified and cannot be imported");
 if (database && !process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for --database");
 const pool = database ? new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3, ssl: process.env.PGSSL === "0" ? undefined : { rejectUnauthorized: true } }) : undefined;

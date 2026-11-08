@@ -1,5 +1,6 @@
 import { axisDirections, initialState, move, slide, slideLimit, type Direction, type Level, type State, type Vehicle } from "../src/engine.js";
 import { BUILT_IN_BEST, LEVELS } from "../src/levels.js";
+import { solveLevel } from "../src/solver.js";
 import { runJob, type Job, type JobRequest, type JobResult } from "./jobs.js";
 
 declare global { interface Window { STUDIO_API?: string } }
@@ -116,15 +117,17 @@ function finish() {
     ended = true; message.className = "message good"; event("win");
     const lastBuiltIn = mode === "builtin" && activeIndex === LEVELS.length - 1;
     message.textContent = mode === "endless" ? "Lot clear! On to a harder one."
-      : mode === "builtin" ? (lastBuiltIn ? "All built-in lots cleared! Generating harder ones…" : "Lot clear! On to the next lot.")
+      : mode === "builtin" ? (lastBuiltIn ? "All built-in lots cleared! On to the verified lots…" : "Lot clear! On to the next lot.")
+      : mode === "verified" ? "Lot clear! On to the next verified lot."
       : "Lot clear! Every car made it out.";
-    if (mode === "endless") { const at = endless.level; setTimeout(() => { if (mode === "endless" && endless.level === at && state.won) void advanceEndless(); }, 1100); }
+    if (mode === "verified") { const at = verifiedAt; store.set(KEY_VERIFIED, String(at + 1)); setTimeout(() => { if (mode === "verified" && verifiedAt === at && state.won) void advanceVerified(); }, 1400); }
+    else if (mode === "endless") { const at = endless.level; setTimeout(() => { if (mode === "endless" && endless.level === at && state.won) void advanceEndless(); }, 1100); }
     // Built-in lots advance on their own too; after the last one, endless mode takes over.
     else if (mode === "builtin") {
       const at = activeIndex;
       setTimeout(() => {
         if (mode !== "builtin" || activeIndex !== at || !state.won) return;
-        if (lastBuiltIn) { endlessToggle.checked = true; setEndless(true); }
+        if (lastBuiltIn) void nextAfterBuiltIns();
         else loadLevel(at + 1);
       }, 1400);
     }
@@ -138,6 +141,7 @@ function commit(next: State) {
   finish(); render();
 }
 function restart() {
+  stopAutoplay();
   for (const car of cars.values()) car.remove(); for (const marker of exits.values()) marker.remove(); cars.clear(); exits.clear();
   state = initialState(level); selected = state.vehicles[0]?.id ?? ""; ended = false; sessionId = crypto.randomUUID();
   message.textContent = HINT; message.className = "message"; render(); event("attempt");
@@ -150,10 +154,32 @@ function act(direction: Direction) {
 }
 function show(next: Level, label: string, generated: boolean, bestMoves: number | undefined) {
   level = next; best = bestMoves; titleLabel.textContent = level.title;
-  indicator.textContent = label; indicator.classList.toggle("generated", generated);
+  indicatorBase = label; indicator.classList.toggle("generated", generated);
   limitLabel.textContent = `Move limit ${level.move_limit}`;
   bestLabel.textContent = best === undefined ? "Best possible: checking…" : `Best possible: ${best} moves`;
   building.hidden = true; restart();
+}
+
+// ---- Level badge: which level, and whether you or the engine (autoplay: the exact solver) plays.
+let indicatorBase = "", engine = false, autoTimer: number | undefined;
+function paintIndicator() {
+  indicator.textContent = `${indicatorBase} · ${engine ? "Engine" : "You"}`;
+  indicator.classList.toggle("engine", engine);
+  indicator.title = engine ? "The solver is playing this lot (autoplay)" : "You are playing this lot";
+}
+function stopAutoplay() { if (autoTimer !== undefined) clearInterval(autoTimer); autoTimer = undefined; engine = false; paintIndicator(); }
+/** Plays the exact solver's fewest-move solution, one slide at a time (for demos and phone playtests). */
+function autoplay() {
+  const solution = solveLevel(level);
+  if (!solution.solvable || !solution.inputs) { message.textContent = "Autoplay: this lot has no solution."; message.className = "message bad"; return; }
+  restart();
+  engine = true; paintIndicator();
+  const steps = solution.inputs; let k = 0;
+  autoTimer = window.setInterval(() => {
+    const step = steps[k++];
+    if (!step || ended) { if (autoTimer !== undefined) clearInterval(autoTimer); autoTimer = undefined; return; }
+    selected = step.id; commit(move(level, state, step.id, step.direction));
+  }, 280);
 }
 function loadLevel(index: number) {
   mode = "builtin"; activeIndex = index; levelId = undefined; store.set(KEY_BUILTIN, String(index));
@@ -168,7 +194,7 @@ const store = {
   get(key: string): string | null { try { return localStorage.getItem(key); } catch { return null; } },
   set(key: string, value: string) { try { localStorage.setItem(key, value); } catch { /* storage unavailable: nothing is remembered */ } },
 };
-type Mode = "builtin" | "endless" | "saved";
+type Mode = "builtin" | "endless" | "saved" | "verified";
 interface EndlessRun { seed: string; level: number; lot?: Level; best?: number }
 let mode: Mode = "builtin";
 let endless: EndlessRun = readRun();
@@ -184,6 +210,50 @@ function readRun(): EndlessRun {
   return { seed: Math.random().toString(36).slice(2, 10), level: 1 };
 }
 function saveRun() { store.set(KEY_RUN, JSON.stringify(endless)); }
+
+// ---- Verified lots: Level AI's production series, played in order (Lot 0001, Lot 0002, …). -----
+// Each was measured with 200 human-bot replays before it went live. The producer fixes their ids
+// (solver/src/production/store.ts levelId), so the page finds lot n+1 without a list, and each win
+// moves the shared stock rule forward (the producer keeps 100 verified lots ahead of players).
+const PRODUCTION = { version: "production-v1", series: 1, game: "lotescape" } as const;
+const KEY_VERIFIED = "lotescape:verified-next";
+let verifiedAt = 0;
+async function productionId(n: number): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${PRODUCTION.version}:${PRODUCTION.series}:${PRODUCTION.game}:${n}`));
+  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+async function fetchVerified(n: number): Promise<{ id: string; level: Level } | null> {
+  if (!api || !Number.isInteger(n) || n < 1) return null;
+  try {
+    const id = await productionId(n);
+    const response = await fetch(`${api}/levels/${id}`);
+    if (!response.ok) return null;
+    const body = await response.json() as { game_id?: string; level?: Level; status?: string };
+    if (body.game_id !== "lotescape" || !body.level || (body.status !== undefined && body.status !== "accepted" && body.status !== "published")) return null;
+    return { id, level: body.level };
+  } catch { return null; }
+}
+async function showVerified(n: number, id: string, lot: Level) {
+  mode = "verified"; verifiedAt = n; levelId = id; endlessToggle.checked = false; store.set(KEY_VERIFIED, String(n));
+  show(lot, `Level ${n} · Verified`, false, undefined);
+  const solved = await runInBackground({ kind: "solve", level: lot });
+  if (level === lot) bestLabel.textContent = solved.kind === "solve" && solved.best !== undefined ? `Best possible: ${solved.best} moves` : "Best possible: not checked";
+}
+async function playVerified(n: number): Promise<boolean> {
+  const found = await fetchVerified(n);
+  if (!found) return false;
+  await showVerified(n, found.id, found.level);
+  return true;
+}
+/** After the built-in lots: the next verified lot, or endless (generated, unverified) if none is live yet. */
+async function nextAfterBuiltIns() {
+  const n = Math.max(1, Math.floor(Number(store.get(KEY_VERIFIED))) || 1);
+  if (!(await playVerified(n)) && !(n > 1 && await playVerified(1))) { endlessToggle.checked = true; setEndless(true); }
+}
+async function advanceVerified() {
+  if (!(await playVerified(verifiedAt + 1))) { endlessToggle.checked = true; setEndless(true); }
+}
 
 // Generation runs in a Web Worker so the board never freezes. If workers are unavailable, the same
 // job runs on the main thread after the "Building" state has painted.
@@ -226,7 +296,12 @@ function setEndless(on: boolean) {
 endlessToggle.addEventListener("change", () => setEndless(endlessToggle.checked));
 document.querySelectorAll<HTMLButtonElement>("[data-dir]").forEach((button) => button.addEventListener("click", () => act(button.dataset.dir as Direction)));
 document.querySelector<HTMLButtonElement>("#reset")!.addEventListener("click", restart);
-document.querySelector<HTMLButtonElement>("#next")!.addEventListener("click", () => { if (mode === "endless") void advanceEndless(); else loadLevel((activeIndex + 1) % LEVELS.length); });
+document.querySelector<HTMLButtonElement>("#next")!.addEventListener("click", () => {
+  if (mode === "endless") void advanceEndless();
+  else if (mode === "verified") void advanceVerified();
+  else if (mode === "builtin" && activeIndex === LEVELS.length - 1) void nextAfterBuiltIns();
+  else loadLevel((activeIndex + 1) % LEVELS.length);
+});
 document.addEventListener("keydown", (e) => {
   const map: Record<string, Direction> = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down", a: "left", d: "right", w: "up", s: "down" };
   const dir = map[e.key];
@@ -280,6 +355,8 @@ board.addEventListener("pointercancel", endDrag);
 async function loadSaved(id: string) {
   const response = await fetch(`${api}/levels/${encodeURIComponent(id)}`); if (!response.ok) throw new Error(`Could not load saved level (${response.status}).`);
   const result = await response.json() as { game_id: string; level: Level }; if (result.game_id !== "lotescape") throw new Error("This saved level belongs to another game.");
+  const n = Number(/^Lot (\d{4})$/.exec(result.level.title ?? "")?.[1] ?? NaN);
+  if (Number.isInteger(n) && n >= 1 && await productionId(n) === id) { await showVerified(n, id, result.level); return; }
   mode = "saved"; levelId = id; endlessToggle.checked = false; show(result.level, "Studio level", false, undefined);
   const saved = result.level, solved = await runInBackground({ kind: "solve", level: saved });
   if (level === saved) bestLabel.textContent = solved.kind === "solve" && solved.best !== undefined ? `Best possible: ${solved.best} moves` : "Best possible: not checked";
@@ -291,5 +368,10 @@ void (async () => {
   if (id) { try { await loadSaved(id); return; } catch { /* falls back to a practice lot below */ } }
   if (store.get(KEY_ENDLESS) === "1" && !params.has("demo")) setEndless(true); else loadLevel(activeIndex);
   if (id) message.textContent = "That saved lot could not load, so here is a practice lot.";
-})();
+})().then(() => { if (new URLSearchParams(location.search).get("autoplay") === "1") autoplay(); });
+// Hooks for scripted browser checks (Playwright/CDP playtests).
+(window as unknown as { lotEscape: object }).lotEscape = {
+  autoplay,
+  state: () => ({ mode, title: level.title, verified: mode === "verified" ? verifiedAt : null, levelId: levelId ?? null, moves: state.moves, won: state.won, badge: indicator.textContent }),
+};
 window.addEventListener("beforeunload", () => { if (!ended) event("quit"); });

@@ -20,6 +20,55 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 23:15 PT · Pinara (Claude Code) · branch `main`
+
+**What:** **Lot Escape is in the level pipeline end to end, and 100 verified levels are live in
+production.**
+- **`human` bot** (`games/lotescape/src/bots.ts`), now the reference bot. It follows a shortest
+  solution, but sometimes backs a car up one cell and undoes it: 2 moves per mistake, with more
+  mistakes on crowded lots. Its win rate rises smoothly with `move_limit`, from about 1% at the
+  exact minimum to about 100% at +16 to +20. Before this, `search` (the exact solver) was the only
+  reference, which gives 0% or 100% and can't be tuned.
+- **Registered** `lotescape` in `platform/mcp/src/adapters.ts`.
+- **Production recipe:** the game's own generator and notch ladder, with `move_limit` tuned. The
+  ceiling is the minimum + 40, and titles run `Lot 0001` …
+- **The Lot Escape page plays the verified series in order:**
+  - The 6 built-in lots, then Lot 0001, 0002 …, found by the producer's deterministic ids.
+  - It falls back to endless (generated, unverified) only when the next verified lot doesn't
+    exist yet.
+  - A level badge ("Level 12 · Verified · You", or "· Engine" in autoplay) and `?autoplay=1`.
+
+**Why:** Pinara: Lot Escape and Mosslight Trails must make, verify, and serve levels like the other
+three games, with 100 ahead of players.
+**Files:** `games/lotescape/{src/bots.ts,test,ui/main.ts,public/style.css,README.md,SKILL.md}`,
+`platform/mcp/src/adapters.ts`, `solver/src/production/{catalog,calibrate,cli}.ts`,
+`solver/test/production.test.ts`, `solver/PRODUCTION.md`, `site/games/lotescape/`,
+`site/games/published.json` (now `lotescape: true`).
+**State:** Works:
+- **Production:** `cli.ts --database --games lotescape --count 100` accepted **100/100 in 46 s**,
+  with 0 failures, each level verified by 200 independent human replays. Measured vs. target: easy
+  85% vs. 84%, normal 73% vs. 73%, challenge 43% vs. 44%. No level is more than 6 points off.
+- **Ids:** the page's computed id for Lot 0001 equals the database row, the live platform serves
+  it, and `/levels-latest?game=lotescape` lists them.
+- **Tests:** Lot Escape 20/20 (new human-bot test), and the production tests pass, including a
+  new end-to-end Lot Escape calibrate-and-replay test. Typechecks are clean (lotescape, solver,
+  platform/mcp).
+- **Browser:** headless Chromium against the production platform, with `/events` intercepted so
+  no test plays reach player stats:
+  - Lot 0001 → autoplay ("Engine") → auto-advance to Lot 0002.
+  - Built-in lot 6 → verified Lot 0001.
+- **Two older test failures** in `solver/test/autotune.test.ts` (Splash Sort, and match-3 when
+  run alone) also fail on plain `main`. They assert "within 5 points", while `onTarget` has
+  accepted 8 points inside the 95% interval since Noel's 19:35 change.
+
+**Next / heads-up:**
+- **Abhinav:** the platform needs a redeploy for MCP tools to know `lotescape`. Playing it
+  doesn't need one: `GET /levels/:id` serves any game.
+- **Noel:** site redeploy for the Lot Escape page.
+- **Workers:** pull and restart, so the solver knows `lotescape`.
+- **Next push:** Mosslight Trails production on top of Codex's 23:05 engine, then a watcher for
+  both new games (100 ahead of player progress).
+
 ### 2026-11-07 11:10 PM PT · Noel · Claude Code (Sentinel 15 console) · main
 - **What:** Recording-readiness pass at 1920×1080 and 1440×900; tiles match the numbers command. Header says what the company is; "Found" is now "Not emailed yet"; the step-in panel shows 3 rows with "See all 8"; the Decisions tile shows "CEO last acted 9:57 PM", and the CEO card dims to "Stopped" after 90 quiet minutes (simulated only); QR copy points to the email route.
 - **Why:** A judge has two minutes; nothing on screen should mislead.

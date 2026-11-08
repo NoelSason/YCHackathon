@@ -4,11 +4,15 @@ import { createHash } from "node:crypto";
 import { generateLevel } from "../../../games/watersort/src/levels.js";
 import { generateTrack } from "../../../games/racer/src/levels.js";
 import type { MatchLevel } from "../../../games/match3/adapter/levels.js";
+import { generateLevel as generateLot } from "../../../games/lotescape/src/generate.js";
 
-export const GAMES = ["watersort", "racer", "match3"] as const;
+export const GAMES = ["watersort", "racer", "match3", "lotescape"] as const;
 export type ProductionGame = typeof GAMES[number];
 export const RECIPE_VERSION = "production-v1";
 export const LEVEL_CAP = 1000;
+
+/** Shown in titles, e.g. "Lot 0042". The game pages read the number back as the level number. */
+export const TITLE_PREFIX: Record<ProductionGame, string> = { watersort: "Tide", racer: "Circuit", match3: "Garden", lotescape: "Lot" };
 
 export interface Recipe {
   game_id: ProductionGame;
@@ -34,7 +38,7 @@ export function recipe(game: ProductionGame, position: number, attempt = 0, seri
   if (!Number.isInteger(attempt) || attempt < 0 || !Number.isInteger(series) || series < 0) throw new Error("attempt and series must be nonnegative integers");
   const digest = createHash("sha256").update(`${RECIPE_VERSION}:${series}:${game}:${position}:${attempt}`).digest();
   const seed = digest.readUInt32LE(0);
-  const title = `${game === "watersort" ? "Tide" : game === "racer" ? "Circuit" : "Garden"} ${String(position).padStart(4, "0")}`;
+  const title = `${TITLE_PREFIX[game]} ${String(position).padStart(4, "0")}`;
   let level: object;
   let features: string[];
   if (game === "watersort") {
@@ -56,6 +60,14 @@ export function recipe(game: ProductionGame, position: number, attempt = 0, seri
     if (position >= 20) features.push("shield");
     if (position >= 35) features.push("oil");
     if (track.lane_change_cooldown) features.push("steering-cooldown");
+  } else if (game === "lotescape") {
+    // Lot Escape's own generator and difficulty ladder (notch 1 easiest, 12 the top). The ladder
+    // sets how tangled the lot is; the move_limit is tuned afterwards to the slot's win-rate target.
+    const build = 1 + Math.round(p.depth * 8);
+    const notch = p.slot === "learn" ? 1 : p.slot === "challenge" ? Math.min(12, build + 3) : p.slot === "recovery" ? Math.max(1, build - 2) : build;
+    const made = generateLot({ seed, difficulty: notch, title });
+    level = made.level;
+    features = [`notch-${notch}`, `${made.rating.vehicles}-cars`, ...(made.rating.trucks ? ["trucks"] : []), ...(made.rating.blocking_depth >= 2 ? ["blocker-chains"] : [])];
   } else {
     const width = position < 100 ? 5 : 6;
     const height = 5;
@@ -79,6 +91,7 @@ export function fingerprint(game: ProductionGame, level: object): string {
   const l = structuredClone(level) as Record<string, unknown>;
   delete l.title; delete l.name;
   if (game === "racer") delete l.time_limit;
+  if (game === "lotescape") delete l.move_limit;
   if (game === "watersort") {
     delete l.move_limit;
     const tubes = l.tubes as string[][];
