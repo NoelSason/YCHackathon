@@ -10,7 +10,13 @@ export const DIRECTIONS: Direction[] = ["up", "right", "down", "left"];
 
 export function dimensions(map: string[]) { return { width: map[0]?.length ?? 0, height: map.length }; }
 export function indexOf(map: string[], x: number, y: number) { return y * (map[0]?.length ?? 0) + x; }
-export function baseMap(map: string[]): string[] { return map.map((row) => [...row].map((c) => c === "S" || c === "+" ? "." : c === "B" || c === "*" ? (c === "*" ? "G" : ".") : c).join("")); }
+export function baseMap(map: string[]): string[] {
+  return map.map((row) => [...row].map((c) => {
+    if (c === "S" || c === "B") return ".";
+    if (c === "+" || c === "*") return "G";
+    return c;
+  }).join(""));
+}
 export function initialState(level: Level): State {
   const player = level.map.join("").search(/[S+]/);
   const boxes: number[] = [];
@@ -53,10 +59,11 @@ export function legalMoves(level: Level, state: State): Direction[] {
 export function stateKey(state: State): string { return `${state.player}|${state.boxes.join(",")}`; }
 export function renderTiles(level: Level, state: State): Tile[] {
   const { width, height } = dimensions(level.map), out: Tile[] = [];
+  const ground = baseMap(level.map);
   const goalSet = new Set(goals(level)), boxSet = new Set(state.boxes);
   for (let i = 0; i < width * height; i++) {
     const isPlayer = i === state.player, isBox = boxSet.has(i), isGoal = goalSet.has(i);
-    out.push(isPlayer ? (isGoal ? "+" : "S") : isBox ? (isGoal ? "*" : "B") : level.map[Math.floor(i / width)]![i % width] as Tile);
+    out.push(isPlayer ? (isGoal ? "+" : "S") : isBox ? (isGoal ? "*" : "B") : ground[Math.floor(i / width)]![i % width] as Tile);
   }
   return out;
 }
