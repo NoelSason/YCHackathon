@@ -360,6 +360,17 @@
   #moment.small .tile { width: 2.8rem; height: 2.8rem; border-radius: 0.7rem; }
   #moment.small h2 { font-size: 1.35rem; }
   #moment.small p { font-size: 1rem; -webkit-line-clamp: 1; }
+  /* In a normal window, moments are a compact notification in the top-right corner, so they don't
+     cover the team and the feed. Full screen (the projector) keeps the big banner. */
+  html:not(:fullscreen) #moment { left: auto !important; right: 1.2rem; top: 4.4rem !important; width: min(27rem, calc(100vw - 2rem)) !important; transform: translate(0, -0.8rem) scale(0.98); }
+  html:not(:fullscreen) #moment.on { transform: none; }
+  html:not(:fullscreen) #moment .mo { padding: 0.6rem 0.9rem 0.65rem 0.7rem; gap: 0.7rem; border-width: 0.18rem; border-radius: 1rem; box-shadow: 0 0.3rem 0 var(--ink-deep), 0 0.8rem 2rem rgba(12, 14, 34, 0.35); }
+  html:not(:fullscreen) #moment .tile { width: 2.3rem; height: 2.3rem; border-radius: 0.6rem; }
+  html:not(:fullscreen) #moment h2 { font-size: 1.05rem; }
+  html:not(:fullscreen) #moment p { font-size: 0.85rem; -webkit-line-clamp: 1; }
+  html:not(:fullscreen) #moment .kick { margin-bottom: 0.2rem; }
+  html:not(:fullscreen) #moment .kick span:last-child { font-size: 0.78rem; }
+  html:not(:fullscreen) .burst { display: none; }
   .burst { position: fixed; z-index: 39; left: 0; top: 0; width: 1.6rem; height: 1.6rem; border-radius: 0.42rem; pointer-events: none; }
 
   /* ---------- overlays ---------- */

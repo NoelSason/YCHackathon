@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:02 PM PT · Noel · Claude Code · main
+- **What:** Console pop-ups (moments) are a compact notification in the top-right corner in a normal window. Full screen keeps the big projector banner.
+- **Why:** Noel: the notifications looked zoomed in and covered the team and feed.
+- **Files:** `demo/public/index.html`
+- **State:** works; demo typecheck and 17 tests pass.
+- **Next / heads-up:** none.
+
 ### 2026-11-07 6:58 PM PT · Noel · Claude Code (Lot Escape subagent) · main
 - **What:** Lot Escape fixed to standard sliding-vehicle rules (games/lotescape/RULES.md, with sources). Vehicles fill their cells exactly: car 2:1, truck 3:1, same thickness (vertical cars used to be drawn horizontally and rotated into slivers). System fonts replace the failing Google Fonts. Per-vehicle exit gates. The grid follows the lot size. Animated moves, live drag that stops at legal positions, keyboard (arrows/WASD, Tab/n/[ ]). The solver reports "unfinished" instead of "unsolvable" at its size cap. The rules stay in the shared engine; level JSON is unchanged. The Preview badge is gone from the hub.
 - **Why:** Noel: car sizes were wrong; fix the games to their real rules.
