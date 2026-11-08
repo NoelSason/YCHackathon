@@ -4,7 +4,7 @@ import { buildContext, createHandler, MAX_BODY_BYTES } from "./app.js";
 import { agentMailLister, pollOnce } from "./outreach/poll.js";
 import { takeAuditRequest } from "./leads/email-in.js";
 import { startSession } from "./naive.js";
-import { runOutreachCycle } from "./outreach/autopilot.js";
+import { nextPassDelayMs, runOutreachCycle } from "./outreach/autopilot.js";
 import { startSocialLoop } from "./marketing/loop.js";
 import { resumePaidOrders } from "./leads/playtest-offer.js";
 import { startPlaytestLoop } from "./mobile/loop.js";
@@ -45,21 +45,20 @@ if (config.AGENTMAIL_API_KEY && config.AGENTMAIL_INBOX_ID) {
 
 // Outreach loop: research → public contact → evidence email, within the daily cap.
 if (config.OUTREACH_AUTOPILOT === "1" && config.OUTREACH_SEND === "1") {
-  let running = false;
+  // Passes take 8 to 14 minutes. A fixed interval skipped a tick whenever one ran past it (a 20-minute
+  // real cadence), so the next pass is timed from when this one started: at the interval, or right away if it ran long.
+  const intervalMs = config.OUTREACH_AUTOPILOT_MINUTES * 60_000;
   const cycle = async () => {
-    if (running) return;
-    running = true;
+    const started = Date.now();
     try {
       const r = await runOutreachCycle(ctx);
       console.log(`outreach loop: sent ${r.sent}${r.reason ? ` (${r.reason})` : ""}`);
     } catch (err) {
       console.error("outreach loop failed:", err instanceof Error ? err.message.slice(0, 200) : "unknown");
-    } finally {
-      running = false;
     }
+    setTimeout(cycle, nextPassDelayMs(started, Date.now(), intervalMs));
   };
   setTimeout(cycle, 20_000);
-  setInterval(cycle, config.OUTREACH_AUTOPILOT_MINUTES * 60_000);
 }
 
 // Playtest loop: between paid orders, the phone playtests our newest level or studies a free web puzzle game.

@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 10:53 PM PT · Noel · Claude Code (Sentinel 12 monid) · main
+- **What:** Real Monid spend is $0.17–0.34 an hour, about $0.05 a pass ($18.54 balance). Fixed the cost parser (rows logged ~$0.0001; older rows stay understated); added a Pacific-day spend total with `MONID_DAILY_USD` (default $5, on-demand audits exempt); a 6-hour review cache, so passes skip games already read and counts stay real; up to 3 charts per pass; passes are timed from the previous start.
+- **Why:** The loop can't drain the balance overnight, and overnight passes should read new games.
+- **Files:** `business/src/research/monid.ts`, `business/src/outreach/autopilot.ts`, `business/src/server.ts`, `business/src/config.ts`, `business/.env.example`, `business/test/research-budget.test.ts`, `docs/demo-script.md`
+- **State:** works; business 314/314; live run cost $0.00165 and the repeat read was cached. :8787 restarted to load this plus the pack, generator, playtest-count, and agency fixes.
+- **Next / heads-up:** Passes take 8–14 min, so expect one every 10–15 min (not yet observed). Emailed audits can quote reviews up to 6 hours old.
+
 ### 2026-11-07 10:50 PM PT · Noel · Claude Code (Sentinel 7 agency) · main
 - **What:** Live test-agency thread passed: an inquiry got an in-thread reply in 23 s with correct prices, "yes, send a sample" got a reply in 27 s, and 5 levels arrived 2 s later. Fixed: a pause or cap is logged once instead of hourly and on each restart; sample emails say "free sample", not "you ordered a level pack"; removed "calibrated to how your game plays" when no phone study ran.
 - **Why:** This thread is the live conversation demo; its wording must be true.

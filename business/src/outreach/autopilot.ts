@@ -7,7 +7,7 @@ import { rememberTarget, toolDraftOutreach, toolSaveLead, toolSendOutreach } fro
 import { findTargets } from "../research/targets.js";
 import { findGenericContact } from "../research/contacts.js";
 import { describeVerification, verifyTarget } from "../research/verify.js";
-import { monidSpentUsd, type StoreGame } from "../research/monid.js";
+import { monidSpentTodayUsd, monidSpentUsd, recentlyFetchedAppIds, type StoreGame } from "../research/monid.js";
 import type { RawReview } from "../research/signals.js";
 
 /** Cold outreach needs real evidence: at least this many reviews showing the same problem. */
@@ -51,6 +51,15 @@ function markRead(appId: string) {
 // Start the rotation from the clock, so a server restart moves on to a new chart instead of
 // re-reading the first one.
 let cycleCount = Math.floor(Date.now() / (10 * 60_000));
+// One "paused" row per day at most, so a capped night doesn't fill the feed.
+let capLoggedDay: string | null = null;
+/** A pass with nothing new on its chart moves to the next chart, up to this many in one pass. */
+const MAX_CHARTS_PER_PASS = 3;
+
+/** Milliseconds until the next pass: `intervalMs` after this one started, or a short pause if it ran longer. */
+export function nextPassDelayMs(startedAt: number, finishedAt: number, intervalMs: number): number {
+  return Math.max(30_000, intervalMs - (finishedAt - startedAt));
+}
 
 export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: number; perRun?: number; minScore?: number } = {}) {
   const log = (agent: string, action: string, why: string | null, result: string | null, costUsd: number | null = null) =>
@@ -58,13 +67,24 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
   const spentBefore = monidSpentUsd();
   if (!ctx.monid) return { sent: 0, reason: "Monid not configured" };
 
+  const cap = ctx.config.MONID_DAILY_USD;
+  const today = monidSpentTodayUsd();
+  if (today >= cap) {
+    const day = new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+    if (capLoggedDay !== day) {
+      capLoggedDay = day;
+      await log("research", "paused market research for today", `today's research spend reached the $${cap.toFixed(2)} daily limit`, `$${today.toFixed(2)} spent`);
+    }
+    return { sent: 0, reason: "Monid daily cap reached" };
+  }
+
   const perRun = opts.perRun ?? 3;
-  const chart = CHARTS[cycleCount++ % CHARTS.length]!;
   const known = new Set((await ctx.store.listLeads()).map((l) => l.appId).filter((x): x is string => Boolean(x)));
   const cutoff = Date.now() - 6 * 3600_000;
   for (const [id, at] of recentlyRead) if (at < cutoff) recentlyRead.delete(id);
-  const skip = new Set([...known, ...recentlyRead.keys()]);
-  await log("research", `scanning the ${chart.label} games for unhappy players`, "outreach loop", null);
+  // Anything read here or by an audit in the last six hours stays out, so each pass reads new games
+  // and the "reviews read" count only grows by reviews this pass fetched.
+  const skip = new Set([...known, ...recentlyRead.keys(), ...recentlyFetchedAppIds(ctx.monid)]);
   const read: Target[] = [];
   const qualified: Target[] = [];
   let sent = 0;
@@ -87,36 +107,53 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
     const res = await toolSendOutreach(ctx, { draftId: draft.draftId });
     if (res.status === "sent") sent++;
   };
-  try {
-    // The keyword match is the cheap first pass. Games it says have enough evidence get their quotes
-    // double-checked by a model before anyone is emailed; the counts and quotes come from what holds up.
-    const verifyOpts = { apiKey: ctx.config.OPENAI_API_KEY, model: ctx.config.OPENAI_MODEL, dailyCalls: ctx.config.OPENAI_DAILY_CALLS };
-    const verify = async (game: StoreGame, reviews: RawReview[], t: Target) => {
-      if (!t.primarySignal || t.signalCounts[t.primarySignal] < MIN_EVIDENCE) return t;
-      const { target, report } = await verifyTarget(game, reviews, t, verifyOpts);
-      const line = describeVerification(report, game.title, MIN_EVIDENCE);
-      if (line) await log("research", line.action, line.why, line.result).catch(() => undefined);
-      return target;
-    };
-    await findTargets(ctx.monid, {
-      maxGames: opts.maxGames ?? 30, minSignals: 2, chart: chart.chart, category: chart.category, skip, verify,
-      onSkip: (game, err) => console.error(`outreach loop: skipped ${game.title}: ${err instanceof Error ? err.message.slice(0, 120) : "unknown"}`),
-      // Pitch each studio as soon as its game qualifies, so a restart mid-pass doesn't lose the emails.
-      onRead: async (t) => {
-        read.push(t);
-        markRead(t.appId);
-        if (stop || sent >= perRun) return;
-        if (t.primarySignal === null || t.signalCounts[t.primarySignal] < MIN_EVIDENCE || t.score < (opts.minScore ?? 1.2)) return;
-        qualified.push(t);
-        await pitch(t);
-      },
-    });
-  } catch (err) {
-    await log("research", `couldn't read the ${chart.label} chart`, err instanceof Error ? err.message.slice(0, 160) : "unknown error", "will try the next chart next cycle");
-    return { sent, reason: "store chart unavailable" };
+  // The keyword match is the cheap first pass. Games it says have enough evidence get their quotes
+  // double-checked by a model before anyone is emailed; the counts and quotes come from what holds up.
+  const verifyOpts = { apiKey: ctx.config.OPENAI_API_KEY, model: ctx.config.OPENAI_MODEL, dailyCalls: ctx.config.OPENAI_DAILY_CALLS };
+  const verify = async (game: StoreGame, reviews: RawReview[], t: Target) => {
+    if (!t.primarySignal || t.signalCounts[t.primarySignal] < MIN_EVIDENCE) return t;
+    const { target, report } = await verifyTarget(game, reviews, t, verifyOpts);
+    const line = describeVerification(report, game.title, MIN_EVIDENCE);
+    if (line) await log("research", line.action, line.why, line.result).catch(() => undefined);
+    return target;
+  };
+
+  // A chart whose top games were all read recently costs almost nothing to check, so the pass moves
+  // on to the next chart instead of waiting for the next one.
+  const tried: string[] = [];
+  let chartLabel = "";
+  let chartErrors = 0;
+  for (let n = 0; n < MAX_CHARTS_PER_PASS && read.length === 0; n++) {
+    const chart = CHARTS[cycleCount++ % CHARTS.length]!;
+    chartLabel = chart.label;
+    tried.push(chart.label);
+    await log("research", `scanning the ${chart.label} games for unhappy players`, "outreach loop", null);
+    try {
+      await findTargets(ctx.monid, {
+        maxGames: opts.maxGames ?? 30, minSignals: 2, chart: chart.chart, category: chart.category, skip, verify,
+        onSkip: (game, err) => console.error(`outreach loop: skipped ${game.title}: ${err instanceof Error ? err.message.slice(0, 120) : "unknown"}`),
+        // Pitch each studio as soon as its game qualifies, so a restart mid-pass doesn't lose the emails.
+        onRead: async (t) => {
+          read.push(t);
+          markRead(t.appId);
+          if (stop || sent >= perRun) return;
+          if (t.primarySignal === null || t.signalCounts[t.primarySignal] < MIN_EVIDENCE || t.score < (opts.minScore ?? 1.2)) return;
+          qualified.push(t);
+          await pitch(t);
+        },
+      });
+    } catch (err) {
+      chartErrors++;
+      await log("research", `couldn't read the ${chart.label} chart`, err instanceof Error ? err.message.slice(0, 160) : "unknown error", "trying another chart");
+    }
   }
-  await recordResearch(ctx, chart.label, read, log, monidSpentUsd() - spentBefore);
-  await log("research", `found ${qualified.length} new studios worth pitching`, qualified.slice(0, 3).map((t) => t.appTitle).join(", ") || null, sent ? `${sent} emailed` : null);
+  if (!read.length) {
+    if (chartErrors === tried.length) return { sent, reason: "store chart unavailable" };
+    await log("research", `no new games to read on the ${tried.join(", ")} charts`, "each one was read in the last six hours or is already a lead", "will try other charts next pass");
+    return { sent, reason: null };
+  }
+  await recordResearch(ctx, chartLabel, read, log, monidSpentUsd() - spentBefore);
+  await log("research", `found ${qualified.length} new ${qualified.length === 1 ? "studio" : "studios"} worth pitching`, qualified.slice(0, 3).map((t) => t.appTitle).join(", ") || null, sent ? `${sent} emailed` : null);
   return { sent, reason: null };
 }
 

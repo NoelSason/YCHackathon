@@ -35,6 +35,8 @@ const EnvSchema = z.object({
 
   // Monid (CLI reads its own configured key; this is only checked for presence)
   MONID_API_KEY: z.string().optional(),
+  /** The outreach loop stops reading stores for the day at this much Monid spend (USD, Pacific day). On-demand audits still run. */
+  MONID_DAILY_USD: z.coerce.number().positive().default(5),
 
   // Mobilerun Cloud
   MOBILERUN_API_KEY: z.string().optional(),

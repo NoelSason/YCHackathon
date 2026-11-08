@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -32,14 +33,51 @@ export interface MonidRunner {
 let spentMicro = 0;
 export const monidSpentUsd = (): number => spentMicro / 1e6;
 
+/**
+ * Each run's cost. The CLI reports it as top-level `cost: { value, currency: "USD" }` (checked Nov 7,
+ * 10:46 PM on app-reviews and games runs); `billing.reportedCost` is an older shape kept as a fallback.
+ */
 export function reportedCostMicro(stdout: string): number {
   try {
-    const cost = (JSON.parse(stdout) as { billing?: { reportedCost?: { value?: number; unit?: string } } }).billing?.reportedCost;
+    const parsed = JSON.parse(stdout) as {
+      cost?: { value?: number; currency?: string };
+      billing?: { reportedCost?: { value?: number; unit?: string } };
+    };
+    if (typeof parsed.cost?.value === "number" && (parsed.cost.currency ?? "USD") === "USD") return Math.round(parsed.cost.value * 1e6);
+    const cost = parsed.billing?.reportedCost;
     if (!cost || typeof cost.value !== "number") return 0;
     return cost.unit === "MICRO_DOLLAR" ? cost.value : cost.value * 1e6;
   } catch {
     return 0;
   }
+}
+
+/** Today's Monid spend (Pacific day), kept in a temp file so a restart doesn't reset the daily cap. */
+const SPEND_FILE = join(tmpdir(), "levelai-monid-spend.json");
+export const pacificDay = (d = new Date()): string => d.toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+let daily: { day: string; micro: number } = (() => {
+  try {
+    const v = JSON.parse(readFileSync(SPEND_FILE, "utf8")) as { day?: unknown; micro?: unknown };
+    return typeof v.day === "string" && typeof v.micro === "number" ? { day: v.day, micro: v.micro } : { day: pacificDay(), micro: 0 };
+  } catch {
+    return { day: pacificDay(), micro: 0 };
+  }
+})();
+/** Adds a run's cost to the day's total, starting over on a new Pacific day. Pure, for tests. */
+export function addDaily(state: { day: string; micro: number }, micro: number, day: string): { day: string; micro: number } {
+  return state.day === day ? { day, micro: state.micro + micro } : { day, micro };
+}
+function recordSpend(micro: number) {
+  spentMicro += micro;
+  daily = addDaily(daily, micro, pacificDay());
+  try {
+    writeFileSync(SPEND_FILE, JSON.stringify(daily));
+  } catch {
+    // Best effort; worst case a restart under-counts today's spend.
+  }
+}
+export function monidSpentTodayUsd(): number {
+  return daily.day === pacificDay() ? daily.micro / 1e6 : 0;
 }
 
 export class MonidCli implements MonidRunner {
@@ -57,7 +95,7 @@ export class MonidCli implements MonidRunner {
         env: { ...process.env, NO_COLOR: "1" }, maxBuffer: 32 * 1024 * 1024,
         ...(args.timeoutMs ? { timeout: args.timeoutMs, killSignal: "SIGKILL" as const } : {}),
       });
-      spentMicro += reportedCostMicro(stdout);
+      recordSpend(reportedCostMicro(stdout));
       return await resolveDownload(JSON.parse(await readFile(out, "utf8")));
     } catch (err) {
       const stdout = (err as { stdout?: string }).stdout ?? "";
@@ -147,6 +185,33 @@ export function storeUrl(appId: string): string {
  * in the title.
  */
 export async function fetchRecentReviews(monid: MonidRunner, appId: string, depth = 150, timeoutMs?: number): Promise<RawReviewItem[]> {
+  // The same game's newest reviews, read in the last few hours, are reused instead of paid for again
+  // (an audit and the outreach loop often read the same chart game).
+  const cache = reviewCache(monid);
+  const key = `${appId}|${depth}`;
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < REVIEW_CACHE_MS) return hit.items;
+  const items = await fetchReviewsUncached(monid, appId, depth, timeoutMs);
+  if (items.length) cache.set(key, { at: Date.now(), items });
+  return items;
+}
+
+/** How long a game's fetched reviews are reused. Matches the outreach loop's six-hour skip window. */
+export const REVIEW_CACHE_MS = 6 * 3600_000;
+const reviewCaches = new WeakMap<MonidRunner, Map<string, { at: number; items: RawReviewItem[] }>>();
+function reviewCache(monid: MonidRunner) {
+  let c = reviewCaches.get(monid);
+  if (!c) reviewCaches.set(monid, (c = new Map()));
+  return c;
+}
+/** App ids whose reviews this runner fetched within the cache window. */
+export function recentlyFetchedAppIds(monid: MonidRunner, now = Date.now()): Set<string> {
+  const ids = new Set<string>();
+  for (const [key, v] of reviewCache(monid)) if (now - v.at < REVIEW_CACHE_MS) ids.add(key.slice(0, key.lastIndexOf("|")));
+  return ids;
+}
+
+async function fetchReviewsUncached(monid: MonidRunner, appId: string, depth: number, timeoutMs?: number): Promise<RawReviewItem[]> {
   const limit = timeoutMs ? { timeoutMs } : {};
   if (appId.startsWith("ios:")) {
     const raw = await monid.run({
