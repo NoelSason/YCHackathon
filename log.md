@@ -20,6 +20,16 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### Sun Nov 8, 10:29 AM PT, Noel, Claude Code, main (hourly checkpoint)
+
+**What:** Rebuilt player bundle (site/play.js and its map), from the handoff's site build step.
+**Why:** Hourly checkpoint.
+**Files:** site/play.js, site/play.js.map.
+**State:** Business 337 and demo 21 tests pass. X posts at 9:49 and 10:14 AM failed: x.com stayed on its black logo screen in the phone's Safari through three reloads.
+**Next / heads-up:** Noel: reopen x.com in the phone's live view so the next post can load.
+
+---
+
 ### Sun Nov 8, 9:43 AM PT, Noel, Claude Code, main
 
 **What:** New "Verified by Level AI" X posts. Scheduled posts alternate with one that reports a game's measured results (levels, simulated bot games, average distance from target win rate), rotating games. A delivered, paid customer pack goes first, once, without naming the studio. Test and demo orders never count.
