@@ -1,7 +1,7 @@
 # How to win this hackathon
 
 Researched on Nov 7, 2026. Neither Naïve nor YC has published a scoring rubric or weights, so the
-event's own statements rank first and the general advice ranks below them. `README.md` applies
+event's own statements rank first and the general advice ranks below them. `docs/plan.md` applies
 this research to our plan.
 
 ## 1. What this event says it judges (highest weight)
@@ -103,7 +103,7 @@ touching it.**
 ## Second research pass (pasted Nov 7, ~2:05 PM): what we keep and what we reject
 
 A second write-up recommended the same idea, an AI puzzle level studio, and ranked two alternatives
-below it: a content agency and a mobile QA agency. Most of its plan is already in `README.md`.
+below it: a content agency and a mobile QA agency. Most of its plan is already in `docs/plan.md`.
 Several parts are wrong or unsafe, so **agents must not copy code or claims from it.**
 
 **Keep:**
@@ -133,4 +133,4 @@ Several parts are wrong or unsafe, so **agents must not copy code or claims from
 - **Verifying puzzles by tapping through them on a phone.** Our solvers check solvability in code,
   which is faster, cheaper, and exact. Phones check that a level loads and plays correctly on a
   real device.
-- **Its timeline** assumes 24 hours and slides on a laptop. Ours is in `README.md`.
+- **Its timeline** assumes 24 hours and slides on a laptop. Ours is in `docs/plan.md`.

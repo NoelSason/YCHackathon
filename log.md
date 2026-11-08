@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 6:30 PM PT · Noel · Claude Code (README subagent) · main
+- **What:** New public README.md in the style of Noel's other repos: hero console screenshot, how it works (mermaid diagrams for the agent loop and the level loop), agents, what's autonomous, live numbers with timestamps, honest status and limits, stack, repo layout, how to run it, team, and credits. The old README (the team plan) is now `docs/plan.md`, and references in AGENTS.md, docs/*, games/match3/README.md, and platform/CONTRACTS.md point there. (The move itself went out by accident in e90218b, which left the repo briefly without a README; this restores it.)
+- **Why:** Noel: a README like the rest of his profile.
+- **Files:** `README.md`, `docs/images/{console,site-research}.png`, `docs/plan.md`, `AGENTS.md`, `docs/{agent-plan,how-to-win,master-plan}.md`, `games/match3/README.md`, `platform/CONTRACTS.md`
+- **State:** works; mermaid rendered, links and images resolve, no emails or keys.
+- **Next / heads-up:** **Everyone:** the team plan moved to `docs/plan.md`. The outreach screenshot was left out on purpose, since it names real studios.
+
 ### 2026-11-07 6:20 PM PT · Noel · Claude Code · main
 - **What:** Playtest form: the link field now says what to paste ("Your game's link": an App Store link or a web link that opens in Safari; Google Play won't work yet). Mobilerun (ticket #373): they queued our apps into their hosted library (Royal Match and Block Blast still 404 as of 6:15 PM) and granted a 3-day iPhone subscription for a second phone where Apple sign-in works. That phone isn't created yet; it waits on Noel's OK.
 - **Why:** Noel didn't know what to put in "App link".

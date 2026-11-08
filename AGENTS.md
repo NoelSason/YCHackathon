@@ -17,7 +17,7 @@ the product, and handle day-to-day operations.
   the same service to studios. We don't build a game.
 - **Decided Nov 7, ~1:45 PM:** the team dropped the earlier streaming idea completely. Don't build
   anything for streaming, chat, or clipping streams.
-- **Full plan:** `README.md` has the agents, the sponsor-tool map, each person's plan, the
+- **Full plan:** `docs/plan.md` has the agents, the sponsor-tool map, each person's plan, the
   timeline, and the risks. Read it before starting work.
 - **Games: open source only.** Fork only open-source games whose license allows it, and keep their
   credit and license files. Candy Crush, Mario, and Geometry Dash are genre references only. Never
@@ -44,7 +44,7 @@ Rules for agents:
 - **Stay in that person's area.** Changes to another person's area need your user's explicit
   go-ahead. Write them in `log.md` under "Next / heads-up" and name the owner.
 - **Shared contracts:** the five contracts listed in `docs/master-plan.md` (game adapter, MCP tool
-  list, activity log, playtest tool, business events). They're defined in `README.md` and `docs/agent-plan.md`
+  list, activity log, playtest tool, business events). They're defined in `docs/plan.md` and `docs/agent-plan.md`
   and recorded in `log.md`. The Solver and the browser game must use the same adapter code for a
   game. Never write a second copy of a game's rules. Before you change a shared interface (agent tools, API
   routes, environment variable names, the database schema), check `log.md` for that interface
@@ -82,7 +82,7 @@ That has direct engineering consequences:
   live run that might fail on stage.
 - Keep a way to replay or show past runs if the live demo breaks.
 
-The research is in `docs/how-to-win.md`, and the demo outline is in `README.md`. When choosing
+The research is in `docs/how-to-win.md`, and the demo outline is in `docs/plan.md`. When choosing
 what to build next, prefer whatever moves one of these:
 
 - **Autonomy:** fewer human step-ins, and a longer unattended run.
@@ -102,7 +102,7 @@ what to build next, prefer whatever moves one of these:
   logs didn't produce.
 - **Approvals:** Naïve makes sends, phone actions, data runs, and video generation ask a human by
   default, and a chat that has read people's data asks on every send even at `allow`. Every
-  approval is a step-in. Design agents so the overnight run needs none (see Risks in `README.md`).
+  approval is a step-in. Design agents so the overnight run needs none (see Risks in `docs/plan.md`).
 
 The demo shows the company's history since we stopped touching it, not what the software could
 do. Don't build anything that only shows up in a slide. Never fake or inflate a number. Keep
@@ -160,7 +160,7 @@ orders, testing an app.
 
 ## Sponsor tools
 
-Each sponsor tool has one job in the main loop. The map is under "Sponsor tools" in `README.md`.
+Each sponsor tool has one job in the main loop. The map is under "Sponsor tools" in `docs/plan.md`.
 Check it before adding another vendor. Naïve also has its own email, data, media, and social
 posting. The map says which one we use for what, so don't add a second tool for the same job.
 

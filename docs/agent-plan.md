@@ -71,7 +71,7 @@ board is durable and the dashboard can show it.
 | **CEO** (coordinator) | Cron, every 60 minutes | `get_company_metrics`, `get_player_stats`, the last run's decisions | Board, `log_decision` | Decisions with reasons, and new cards for the team |
 | **Designer** | A `design` card | The game's skill, the target difficulty, notes from Research | `validate_level`, `save_level` | Levels as JSON (structured output against the game's schema) |
 | **Tuner** | A `tune` card | A saved level and its target | `solve_level`, `save_level` | An accepted level with measured difficulty, or a rejection with the reason |
-| **Playtest Lead** | A `playtest` card | A pack's level URLs, or a studio app's details | Noel's Mobilerun tools (over MCP), including the plan runner | A **plan** (JSON, see `README.md` → "Two ways a game connects"), then pass or fail per level, notes, and a recording link |
+| **Playtest Lead** | A `playtest` card | A pack's level URLs, or a studio app's details | Noel's Mobilerun tools (over MCP), including the plan runner | A **plan** (JSON, see `docs/plan.md` → "Two ways a game connects"), then pass or fail per level, notes, and a recording link |
 | **Research** | Cron, every 4 hours, plus `research` cards | Monid, Apify, and Naïve Data (reviews, charts, social posts) | `crm_update` | A studio target list with a reason for each, and genre notes for the Designer |
 | **Sales Reader** | An inbound email | One reply | Board | A summary card: who, what they asked, and the suggested next step |
 | **Sales Sender** | An `outreach` or `reply` card | The card only | AgentMail send, `create_payment_link`, `crm_update` | A sent email and a CRM stage change |

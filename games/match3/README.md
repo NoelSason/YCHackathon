@@ -7,7 +7,7 @@ and a local browser demo at `demo/`. The demo renders the same engine used by th
 
 The game adapter is the single source of truth for the level schema and game rules. The browser
 game and the headless solver must use the same rule implementation. The platform's shared adapter
-contract, described in the root `README.md`, requires:
+contract, described in [`docs/plan.md`](../../docs/plan.md), requires:
 
 - A JSON Schema for a level, used for structured generation and validation.
 - `validate(level)` returning validity and a useful reason on failure.

@@ -1,7 +1,7 @@
 # Master plan
 
 **Locked in Sat Nov 7, 2:20 PM.** This file is the source of truth for who does what and when.
-`README.md` explains the company and the technical design. `docs/agent-plan.md` details the
+`docs/plan.md` explains the company and the technical design. `docs/agent-plan.md` details the
 agents. If this file and another doc disagree, this file wins. Change it only with the team's
 agreement, and log the change.
 
@@ -100,7 +100,7 @@ Write each one in `log.md` when agreed.
 
 | Contract | Between | What it defines |
 |---|---|---|
-| Game adapter | Max ↔ Abhinav, Pinara | `schema`, `validate`, `simulate`, `solve`, load by URL, events, `SKILL.md` (see `README.md`) |
+| Game adapter | Max ↔ Abhinav, Pinara | `schema`, `validate`, `simulate`, `solve`, load by URL, events, `SKILL.md` (see `docs/plan.md`) |
 | MCP tool list | Abhinav ↔ Pinara, Noel | Tool names, inputs, outputs, and each tool's permission (allow, ask, deny) |
 | Activity log and step-in log | Abhinav ↔ everyone | The fields every agent writes, including the decision record in `docs/agent-plan.md` |
 | Playtest tool | Noel ↔ Pinara, Abhinav | The input (level URL, device) and the result (loaded, touch OK, visual issues, outcome, recording link) |

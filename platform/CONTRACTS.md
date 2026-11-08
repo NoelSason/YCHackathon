@@ -13,7 +13,7 @@ Tables are in `platform/db/schema.sql`. The MCP server is in `platform/mcp/`.
 
 ## 1. Game adapter: how it plugs into the platform
 
-Max owns each adapter's contents (`README.md` → "The shared contract: the game adapter"). This
+Max owns each adapter's contents (`docs/plan.md` → "The shared contract: the game adapter"). This
 section only fixes **where it lives and how the platform calls it**, so the Solver and the MCP
 server share one copy of each game's rules.
 

@@ -1,6 +1,7 @@
-# Level AI
+# Level AI: the team plan
 
-An entry for the Naïve Autonomous Company Hackathon (YC, Nov 7–8, 2026).
+An entry for the Naïve Autonomous Company Hackathon (YC, Nov 7–8, 2026). This was the repo's
+README during the build. The public overview is now the root [`README.md`](../README.md).
 
 **In one sentence:** an agent-run studio that makes levels for puzzle games. Plug in a game, and
 its agents design new levels, test each one hundreds of times, tune the difficulty, playtest it
@@ -143,16 +144,16 @@ Everything depends on this, so Max and Abhinav agree on it by **3:00 PM** and wr
 | Events | Sends attempt, win, quit, and moves-used to our API | CEO, dashboard |
 | `SKILL.md` | The rules and level format, written for an agent | Designer (as a Naïve skill) |
 
-The match-3 skill and integration notes live in [`games/match3/`](games/match3/). The skill uses
+The match-3 skill and integration notes live in [`games/match3/`](../games/match3/). The skill uses
 the active adapter schema and simulation tools rather than defining a second level format.
-The platformer adapter and authoring skill live in [`games/platformer/`](games/platformer/).
+The platformer adapter and authoring skill live in [`games/platformer/`](../games/platformer/).
 Its grid-step rules are a prototype and are not yet connected to a forked browser game.
 The official Geometry Dash Editor workflow is documented in
-[`games/editors/geometry-dash/`](games/editors/geometry-dash/SKILL.md). It uses Mobilerun for
+[`games/editors/geometry-dash/`](../games/editors/geometry-dash/SKILL.md). It uses Mobilerun for
 bounded editor and visual-check tasks and remains separate from the product adapters.
 
 The unified agent skill workflow and config-based route interpreter are documented in
-[`docs/skill-routing-plan.md`](docs/skill-routing-plan.md). The router selects the domain skill and
+[`docs/skill-routing-plan.md`](skill-routing-plan.md). The router selects the domain skill and
 implementation path; programmatic tools are used only when connected and declared available.
 
 ### Max: game integration
