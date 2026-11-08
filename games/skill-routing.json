@@ -61,6 +61,12 @@
       "availability": "planned_not_connected",
       "operations": ["validate_level", "solve_level", "save_level"],
       "verification": "Schema and rules validation, exact fastest-finish solve (solvable within time_limit, minimum ticks), then seeded bot simulation (human, greedy, random). The adapter is in games/racer/adapter but not registered in platform/mcp/src/adapters.ts yet; do not claim results until the platform returns them."
+    },
+    "lotescape_adapter": {
+      "mode": "programmatic",
+      "availability": "adapter_local_registry_pending",
+      "operations": ["validate_level", "solve_level", "save_level"],
+      "verification": "Validate the parking lot and use the exact solver for minimum car-step moves. The browser client works locally; platform registry and hosting are pending."
     }
   },
   "games": {
@@ -107,6 +113,15 @@
         "design": "games/racer/SKILL.md",
         "evaluate": "games/racer/SKILL.md",
         "implement": "games/racer/SKILL.md"
+      }
+    },
+    "lotescape": {
+      "label": "Lot Escape (lane-sliding car evacuation)",
+      "interface": "lotescape_adapter",
+      "skills": {
+        "design": "games/lotescape/SKILL.md",
+        "evaluate": "games/lotescape/SKILL.md",
+        "implement": "games/lotescape/SKILL.md"
       }
     }
   }
