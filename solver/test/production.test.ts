@@ -102,6 +102,10 @@ test("checkpoint ownership prevents duplicate writers and a torn tail can resume
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+test("lotescape recipes are deterministic even at the deepest notch (attempt-bounded, not clock-bounded)", () => {
+  assert.deepEqual(recipe("lotescape", 900), recipe("lotescape", 900));
+});
+
 test("lotescape production: tuned move_limit is above the exact minimum and accepted by an independent human replay", () => {
   // Like a production job: some layouts' integer move_limit can't hit the target, so try the next.
   let accepted: ReturnType<typeof calibrate> | undefined;

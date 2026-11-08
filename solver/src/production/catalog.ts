@@ -66,7 +66,10 @@ export function recipe(game: ProductionGame, position: number, attempt = 0, seri
     // sets how tangled the lot is; the move_limit is tuned afterwards to the slot's win-rate target.
     const build = 1 + Math.round(p.depth * 8);
     const notch = p.slot === "learn" ? 1 : p.slot === "challenge" ? Math.min(12, build + 3) : p.slot === "recovery" ? Math.max(1, build - 2) : build;
-    const made = generateLot({ seed, difficulty: notch, title });
+    // Stop by attempts, not the clock: the generator's default 8 s backstop made the deepest notch
+    // depend on machine speed, so the same recipe could give a different lot. 1,200 attempts take
+    // at most about 15 s, well inside a production job's deadline.
+    const made = generateLot({ seed, difficulty: notch, title, maxAttempts: 1200, timeLimitMs: 50_000 });
     level = made.level;
     features = [`notch-${notch}`, `${made.rating.vehicles}-cars`, ...(made.rating.trucks ? ["trucks"] : []), ...(made.rating.blocking_depth >= 2 ? ["blocker-chains"] : [])];
   } else if (game === "platformer") {

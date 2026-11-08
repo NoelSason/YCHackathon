@@ -20,6 +20,28 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 00:34 PT · Pinara (Claude Code) · branch `main`
+
+**What:** Lot Escape production recipes are deterministic at every depth. The generator now stops
+after 1,200 attempts, with a 50 s time cap that never decides the result. Before, its default 8 s
+clock could stop it first at notch 12 (about position 500 and up), so the same recipe could give a
+different lot depending on machine speed. That happened at positions 700 and 900 in a check.
+**Why:** The production catalog promises the same seed gives the same level. That's needed for
+reproducibility, duplicate detection, and the deterministic ids the game pages rely on.
+**Files:** `solver/src/production/catalog.ts`, `solver/test/production.test.ts`.
+**State:** Works:
+- Positions 1, 50, 101, 500, 700, 900, and 1000 each produce the identical recipe twice (position
+  700 takes about 15 s).
+- **Existing levels are unchanged:** all 101 live Lot Escape layouts still match their recipes,
+  compared key-order-independently, because positions up to 101 always finish far below both
+  limits.
+- Production tests 11/11, including a new deep-notch determinism test. Typecheck is clean.
+
+**Next / heads-up:** `fingerprint()` hashes JSON text, so it depends on key order. It's correct
+today because it only compares in-memory recipe and checkpoint objects. Don't compare it against
+rows read back from Postgres (jsonb reorders keys), and don't change the function: stored
+checkpoints would stop matching.
+
 ### 2026-11-08 12:29 AM PT · Noel · Claude Code (hourly checkpoint) · main
 - **What:** Demo script updated for the second email inbox: it's live for cold email (13 sent, replies answered), the QR form to a never-emailed address is still untested, and the overnight step-in row is written.
 - **Why:** Noel asked for a commit every hour; the script must match what's running.
