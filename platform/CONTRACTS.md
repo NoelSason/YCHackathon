@@ -74,7 +74,8 @@ Every tool: input is a JSON object, output is a JSON object. Errors come back as
 | `reject_level` | `{ level_id, reason }` | `{ ok }` | allow | Tuner |
 | `publish_pack` | `{ game_id, level_ids[], name }` | `{ pack_id, url, level_urls[] }` | allow | CEO (board `publish` card) |
 | `get_player_stats` | `{ game_id, level_ids?, since?: iso }` | `{ levels: [{ level_id, attempts, wins, losses, quits, win_rate, avg_moves }] }` | allow | CEO, Tuner |
-| `get_company_metrics` | `{ since?: iso }` | `{ levels_designed, levels_accepted, levels_rejected, packs_published, players, attempts, studios_found, emails_sent, replies, payments_count, revenue_usd, spend_usd, agent_actions, human_interventions, open_cards }` | allow | CEO, Finance |
+| `get_company_metrics` | `{ since?: iso }` | `{ levels_designed, levels_accepted, levels_rejected, packs_published, play_sessions, attempts, solver_queued, solver_done, spend_usd, agent_actions, human_step_ins, kill_switch }` — **no people-related fields** (see note) | allow | CEO, Finance |
+| `get_pipeline_metrics` | `{ since?: iso }` | `{ leads_total, leads_progressed, outbound_count, inbound_count, payments_count, revenue_usd }` | allow | Finance only |
 | `log_action` | `{ agent, action, reason, result?, cost_usd?, ref?: { kind, id } }` | `{ id }` | allow | all |
 | `log_decision` | the decision record (§3) | `{ id }` | allow | CEO |
 | `resolve_decision` | `{ decision_id, result, matched_expectation: boolean }` | `{ ok }` | allow | CEO |
@@ -84,6 +85,11 @@ Every tool: input is a JSON object, output is a JSON object. Errors come back as
 | `record_email` | `{ studio_id, direction: "out"\|"in", subject, summary, external_id? }` | `{ id }` | allow | Sales Sender, Sales Reader |
 | `create_payment_link` | `{ studio_id?, product: "pilot_pack"\|"hint_pack", amount_usd, description }` | `{ url, payment_link_id }` | allow (test mode) | Sales, Finance |
 | `get_spend` | `{}` | `{ naive_usd, monid_usd, mobilerun_minutes, stripe_revenue_usd, by_agent: {...} }` | allow | Finance, CEO |
+
+**People-data rule (Nov 7, 17:00):** Naïve held every call in the CEO's chat with `read_people:
+true` after one tool returned JSON containing `emails_sent`, `replies`, and `studios_found`. So
+tool outputs the CEO or Tuner read must not carry email, reply, lead, or contact counts or text.
+Those live in `get_pipeline_metrics` and the business tools, read by Finance and Sales only.
 
 Solver execution is **Pinara's harness**. `solve_level` only inserts a `solver_runs` row with
 `status = 'queued'`; the harness claims queued rows, runs the adapter, and writes results. The

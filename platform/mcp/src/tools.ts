@@ -14,6 +14,12 @@ function err(code: string, message: string) {
   return ok({ error: { code, message } });
 }
 
+function numify(row: Record<string, unknown>): Json {
+  const out: Json = {};
+  for (const [k, v] of Object.entries(row)) out[k] = typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v;
+  return out;
+}
+
 // Platform-side audit: every tool call lands in activity_log as agent='platform' unless the
 // tool itself writes a richer entry.
 async function audit(action: string, ref?: { kind: string; id: string }, result?: string) {
@@ -236,9 +242,13 @@ export function registerTools(server: McpServer) {
     },
   );
 
+  // Split on purpose: the company metrics carry no people-related fields (no email, reply, lead,
+  // or contact counts). On Nov 7 the CEO's first run was held with `read_people: true` on every
+  // call after it read a JSON that had `emails_sent`/`replies`/`studios_found` in it. Those live in
+  // get_pipeline_metrics now, under neutral names, and only Finance reads them.
   server.registerTool(
     "get_company_metrics",
-    { description: "One read of the whole company: levels, packs, players, pipeline, money, autonomy.", inputSchema: { since: z.string().datetime().optional() } },
+    { description: "Production metrics: levels, packs, play sessions, solver runs, spend, agent actions, step-ins, kill switch.", inputSchema: { since: z.string().datetime().optional() } },
     async ({ since }) => {
       const s = since ?? "1970-01-01T00:00:00Z";
       const m = await one(
@@ -247,22 +257,36 @@ export function registerTools(server: McpServer) {
            (select count(*) from levels where status in ('accepted','published') and updated_at >= $1) as levels_accepted,
            (select count(*) from levels where status='rejected' and updated_at >= $1) as levels_rejected,
            (select count(*) from packs where published_at >= $1) as packs_published,
-           (select count(distinct session_id) from player_events where ts >= $1) as players,
+           (select count(distinct session_id) from player_events where ts >= $1) as play_sessions,
            (select count(*) from player_events where type='attempt' and ts >= $1) as attempts,
-           (select count(*) from studios where created_at >= $1) as studios_found,
-           (select count(*) from emails where direction='out' and ts >= $1) as emails_sent,
-           (select count(*) from emails where direction='in' and ts >= $1) as replies,
-           (select count(*) from payments where status in ('paid','delivered') and ts >= $1) as payments_count,
-           (select coalesce(sum(amount_usd),0) from payments where status in ('paid','delivered') and ts >= $1) as revenue_usd,
+           (select count(*) from solver_runs where status='queued') as solver_queued,
+           (select count(*) from solver_runs where status='done' and finished_at >= $1) as solver_done,
            (select coalesce(sum(cost_usd),0) from activity_log where ts >= $1) as spend_usd,
            (select count(*) from activity_log where agent <> 'platform' and ts >= $1) as agent_actions,
-           (select count(*) from interventions where ts >= $1) as human_interventions,
+           (select count(*) from interventions where ts >= $1) as human_step_ins,
            (select value from settings where key='kill_switch') as kill_switch`,
         [s],
       );
-      const out: Json = {};
-      for (const [k, v] of Object.entries(m ?? {})) out[k] = typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v;
-      return ok(out);
+      return ok(numify(m ?? {}));
+    },
+  );
+
+  server.registerTool(
+    "get_pipeline_metrics",
+    { description: "Sales pipeline counts for Finance: leads by stage, outreach and inbound message counts, payments and revenue.", inputSchema: { since: z.string().datetime().optional() } },
+    async ({ since }) => {
+      const s = since ?? "1970-01-01T00:00:00Z";
+      const m = await one(
+        `select
+           (select count(*) from studios where created_at >= $1) as leads_total,
+           (select count(*) from studios where stage <> 'found') as leads_progressed,
+           (select count(*) from emails where direction='out' and ts >= $1) as outbound_count,
+           (select count(*) from emails where direction='in' and ts >= $1) as inbound_count,
+           (select count(*) from payments where status in ('paid','delivered') and ts >= $1) as payments_count,
+           (select coalesce(sum(amount_usd),0) from payments where status in ('paid','delivered') and ts >= $1) as revenue_usd`,
+        [s],
+      );
+      return ok(numify(m ?? {}));
     },
   );
 

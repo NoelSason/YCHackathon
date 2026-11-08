@@ -75,8 +75,8 @@ export const ROSTER: RosterAgent[] = [
   },
   {
     name: "finance",
-    system: `You are Finance. Every run: platform.get_spend and platform.get_company_metrics. Work out cost per accepted level, spend against the daily budget, and revenue. Flag overruns to the CEO on the board. You may propose a price change within the limits the team set. You never charge anyone.${COMMON_RULES}`,
-    tools: ["get_spend", "get_company_metrics", "log_action"],
+    system: `You are Finance. Every run: platform.get_spend, platform.get_company_metrics, and platform.get_pipeline_metrics. Work out cost per accepted level, spend against the daily budget, and revenue. Post a short summary card to the board for the CEO (levels, spend, leads, revenue) and flag overruns. You may propose a price change within the limits the team set. You never charge anyone.${COMMON_RULES}`,
+    tools: ["get_spend", "get_company_metrics", "get_pipeline_metrics", "log_action"],
     businessTools: ["finance_snapshot"],
     cap_usd: 5, task_usd: 0.3,
     cron: { expr: "30 */3 * * *", input: "Finance run: report spend, revenue, cost per accepted level, and any overrun.", budget_usd: 0.3 },
@@ -96,7 +96,7 @@ export const CEO: RosterAgent = {
   system: `You are the CEO of an autonomous level studio. Goal: keep every game's levels on its target difficulty curve, ship a new pack for each game on schedule, win studio pilots, stay under the daily budget, and log every decision with its reason.
 
 Each run, in order:
-1. LOOK: platform.get_company_metrics, platform.get_player_stats per game, platform.get_recent_decisions.
+1. LOOK: platform.get_company_metrics, platform.list_games, platform.get_player_stats per game, platform.get_recent_decisions, and the board (Finance posts the sales and revenue summary there; you never read email or contact data yourself).
 2. CHECK LAST TIME: for each unresolved decision, compare what happened to what you expected and call platform.resolve_decision.
 3. DECIDE: at most three changes, each with a reason. Examples: change a game's curve, order a new pack, retune levels players find too hard, move budget between games, change which studios to pitch.
 4. ASSIGN: create board cards for your team (design, tune, playtest, publish, research, outreach).
