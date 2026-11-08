@@ -20,6 +20,20 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:45 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Phone playtest verified live through the public site.** Order `ab547561…`: POST `levelai.vercel.app/playtest-orders`
+→ queued → the iPhone opened the site in Safari and explored it (Mobilerun task `7ed2c72d…`, completed, 9 steps,
+about 65 s) → report emailed → stage `delivered`. `activity_log` has the "playtesting" and "playtested" rows, and the demo
+stage's phone box showed "Now testing", then "Last tested levelai.vercel.app for Level AI". The live server restarted
+with the evidence rule and `/health` forwarding; `levelai.vercel.app/health` returns 200.
+**Files:** `business/README.md`.
+**State:** No code changes were needed. 67 tests pass.
+**Next / heads-up:** the phone only moves when someone orders a playtest, or when the Naïve playtest agent runs after
+switch-on.
+
+---
+
 ### 2026-11-07 16:40 PT · Abhinav (Claude) · branch `main`
 
 **What:** `npm run ceo-now` in `platform/naive`: starts one CEO session with the cron's input and

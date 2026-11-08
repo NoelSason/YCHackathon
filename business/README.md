@@ -80,8 +80,8 @@ npm run smoke          # demo-readiness checks against BUSINESS_BASE_URL
 - Stripe payment links against a real test account. The Stripe CLI on this laptop is signed in to
   a different account (South Indian Society sandbox), and its key expired in July.
 - Naïve CRM writes and `agents:apply`: no `NAIVE_API_KEY` in `.env` yet.
-- Mobilerun: the key and device work ("Noel's iPhone", iOS, ready), and the demo stage's phone check
-  passes with live screenshots. No playtest task has run yet.
+- Mobilerun: verified end to end on Nov 7 at 4:35 PM. A public playtest order ran on "Noel's iPhone" in about 65 s
+  (task `7ed2c72d…`, 9 steps, structured results), the report was emailed, and the demo stage showed "Now testing".
 - The live Neon database: `DATABASE_URL` isn't set yet. The SQL is tested against the platform schema
   in PGlite, not against Neon itself.
 - Naïve rejects login tokens written into agent definitions. The business server's bearer goes in
