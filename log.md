@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 10:22 PM PT · Noel · Claude Code (Sentinels 5 pack, 6 money) · main
+- **What:** (1) **Pack** (Sentinel 5): a real Candy Crush demo-run with company "Level AI Test Agency", 10:07–10:19 PM, 12 min 25 s end to end: waited 2 min 38 s for the phone, study 3 min 6 s, 20 levels in 75 s, pack email 1 s later, closing level-1 playtest 4 min 58 s (inside the new 6-min limit). All three emails arrived; play and JSON links 200. Fixed: the demo-run renamed the shared lead to "Demo" (emails said "Hi Demo"); the curve line said the phone played the game twice; the closing recap said "lost in 10 moves" when the phone just stopped at its 10-move limit. (2) **Money** (Sentinel 6): all three live checkouts open real Stripe pages with the right amounts, forms work at 390px, the test-mode webhook records a payment in ~1 s, the outbox is empty. No code changes.
+- **Why:** The pack is the main demo segment; its emails must read right.
+- **Files:** `business/src/levels/deliver-pack.ts`, `business/test/deliver-pack.test.ts`
+- **State:** works; business 305/305. The pack fixes load on the next :8787 restart.
+- **Next / heads-up:** Refunds don't lower Earned (no `charge.refunded` webhook). The console's test-payment tile hides team orders, so the money line should show the activity log. On stage, always pass `company` to `/orders/demo-run`. **Max:** Lot Escape has no `?pack=` (`games/lotescape/ui/main.ts:288`).
+
 ### 2026-11-07 10:14 PM PT · Noel · Claude Code (console/phone agent, checkpoint) · main
 - **What:** Console and phone segment done (most code went out in ef87c91). Bulk compiler and auto-approver rows get their own cards and collapse into one feed line; Agent actions is an honest count; auto-approvals show under step-ins; Spent includes Naïve agent spend ($14.38 at 10:04 PM); a live Neon line in the header; team tests are tagged and left out of studio counts; the phone panel names App Store games, our levels, pack levels, and X posts correctly. X: `POST /social/post-now` (Bearer token) posts from the phone; the scheduled loop is quiet 3 AM–2 PM PT (`SOCIAL_QUIET_HOURS`), and post-now has 3 extra posts (`SOCIAL_DEMO_RESERVE`). Snapshots are scheduled for Sun 8:00 and 10:30 AM (`demo/snapshot-schedule.sh`).
 - **Why:** The console is the demo; X posting must not collide with the recording.

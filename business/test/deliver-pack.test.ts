@@ -11,7 +11,7 @@ import { createHandler } from "../src/app.js";
 import { clearPriceCache } from "../src/billing/stripe.js";
 import { createOrder } from "../src/leads/orders.js";
 import { makePack } from "../src/levels/pack-maker.js";
-import { addPackDelivery, curveFor, CURVE_END, getPackDelivery, resumePackDeliveries, runDueDeliveries, studyWork, waitForPhone } from "../src/levels/deliver-pack.js";
+import { addPackDelivery, composePackEmail, curveFor, levelOneSummary, CURVE_END, getPackDelivery, resumePackDeliveries, runDueDeliveries, studyWork, waitForPhone } from "../src/levels/deliver-pack.js";
 import type { MadeLevel, MakeRequest, PackMaker } from "../src/levels/pack-types.js";
 import type { ToolContext } from "../src/mcp/tools.js";
 
@@ -132,6 +132,21 @@ describe("the difficulty curve", () => {
     const none = curveFor("medium", 20, { ...study, movesBeforeRamp: null });
     expect(none).toMatchObject({ plateau: 3, end: 0.4, fromStudy: false });
     expect(none.basis).toMatch(/^Our iPhone reached level 3 without it getting noticeably harder in Candy Crush Saga, so there's no measured ramp → we used our default medium curve/);
+    // The pack email doesn't say the phone played the game twice when the basis already says so.
+    const mail = composePackEmail({
+      name: "Noel", company: "Team Demo", gameId: "match3", difficulty: "medium", owed: 1, levels: [{ target: 0.85, measured: 0.85, notes: null, url: "u" }],
+      curve: none, studiedGame: "Candy Crush Saga", studied: true, playUrl: "p", jsonUrl: "j", siteUrl: "s", test: true,
+      companyName: "Level AI", postalAddress: "", replyTo: "r", bot: "greedy", runs: 100,
+    });
+    expect(mail.body).toContain("How we set the curve: Our iPhone reached level 3");
+    expect(mail.body).not.toContain("before building, our iPhone played");
+  });
+
+  it("doesn't call a closing run that stopped at the move cap a loss", () => {
+    const r = { loaded: true, touchOk: true, won: false, levelReached: 1, movesUsed: 10, movesBeforeRamp: null, stuckAt: null, designNote: "", visualIssues: [] as string[] };
+    expect(levelOneSummary(r, "lost at level 1 in 10 moves")).toBe("played 10 moves without finishing the level; our closing session stops at 10 moves");
+    expect(levelOneSummary({ ...r, movesUsed: 6 }, "lost at level 1 in 6 moves")).toBe("lost at level 1 in 6 moves");
+    expect(levelOneSummary({ ...r, won: true }, "won, reached level 2 in 10 moves")).toBe("won, reached level 2 in 10 moves");
   });
 
   it("studies a known App Store game by bundle id, and skips a store page it can't open", () => {

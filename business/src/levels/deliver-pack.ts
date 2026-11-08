@@ -585,6 +585,17 @@ async function studyGame(ctx: ToolContext, d: PackDelivery, who: Recipient, poll
   return study;
 }
 
+/** The closing run is a short session: the phone stops after this many moves, win or not. */
+const LEVEL1_MOVES = 10;
+/**
+ * The phone reports won=false when it stops at the move cap, though a match-3 level can't be lost before its
+ * own move limit (Nov 7, 10:19 PM: "lost at level 1 in 10 moves" on a 23-move level). Say it stopped instead.
+ */
+export function levelOneSummary(r: LoopResult, summary: string): string {
+  if (r.won !== false || r.movesUsed == null || r.movesUsed < LEVEL1_MOVES) return summary;
+  return `played ${r.movesUsed} moves without finishing the level; our closing session stops at ${LEVEL1_MOVES} moves`;
+}
+
 /** The closing shot: the main phone opens level 1 of the pack in our player, plays it, and the customer gets a recap. */
 async function playtestPack(ctx: ToolContext, d: PackDelivery, who: Recipient, packId: string, firstLevelId: string, pollMs?: number): Promise<void> {
   const client = ctx.mobilerun;
@@ -598,13 +609,13 @@ async function playtestPack(ctx: ToolContext, d: PackDelivery, who: Recipient, p
     const o = await runWork(ctx, client, deviceId, {
       kind: "own", name: `level 1 of ${who.company}'s ${genre.label} pack`, url, levelId: firstLevelId,
       targetWinRate: d.curve?.targets[0] ?? null, genre: genre.label, howToPlay: genre.howToPlay,
-    }, { maxSeconds: 6 * 60, moves: 10, maxSteps: 20, ...(pollMs ? { pollMs } : {}) }); // 4 min timed out on /play (Nov 7, 9:56 PM)
+    }, { maxSeconds: 6 * 60, moves: LEVEL1_MOVES, maxSteps: 20, ...(pollMs ? { pollMs } : {}) }); // 4 min timed out on /play (Nov 7, 9:56 PM)
     if (o?.result) shotPng = await captureScreen(client, deviceId);
     return o;
   });
   const shot = shotPng ? await smallScreenshot(shotPng) : null;
   await sendRecap(ctx, who, `${d.id}:level1`, composeLevelOneRecap({
-    first: who.first, genre: genre.label, result: out?.result ?? null, summary: out?.summary ?? "the page didn't load on the phone", target: d.curve?.targets[0] ?? null,
+    first: who.first, genre: genre.label, result: out?.result ?? null, summary: out?.result ? levelOneSummary(out.result, out.summary) : (out?.summary ?? "the page didn't load on the phone"), target: d.curve?.targets[0] ?? null,
     playUrl: url, test: d.test, screenshot: Boolean(shot), companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
     replyTo: ctx.config.AGENTMAIL_INBOX_ID ?? "levelai@agentmail.to",
   }), shot, "level 1 playtest recap");
@@ -627,7 +638,8 @@ export function composePackEmail(args: {
   const what = `${n} ${g.label} level${n === 1 ? "" : "s"}`;
   const measuredCell = (l: { measured: number | null; notes: string | null }) => (l.measured === null ? (l.notes?.replace(/^.*: search bot /, "") ?? "exact puzzle") : pct(l.measured));
   const lines = args.levels.map((l, i) => `Level ${String(i + 1).padStart(2)}   target ${pct(l.target).padStart(4)}   measured ${measuredCell(l).padStart(4)}   ${l.url}`);
-  const calibration = args.studied && args.studiedGame
+  // A no-ramp basis already says "Our iPhone … in <game>", so don't say the phone played it twice.
+  const calibration = args.studied && args.studiedGame && !/^Our iPhone\b/.test(args.curve.basis)
     ? `How we set the curve: before building, our iPhone played ${args.studiedGame}. ${args.curve.basis}`
     : `How we set the curve: ${args.curve.basis}`;
   const honest = `These levels are made in our own ${g.label} game (${g.game}) for your genre, calibrated to how your game plays. They aren't built inside your game: you get playable previews plus JSON in a documented format (${args.siteUrl}/developers#formats) to adapt to your engine.`;
