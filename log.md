@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 11:19 PM PT · Noel · Claude Code (Sentinels 16 phone, 17 levels, 18 pack) · main
+- **What:** (1) Generator pack at 10 tries, run live at 11:18 PM: 5 of 5 in 7.2 s, 24 generator calls; email says "Hi Noel" and states the on-target rule; links 200. Demo script section F updated. (2) Levels: 13 agent-made accepted; production doesn't depend on the CEO (Designer cron every 20 min, Tuner is a program), so about 20 more are expected by 10:30 AM. (3) Phone since 10 PM: 6 playtests started, 5 logged, 0 failed; one orphan from the 10:05 PM restart.
+- **Why:** Closes the last untested generator item and confirms levels keep growing with the CEO paused.
+- **Files:** `docs/demo-script.md`
+- **State:** works, except X: x.com stayed on the black logo for 60 s at 11:10 PM (task 200b7aab). Games load fine on the same phone.
+- **Next / heads-up:** **Noel:** clear Safari's x.com data on the main phone in Mobilerun's live view and log in again. Scheduled X retries will log failures around 12:58 and 2:58 AM until then. Task 200b7aab isn't in the activity log; it goes in the overnight step-in.
+
 ### 2026-11-07 11:10 PM PT · Noel · Claude Code (Sentinel 15 console) · main
 - **What:** Recording-readiness pass at 1920×1080 and 1440×900; tiles match the numbers command. Header says what the company is; "Found" is now "Not emailed yet"; the step-in panel shows 3 rows with "See all 8"; the Decisions tile shows "CEO last acted 9:57 PM", and the CEO card dims to "Stopped" after 90 quiet minutes (simulated only); QR copy points to the email route.
 - **Why:** A judge has two minutes; nothing on screen should mislead.

@@ -180,9 +180,14 @@ curl -X POST localhost:8787/orders/demo-run -H "Authorization: Bearer $BUSINESS_
   -d '{"email":"noel_sason@berkeley.edu","generator_id":"9fbe79ac-23f1-470b-af8d-ca05fbce724e","levels":5,"company":"Level AI Test Agency","name":"Noel"}'
 ```
 
-Feed rows: `asked Level AI Test Agency's generator for level k at difficulty …`, `level k measured …
-vs … target: …`, `delivered level pack`. A real 9:47 PM run took 12.7 s for 5 levels. If the endpoint
-is down, the pack logs "step-in needed"; say so and show the 9:47 PM email.
+Feed rows: `asked Level AI Test Agency's generator for level k at difficulty …`, `Level AI Test Agency's
+level k measured … vs … target: accepted` (or `too easy` / `too hard` with the new difficulty), `delivered
+level pack to Level AI Test Agency`. The 11:18 PM run at 10 tries delivered 5 of 5: 7.2 s from order to
+sent, 24 generator calls, 8 tries in all. Measured 91, 80, 81, 59, 48% against targets 85, 85, 85, 51, 40%.
+The email states the on-target rule (within 5 points, or 8 when the 95% interval includes the target), so
+59% for a 51% target counts. It lands as the newest message in the existing "[Test order] Your level pack
+is ready" thread. If the endpoint is down, the pack logs "step-in needed"; say so and show the 11:18 PM
+email.
 
 ### G. Step-ins
 
@@ -239,7 +244,7 @@ Never run `./demo.sh` plain tonight or tomorrow: `:4545` is already running.
 | Second send path | **Not running, not tested** | 11:00 PM | Uncommitted code, no env vars |
 | Agency conversation | Verified | 10:46–10:48 PM | Sentinel 7, live thread |
 | Generator test | Verified | 10:27 PM | Sentinel 8 |
-| Generator pack at 10 tries | **Not run live** (simulated; the 10:21 PM run with 6 tries delivered 3 of 5) | n/a | Tests only |
+| Generator pack at 10 tries | **Works:** 5 of 5 in 7.2 s, 24 generator calls; email and links checked | 11:18 PM | One live run; 0 of 25 simulated packs came back short |
 | X post-now | **Broken; needs Noel's login** | Failed 10:14 PM | Feed |
 | Phone loop | Verified | 10:54 PM | Feed row, `phones=ready/ready` |
 | Research cadence 10–15 min | Observed | 10:33, 10:45, 10:55 PM | Neon rows; 8–14 min passes expected |
