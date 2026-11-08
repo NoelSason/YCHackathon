@@ -26,6 +26,89 @@ This is the team's build log. It isn't the company's agent activity log, which t
 - **Files:** `business/src/outreach/`, `business/src/agency/`, `business/src/{app,config,server}.ts`, `business/src/mcp/tools.ts`, `business/test/`, `business/.env.example`
 - **State:** partly works: business 328/328, demo 21/21. The fallback isn't active: no alternative sender is configured, and the running server hasn't loaded this code.
 - **Next / heads-up:** The outreach agent is still working; its final entry follows.
+### 2026-11-07 23:30 PT · Pinara (Claude Code) · branch `main`
+
+**What:** **"100 ahead" now works from real play in all four of these games.**
+- **Turbo Lanes and Splash Sort walk the verified series in order.**
+  - "Next" after Circuit/Tide n loads n+1 by the producer's deterministic id, and after the last
+    practice level it continues where this browser left off (else level 1).
+  - The newest-30 list is now only a fallback.
+  - Before this, "Next" walked the newest levels, so players never won levels 1, 2, 3 … in order,
+    and the producer's stock rule (wins in order + 100) could never advance from real play.
+- **A production watcher for the two new games is running** on Pinara's laptop since 23:26:
+  `cli.ts --database --watch --games lotescape,platformer`. Both report `buffer_healthy` (100
+  ready, played through 0).
+- The existing three-game watcher, started at 20:10 from `/private/tmp/levelai-buffer-runtime`,
+  is untouched.
+
+**Why:** Pinara: when a person plays 50 levels in production, 50 more are generated, so there are
+always 100 extra. The rule existed (`solver/src/production/buffer.ts`), but the game pages didn't
+play in the order it counts.
+**Files:** `games/racer/ui/main.ts`, `games/watersort/ui/main.ts`, `site/games/{racer,watersort}/`,
+`solver/test/production-buffer.test.ts`.
+**State:** Works:
+- **Browser:** headless Chromium against the production platform, with `/events` intercepted:
+  - Circuit 0001 → 0002 → 0003 and Tide 0001 → 0002 → 0003 (the exact expected ids).
+  - Last practice level → level 1.
+  - 0 errors.
+- **Buffer test:** for lotescape and platformer, winning 1–50 in order asks for 101–150; a real
+  production level for 101 is accepted, and 151 is refused. Buffer tests pass 4/4.
+- **Tests and typechecks:** racer 21/21, watersort 14/14, typechecks clean.
+- **Site check:** `levelai.vercel.app/levels-latest` returned errors again during the site build's
+  probe, about 23:28; my guard kept `site/games/published.json` unchanged.
+
+**Next / heads-up:**
+- **Noel:**
+  1. Please redeploy the site. The four game pages from 23:15–23:30 go live with it.
+  2. The `/levels-latest` tunnel keeps dropping for minutes at a time.
+- **Match-3 `/play`** (Noel's player) stays on a fixed pack, so match-3 progress still can't
+  advance the buffer from real play. That's for Noel, if wanted.
+- **The two watchers run on Pinara's laptop.** If it sleeps or restarts, the stock stops topping
+  up: `cd solver && caffeinate -i node --env-file=.env --import tsx src/production/cli.ts
+  --database --watch --games lotescape,platformer --out production/new-games-watch-v1-1.jsonl`.
+
+### 2026-11-07 23:25 PT · Pinara (Claude Code) · branch `main`
+
+**What:** **Mosslight Trails is in the level pipeline end to end, and 100 verified trails are live
+in production.** Built on Codex's 23:05 shared engine.
+- **Optional `move_limit`** in the rules and schema (1–500, never below the shortest route).
+  Running out of steps loses the trail. Trails without it behave as before.
+- **`human` bot** (the new reference): it follows the shortest route but sometimes lands on a
+  wrong ledge at a fork and re-plans. `greedy` and `random` respect `move_limit`.
+- **`src/generate.ts`**: a seeded trail generator, notch 1–12 (length, roughness, lower jumps,
+  forks, one-way drops, route-safe thorns).
+- **Production recipe:** `Trail 0001` …, with `move_limit` tuned. The ceiling is the shortest
+  route + 80.
+- **Page:**
+  - After practice trail 5, or on a fresh visit, it plays the verified series in order. A link to a
+    production trail opens it as verified.
+  - A level badge ("LEVEL 1 · VERIFIED · YOU", or "· ENGINE" in autoplay).
+  - Steps show as "n / limit", and running out reports a loss.
+  - It falls back to the newest live trails only when the series runs out.
+
+**Why:** Pinara: all five games must generate, verify, and serve levels, with 100 ahead.
+**Files:** `games/platformer/{src/engine.ts,src/generate.ts,adapter/index.ts,ui/main.ts,public/style.css,test,README.md,SKILL.md}`,
+`solver/src/production/{catalog,calibrate}.ts`, `solver/test/production.test.ts`,
+`solver/PRODUCTION.md`, `site/games/platformer/`, `site/games/published.json` (all five `true`).
+**State:** Works:
+- **Production:** 100/100 accepted in 55 s, with 0 failures. Measured vs. target: easy 85% vs.
+  84%, normal 73% vs. 73%, challenge 43% vs. 44%. No level is more than 6 points off.
+- **Generator:** 840 trails across notches 1–14, with 0 invalid, at 0.4 ms each.
+- **Tests:** platformer 7/7 (Codex's 4 plus move_limit, human bot, and generator). Production
+  10/10, including all 1,000 platformer recipes validated and an end-to-end calibrate-and-replay
+  test. Typechecks are clean.
+- **Browser:** headless Chromium against the production platform, with `/events` intercepted:
+  - Trail 0001 shows "0 / 30" and "YOU"; autoplay shows "ENGINE", wins, and Next loads Trail
+    0002.
+  - A fresh visit starts at Trail 0001, and practice 5 leads to verified Trail 0001. 0 console
+    errors.
+
+**Next / heads-up:**
+- **Codex/UI chat:** this changes `games/platformer/{src/engine.ts,adapter,ui}` after your 23:05
+  push. `PlayState.status` can now be `"lost"`, and the bots are `["human","greedy","random"]`.
+  Pull before editing.
+- **Noel:** site redeploy for the Mosslight page.
+- **Abhinav:** a platform redeploy picks up the new platformer schema for MCP tools.
 
 ### 2026-11-07 11:19 PM PT · Noel · Claude Code (Sentinels 16 phone, 17 levels, 18 pack) · main
 - **What:** (1) Generator pack at 10 tries, run live at 11:18 PM: 5 of 5 in 7.2 s, 24 generator calls; email says "Hi Noel" and states the on-target rule; links 200. Demo script section F updated. (2) Levels: 13 agent-made accepted; production doesn't depend on the CEO (Designer cron every 20 min, Tuner is a program), so about 20 more are expected by 10:30 AM. (3) Phone since 10 PM: 6 playtests started, 5 logged, 0 failed; one orphan from the 10:05 PM restart.

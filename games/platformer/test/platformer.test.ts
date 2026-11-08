@@ -3,6 +3,7 @@ import {test} from 'node:test';
 import adapter from '../adapter/index.js';
 import {initialState,move,neighbors,path,validateLevel} from '../src/engine.js';
 import {SAMPLES,makeTrail} from '../src/levels.js';
+import {generateTrail} from '../src/generate.js';
 
 test('all authored trails are valid and the exact solution wins using browser movement',()=>{
  for(let i=1;i<=100;i++){
@@ -44,4 +45,35 @@ test('collectibles cannot be counted twice on revisits and a current-position hi
  const prior=s.position;s=move(level,s,back);s=move(level,s,prior);
  assert.equal(s.collected.length,collected);
  assert.ok(path(level,s.position)?.length);
+});
+
+test('move_limit: optional, never below the shortest route, and running out of steps loses the trail',()=>{
+ const l=SAMPLES[0]!,min=adapter.solve!(l).min_moves!;
+ assert.deepEqual(validateLevel({...l,move_limit:min}),{ok:true});
+ assert.equal(validateLevel({...l,move_limit:min-1}).ok,false);
+ assert.equal(validateLevel({...l,move_limit:0}).ok,false);
+ const tight={...l,move_limit:min};let s=initialState(tight);
+ const wrong=neighbors(tight,s.position).find(p=>p.x<s.position.x||p.y!==path(tight)![1]!.y);
+ if(wrong){s=move(tight,s,wrong);for(let i=0;i<min&&s.status==='playing';i++){const next=path(tight,s.position)?.[1];if(!next)break;s=move(tight,s,next);}assert.equal(s.status,'lost');}
+ const won=path(tight)!.slice(1).reduce((st,p)=>move(tight,st,p),initialState(tight));assert.equal(won.status,'won');
+});
+
+test('human bot: deterministic per seed, wins more as move_limit loosens, never beats the shortest route',()=>{
+ const l=generateTrail({seed:42,difficulty:6,name:'Test trail'}),min=adapter.solve!(l).min_moves!;
+ assert.deepEqual(adapter.simulate({...l,move_limit:min+8},'human',3),adapter.simulate({...l,move_limit:min+8},'human',3));
+ const rate=(extra:number)=>{let w=0;for(let s=1;s<=200;s++)w+=Number(adapter.simulate({...l,move_limit:min+extra},'human',s).won);return w/200;};
+ const rates=[0,6,12,25,60].map(rate);
+ for(let i=1;i<rates.length;i++)assert.ok(rates[i]!>=rates[i-1]!,`win rate fell: ${rates.join(', ')}`);
+ assert.ok(rates[0]!<0.3&&rates.at(-1)!>0.7,`human bot should span hard to easy: ${rates.join(', ')}`);
+ for(let s=1;s<=50;s++){const out=adapter.simulate({...l,move_limit:min+60},'human',s);if(out.won)assert.ok(out.moves_used>=min);}
+});
+
+test('generator: seeded, valid at every notch, and harder notches need more steps',()=>{
+ assert.deepEqual(generateTrail({seed:9,difficulty:5}),generateTrail({seed:9,difficulty:5}));
+ let easy=0,hard=0;
+ for(let i=0;i<20;i++){
+  for(let d=1;d<=12;d++)assert.deepEqual(validateLevel(generateTrail({seed:i*31+d,difficulty:d})),{ok:true});
+  easy+=adapter.solve!(generateTrail({seed:i,difficulty:1})).min_moves!;hard+=adapter.solve!(generateTrail({seed:i,difficulty:12})).min_moves!;
+ }
+ assert.ok(hard>easy*1.8,`top notch trails should be much longer: ${easy/20} vs ${hard/20}`);
 });

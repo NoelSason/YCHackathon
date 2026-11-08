@@ -40,8 +40,9 @@ sends quits with the existing event contract.
 
 ## Quality limits
 
-The current greedy bot follows the exact route and wins all valid levels; its 100% rate is a
-reference-route check, not a calibrated human difficulty claim. The random bot also uses the shared
+The greedy bot follows the exact route and wins whenever `move_limit` allows it; its rate is a
+reference-route check, not a calibrated human difficulty claim. Tuned difficulty uses the `human` bot
+(see "Level production" below), and it is still a bot model, not measured human play. The random bot also uses the shared
 legal-landings function. Route length and jump/drop limits can describe a trail, but must not be
 presented as measured human difficulty. Production publication needs actual bot/solver evidence;
 no level is labeled agent-authored if a human integration run created it.
@@ -64,3 +65,20 @@ rewrite config. Runtime `.env` keys stay server-side and are never copied into t
 of `greedy` and `random` plus exact proof. `npm run publish:platformer -- --publish` refuses to
 publish if `/games/platformer/` or its real JS client is not live. Until deployment is verified,
 the new client must be described as ready for deployment, not already playable in production.
+
+## Level production (added Nov 7, 23:45)
+
+- **`move_limit`** (optional, 1–500, never below the shortest route): running out of steps before
+  the gate loses the trail. Trails without it, like the five practice trails, can't be lost, as
+  before.
+- **`human` bot** (the reference for tuning): it follows the shortest route from wherever it
+  stands, but at a fork it sometimes lands on a wrong ledge (12–18%, more with lower jumps), then
+  re-plans. A wrong one-way drop can cost a long detour. Its win rate rises smoothly with
+  `move_limit`. `greedy` and `random` now respect `move_limit`.
+- **`src/generate.ts`**: seeded `generateTrail({ seed, difficulty })`. Notch 1 is the easiest, 12
+  the top: longer and rougher trails, lower jumps, more ledges and forks, one-way drops, and thorns
+  that force the ledge route. Every trail is checked with the shared rules before it's returned.
+- **Production:** `solver/src/production` makes the verified series `Trail 0001` … with the tuned
+  `move_limit`. The page plays it in order after the practice trails, with a level badge
+  ("LEVEL 12 · VERIFIED · YOU", or "· ENGINE" in autoplay).
+

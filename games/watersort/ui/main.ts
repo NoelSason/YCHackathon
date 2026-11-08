@@ -232,7 +232,10 @@ function finish(status: "won" | "lost", title?: string, text?: string): void {
     if (nextInPack) setButton("Next level", () => startPackLevel(nextInPack));
     else {
       const live = next || pack ? null : nextLiveId(game.levelId);
-      setButton(next || live ? "Next level" : "Play again", () => (next ? startSample(next) : live ? void startLive(live) : restart()));
+      // The verified series: the next position after a verified level, or after the last practice level.
+      const seriesNext = next || pack ? null : seriesAt ? seriesAt + 1 : game.sample === SAMPLES.length ? storedSeries() : null;
+      if (seriesAt) rememberSeries(seriesAt + 1);
+      setButton(next || seriesNext || live ? "Next level" : "Play again", () => (next ? startSample(next) : seriesNext || live ? void playNext(seriesNext, live) : restart()));
     }
   } else {
     el("ov-title").textContent = title ?? "Try again";
@@ -426,6 +429,35 @@ function notice(text: string): void {
 
 // ---------- loading ----------
 
+// ---------- verified series ----------
+// Level AI's production levels are a numbered series (the number is in each title). Their ids are
+// fixed by the producer (solver/src/production/store.ts levelId), so "Next" can load level n+1 by
+// id, in order. Wins in order are what the producer counts to keep 100 verified levels ahead.
+const SERIES_KEY = `${GAME_ID}:verified-next`;
+let seriesAt = 0; // the verified-series position on screen, or 0
+
+async function productionId(n: number): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`production-v1:1:${GAME_ID}:${n}`));
+  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+/** n if this level is verified-series position n (its title number and its id agree), else 0. */
+async function seriesPosition(title: string | undefined, id: string | null): Promise<number> {
+  const m = /(\d{4})$/.exec(title ?? "");
+  if (!m || !id) return 0;
+  const n = Number(m[1]);
+  return n >= 1 && (await productionId(n)) === id ? n : 0;
+}
+
+/** Where this browser left off in the series (1 for a new player). */
+function storedSeries(): number {
+  try { return Math.max(1, Math.floor(Number(localStorage.getItem(SERIES_KEY))) || 1); } catch { return 1; }
+}
+function rememberSeries(n: number): void {
+  try { localStorage.setItem(SERIES_KEY, String(n)); } catch { /* storage blocked: nothing is remembered */ }
+}
+
 /** The live level after `current` (newest first, then wrapping around), or null if there are none. */
 function nextLiveId(current: string | null): string | null {
   if (!liveIds.length) return null;
@@ -446,22 +478,36 @@ async function fetchLiveIds(): Promise<void> {
 }
 
 /** Start a live level by id and put it in the address bar, so the link can be shared. */
-async function startLive(id: string): Promise<void> {
+/** Next verified position if it's live, else the next level from the live list, else play again. */
+async function playNext(series: number | null, live: string | null): Promise<void> {
+  if (series && (await startLive(await productionId(series), true))) return;
+  if (live && (await startLive(live, true))) return;
+  restart();
+}
+
+async function startLive(id: string, quiet = false): Promise<boolean> {
   window.clearInterval(autoTimer);
   try {
-    start(await fetchLevel(id), id, null);
+    const level = await fetchLevel(id);
+    start(level, id, null);
+    seriesAt = await seriesPosition(level.title, id);
+    if (seriesAt) rememberSeries(seriesAt);
     const url = new URL(location.href);
     url.searchParams.delete("sample");
     url.searchParams.delete("data");
     url.searchParams.set("level", id);
     history.replaceState(null, "", url);
+    return true;
   } catch (e) {
+    if (quiet) return false;
     notice(`Couldn't load the next level (${e instanceof Error ? e.message : String(e)}).`);
     restart();
+    return false;
   }
 }
 
 function startSample(n: number): void {
+  seriesAt = 0;
   window.clearInterval(autoTimer);
   leaveAttempt();
   const i = Number.isInteger(n) && n >= 1 && n <= SAMPLES.length ? n : 1;
@@ -650,7 +696,9 @@ async function boot(): Promise<void> {
     }
   } else if (id) {
     try {
-      start(await fetchLevel(id), UUID_RE.test(id) ? id : null, null);
+      const level = await fetchLevel(id);
+      start(level, UUID_RE.test(id) ? id : null, null);
+      seriesAt = await seriesPosition(level.title, UUID_RE.test(id) ? id : null);
       loaded = true;
     } catch (e) {
       notice(`Couldn't load level ${id} (${e instanceof Error ? e.message : String(e)}). Playing a practice level instead.`);
