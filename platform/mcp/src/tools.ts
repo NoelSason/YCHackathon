@@ -46,6 +46,19 @@ export function registerTools(server: McpServer) {
   );
 
   server.registerTool(
+    "get_game_schema",
+    {
+      description: "Return the authoritative level JSON Schema from a registered game adapter. Use it before designing a level.",
+      inputSchema: { game_id: z.string() },
+    },
+    async ({ game_id }) => {
+      const adapter = getAdapter(game_id);
+      if (!adapter) return err("unknown_game", `no adapter for ${game_id}`);
+      return ok({ game_id: adapter.game_id, name: adapter.name, schema: adapter.schema });
+    },
+  );
+
+  server.registerTool(
     "validate_level",
     {
       description: "Check a level against the game's rules. Returns ok:true or a list of errors.",

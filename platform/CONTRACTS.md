@@ -18,8 +18,8 @@ section only fixes **where it lives and how the platform calls it**, so the Solv
 server share one copy of each game's rules.
 
 - Each game is a directory `games/<game_id>/` with its **adapter as an ESM module** at
-  `games/<game_id>/adapter/index.ts` (or `.js`). `game_id` is a short slug: `match3`, `board`,
-  `runner`.
+  `games/<game_id>/adapter/index.ts` (or `.js`). `game_id` is a short slug such as `match3`,
+  `platformer`, `watersort`, `racer`, or `crategrove`.
 - The module's default export:
 
 ```ts
@@ -64,7 +64,8 @@ Every tool: input is a JSON object, output is a JSON object. Errors come back as
 
 | Tool | Input | Output | Permission | Used by |
 |---|---|---|---|---|
-| `list_games` | `{}` | `{ games: [{ game_id, name, bots, schema_url, targets: { default_win_rate } }] }` | allow | all |
+| `list_games` | `{}` | `{ games: [{ game_id, name, bots, schema_url, targets: { default_win_rate }, adapter_loaded }] }` | allow | all |
+| `get_game_schema` | `{ game_id }` | `{ game_id, name, schema }` | allow | Designer |
 | `validate_level` | `{ game_id, level }` | `{ ok, errors[] }` | allow | Designer, Tuner |
 | `save_level` | `{ game_id, level, target_win_rate, notes?, parent_level_id? }` | `{ level_id, url }` | allow | Designer, Tuner |
 | `get_level` | `{ level_id }` | `{ level_id, game_id, level, target_win_rate, status, measured_win_rate?, solver_runs: [...] }` | allow | Tuner, CEO |

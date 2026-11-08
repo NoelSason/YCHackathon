@@ -8,13 +8,12 @@ An entry for the **Naïve Autonomous Company Hackathon** at YC (560 20th St., Sa
 Nov 7–8, 2026. The goal is a company that agents run end to end: they find customers, deliver
 the product, and handle day-to-day operations.
 
-- **Company:** **Level AI**, an autonomous level studio for puzzle games. Sales inbox:
+- **Company:** **Level AI**, an autonomous level studio for games. Sales inbox:
   `levelai@agentmail.to`. Any game plugs in through an adapter.
   Agents design levels, test each one hundreds of times with bot players or exact solvers, tune
   the difficulty, playtest on real phones, and ship. We run
-  two programmatic game adapters (match-3 and platformer) plus a separate Geometry Dash editor
-  workflow, then sell
-  the same service to studios. We don't build a game.
+  several original, playable games with programmatic adapters plus a separate Geometry Dash editor
+  workflow, then sell the same level design service to studios.
 - **Decided Nov 7, ~1:45 PM:** the team dropped the earlier streaming idea completely. Don't build
   anything for streaming, chat, or clipping streams.
 - **Full plan:** `README.md` has the agents, the sponsor-tool map, each person's plan, the
@@ -29,7 +28,7 @@ the product, and handle day-to-day operations.
 
 | Person | Owns |
 |---|---|
-| **Max** | Game integration: match-3 and platformer adapters and game clients, the Geometry Dash Mobilerun editor workflow, hosting, then the heartbeat dashboard |
+| **Max** | Game integration: original game adapters and clients, the Geometry Dash Mobilerun editor workflow, hosting, then the heartbeat dashboard |
 | **Pinara** | Level quality: the Solver harness, bot players and solvers for programmatic adapters, the Designer and Tuner agents, evals, and the CEO's expected-vs-result check |
 | **Abhinav** | The Naïve backbone: Neon, the platform MCP server, the Naïve Team setup (roster, board, skills, budgets, permissions, cron, kill switch), the CEO loop, and the demo-readiness checks |
 | **Noel** | Business ops as Naïve agents (outreach, finance, billing, CRM), Mobilerun playtests, and the demo script |
@@ -220,7 +219,8 @@ After a pull, read the new entries at the top of `log.md` before you start work.
 - `platform/`: Abhinav. Neon schema, the MCP server, contracts. See `platform/README.md`.
 - `games/<game_id>/`: Max. One directory per game; adapter at `games/<game_id>/adapter/`.
   Exceptions: `games/watersort/` (Splash Sort) and `games/racer/` (Turbo Lanes) are Pinara's
-  (games 4 and 5). Each has its own `README.md`, `SKILL.md`, tests, and phone UI.
+  (games 4 and 5). `games/crategrove/` (Crate Grove) is Max's next original game. Each game owns
+  its engine, adapter, `README.md`, `SKILL.md`, and phone UI.
 - `business/` (Noel): business ops. Research, outreach and replies, CRM, billing, finance, the lead
   form, phone playtests, and the business MCP server. It writes to the platform's tables;
   `business/src/db/schema.sql` adds a few columns and tables on top. Its agents are in
