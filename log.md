@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:58 PM PT · Noel · Claude Code · main
+- **What:** A solver worker now runs on Noel's laptop under `solver-keepalive.sh` (restarts it if it exits). It claims queued runs with SKIP LOCKED, so it's safe next to Pinara's worker. Games: match3, platformer, racer, stub, watersort.
+- **Why:** Readiness check `solver_queue` was red: "no live worker heartbeat".
+- **Files:** `solver-keepalive.sh`
+- **State:** works; worker logged "started" at 01:57 UTC.
+- **Next / heads-up:** **Pinara:** check is now 10/16 green; still red are levels_flow / design_tune_solve (no on-target level accepted in 3 h). **Max:** publish_play and player_events need a published pack. The `deployments` check only passes with Abhinav's Naïve key (his workspace).
+
 ### 2026-11-07 5:57 PM PT · Noel · Claude Code (phone-loop subagent + main) · main
 - **What:** The iPhone now playtests on its own every 30 min (`PLAYTEST_LOOP=1`, now on in .env). Paid orders always come first, and it never runs while another phone task is active. It plays our own newest levels in Safari when they exist; otherwise it runs a market study of a free web puzzle game (2048, Gemline match-3, Water Sort, Flood), each checked on a phone screenshot. A blank-screen detector (`mobile/screen.ts`, node:zlib only) fails a run instead of "playing" a white page, and the board is left on screen afterwards (never a blank tab). Console labels: market studies read "Now playtesting 2048, a web puzzle game" instead of "X's app". I corrected the one invalid row: a Water Sort "win" recorded while the page was blank on the phone is now logged as a failed run, result discarded.
 - **Why:** The phone should be doing real work all night; Noel saw a blank screen labeled "water-sort for Water Sort".
