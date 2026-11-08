@@ -10,7 +10,9 @@ import type { Adapter } from "../../platform/mcp/src/adapters.js";
 import type { GetAdapter, Query, Row } from "./queue.js";
 import { firstSeedFor, runLevelSmart, summarize } from "./run.js";
 
-export const MAX_ROUNDS = 4;
+// Up to 6 measurements: rounds cost under a second for most games (a minute for match-3), and steep
+// curves near a game's minimum need a couple more than a straight-line guess.
+export const MAX_ROUNDS = 6;
 export const TOLERANCE = 0.05;
 export const REFERENCE_BOTS = ["human", "search", "greedy"] as const;
 
@@ -102,7 +104,10 @@ export function nextEase(seen: Array<{ e: number; rate: number }>, e: number, ra
   const below = seen.filter((s) => s.rate < target).sort((x, y) => y.e - x.e)[0];
   const above = seen.filter((s) => s.rate > target).sort((x, y) => x.e - y.e)[0];
   if (below && above && above.rate > below.rate) {
-    return below.e + ((target - below.rate) * (above.e - below.e)) / (above.rate - below.rate);
+    // Blend straight-line interpolation with the midpoint: curves are steep near a game's minimum,
+    // so interpolation alone keeps landing on the same side.
+    const interp = below.e + ((target - below.rate) * (above.e - below.e)) / (above.rate - below.rate);
+    return (interp + (below.e + above.e) / 2) / 2;
   }
   const prev = seen.length >= 2 ? seen[seen.length - 2]! : null;
   if (prev && prev.e !== e && (rate - prev.rate) / (e - prev.e) > 0) {
