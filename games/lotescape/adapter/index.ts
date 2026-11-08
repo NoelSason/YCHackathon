@@ -22,7 +22,7 @@ export function validateLevel(value: unknown) {
       if (v.x < 0 || v.y < 0 || (v.axis === "h" ? v.x + v.length : v.y + v.length) > size || (v.axis === "h" ? v.y : v.x) >= size) errors.push(`vehicle ${v.id} is outside the lot`);
       for (let i = 0; i < v.length; i++) { const key = `${v.x + (v.axis === "h" ? i : 0)},${v.y + (v.axis === "v" ? i : 0)}`; if (occupied.has(key)) errors.push(`vehicles overlap at ${key}`); occupied.add(key); }
     }
-    if (!errors.length) { const solved = solveLevel(l as unknown as Level); if (!solved.solvable) errors.push("all vehicles cannot reach an exit"); else if ((solved.min_moves ?? Infinity) > (l.move_limit as number)) errors.push(`clearing the lot needs ${solved.min_moves} moves, above move_limit`); }
+    if (!errors.length) { const solved = solveLevel(l as unknown as Level); if (solved.truncated) errors.push("the lot is too large to check exactly; use fewer or shorter vehicles"); else if (!solved.solvable) errors.push("all vehicles cannot reach an exit"); else if ((solved.min_moves ?? Infinity) > (l.move_limit as number)) errors.push(`clearing the lot needs ${solved.min_moves} moves, above move_limit`); }
   }
   return errors.length ? { ok: false as const, errors } : { ok: true as const };
 }

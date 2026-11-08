@@ -1,5 +1,5 @@
 import { DIRECTIONS, initialState, move, stateKey, type Direction, type Level, type State } from "./engine.js";
-export interface Solution { solvable: boolean; min_moves?: number; inputs?: Array<{ id: string; direction: Direction }>; explored: number }
+export interface Solution { solvable: boolean; min_moves?: number; inputs?: Array<{ id: string; direction: Direction }>; explored: number; /** True when the search hit `maxStates` before finishing, so "not solvable" is unproven. */ truncated?: boolean }
 export function solveLevel(level: Level, maxStates = 250_000): Solution {
   const start = initialState(level), startKey = stateKey(start);
   if (start.won) return { solvable: true, min_moves: 0, inputs: [], explored: 1 };
@@ -19,7 +19,7 @@ export function solveLevel(level: Level, maxStates = 250_000): Solution {
     }
     if (found !== undefined) break;
   }
-  if (found === undefined) return { solvable: false, explored: seen.size };
+  if (found === undefined) return states.length > maxStates ? { solvable: false, explored: seen.size, truncated: true } : { solvable: false, explored: seen.size };
   const inputs: Array<{ id: string; direction: Direction }> = [];
   for (let at = found; previous.has(at);) { const edge = previous.get(at)!; inputs.push({ id: edge.id, direction: edge.direction }); at = edge.key; }
   inputs.reverse(); return { solvable: true, min_moves: inputs.length, inputs, explored: seen.size };

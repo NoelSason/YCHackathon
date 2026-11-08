@@ -34,4 +34,33 @@ export function legalMoves(level: Level, state: State): Array<{ id: string; dire
     return next === state ? [] : [{ id: v.id, direction }];
   }));
 }
+/** The two directions a vehicle may slide along its own axis. Only its `exit` side is open; the other end is a wall. */
+export function axisDirections(vehicle: Vehicle): [Direction, Direction] { return vehicle.axis === "h" ? ["left", "right"] : ["up", "down"]; }
+/**
+ * How far a vehicle can slide in one direction from this state, counted in one-cell steps, and
+ * whether the last of those steps takes it out through its exit. Built on `move`, so the browser
+ * drag, the arrow buttons, and the solver all follow the same rules.
+ */
+export function slideLimit(level: Level, state: State, id: string, direction: Direction): { steps: number; exits: boolean } {
+  let current = state, steps = 0;
+  const cap = level.size + 3;
+  while (steps < cap) {
+    const next = move(level, current, id, direction);
+    if (next === current) break;
+    steps++; current = next;
+    if (!current.vehicles.some((v) => v.id === id)) return { steps, exits: true };
+  }
+  return { steps, exits: false };
+}
+/** Slides a vehicle up to `steps` cells, one counted move per cell, stopping early when blocked or out. */
+export function slide(level: Level, state: State, id: string, direction: Direction, steps: number): State {
+  let current = state;
+  for (let i = 0; i < steps; i++) {
+    const next = move(level, current, id, direction);
+    if (next === current) break;
+    current = next;
+    if (!current.vehicles.some((v) => v.id === id)) break;
+  }
+  return current;
+}
 export function stateKey(state: State): string { return state.vehicles.slice().sort((a, b) => a.id.localeCompare(b.id)).map((v) => `${v.id}:${v.x},${v.y}`).join("|"); }

@@ -1,6 +1,6 @@
 {
   "match3": true,
-  "watersort": false,
-  "racer": false,
+  "watersort": true,
+  "racer": true,
   "lotescape": false
 }
