@@ -20,6 +20,36 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 18:50 PT · Pinara (Claude Code) · branch `main`
+
+**What:** **First live level from the new pipeline**, and a tuner fix it exposed.
+- **6:40 PM:** the Designer's scheduled run saved Splash Sort level `fedbe5bc…` (target 60%) with
+  one `save_level` call. No approval was needed.
+- **The automatic Tuner** (one `--once` pass of the new worker) claimed it and measured 4 rounds:
+
+  | Round | `move_limit` | Human-bot win rate |
+  |---|---|---|
+  | 1 | 24 | 100% |
+  | 2 | 13 | 3% |
+  | 3 | 19 | 95% |
+  | 4 | 17 | 80% |
+
+  It rejected the level, honestly logged: Splash Sort's curve is steep near the minimum, and it ran
+  out of rounds.
+- **Fix:** up to 6 rounds (rounds are under a second for most games), and once the target is
+  bracketed, blend interpolation with the midpoint.
+- **Re-tuning that exact level offline:** accepted 3 of 3 times, in 4 rounds, at 61.5%, 64.5%, and
+  65%.
+
+**Why:** Levels that can be tuned shouldn't be thrown away.
+**Files:** `solver/src/autotune.ts`.
+**State:** `solver` 25/25, typecheck clean.
+**Next / heads-up:** **Pinara:** restart the worker. Until then, new designs wait as drafts.
+1. `cd solver`
+2. Press Ctrl+C in the worker's terminal.
+3. `git pull`
+4. `caffeinate -i npm run worker` (the start line shows `"autotune":true`)
+
 ### 2026-11-07 7:08 PM PT · Noel · Claude Code (Splash Sort subagent) · main
 - **What:** Splash Sort follows standard water-sort rules (games/watersort/RULES.md, with sources incl. Ito et al. FUN 2022). The game and the bots now share one rule: a finished tube is sealed (the bots used to allow pouring out of it; re-measured win rates are unchanged). Undo (3 per attempt). A stuck board offers undo before it ends. Illegal taps say why. Keyboard play (1–9/0/-, arrows, Esc, U/Cmd+Z, R). Same-color units draw as one liquid band, tubes are exact capacity height, rows are balanced (an 11-tube board fits 390 px). Pour animation (respects reduced motion). `generateSolvableLevel` keeps only solver-proven deals. Level JSON is unchanged.
 - **Why:** Noel: fix every game to its real rules.
