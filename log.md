@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:40 PM PT · Noel · Claude Code · main
+- **What:** Console (levelai-console.vercel.app) was down: its tunnel process had died, most likely at the same moment as the business tunnel around 5:30. Restarted with `demo/console.sh`. `demo/keepalive.sh` now also checks the public console every 10 s, and after 3 failures it reruns `console.sh` (new tunnel, console site redeployed).
+- **Why:** Noel: "the console is not working."
+- **Files:** `demo/keepalive.sh`
+- **State:** works; public page 401 without the password and 200 with it; `/api/state`, `/api/phone.png`, and `/outreach` return 200.
+- **Next / heads-up:** Quick tunnels die on network blips. Both watchdogs now recover them on their own within about a minute.
+
 ### 2026-11-07 5:33 PM PT · Noel · Claude Code · main
 - **What:** Market research on every outreach cycle. Each chart pass now reads up to 20 games and saves the totals to `biz_market_research` (games, reviews, too hard, too easy, wants more levels, repetitive, games with a clear problem, the strongest one). It also logs a line the console shows. There's a public `GET /market-research` (counts only), and `/public-stats` gains `reviewsRead`. The watchdog now also catches a dead tunnel: 3 failed public health checks → reruns `live.sh`. The tunnel had died silently and taken levelai.vercel.app's API down for a few minutes; restored.
 - **Why:** Real, growing numbers for the demo; the site should never silently lose its backend overnight.
