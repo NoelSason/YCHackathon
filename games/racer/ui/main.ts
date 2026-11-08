@@ -80,12 +80,14 @@ function load(level: Level, levelId: string | null, sample: number | null): void
     autoplay: null,
     acc: 0, last: 0, startedAt: 0,
   };
+  el("track-title").textContent = level.title ?? "Custom circuit";
+  el("objective").textContent = `Finish ${level.length} rows in ${(level.time_limit / level.speed).toFixed(1)}s · Avoid traffic, cones & oil · Boost for double speed`;
   buildWorld();
   renderSamples();
   hud();
   draw(1);
   const secs = (level.time_limit / level.speed).toFixed(1);
-  showOverlay(level.title ?? (sample ? `Track ${sample}` : "Turbo Lanes"), `Cross the finish line in ${secs}s. Dodge cars and cones, grab boosts.`, "", "Start", begin);
+  showOverlay(level.title ?? (sample ? `Track ${sample}` : "Turbo Lanes"), `Cross the finish line in ${secs}s. Dodge traffic and oil. Grab boosts for speed and shields for protection.`, "", "Start", begin);
 }
 
 function buildWorld(): void {
@@ -139,6 +141,7 @@ function layout(): void {
 // ---------- the run ----------
 
 function begin(): void {
+  if (run.status !== "ready") return;
   el("overlay").classList.add("hidden");
   run.status = "running";
   run.last = performance.now();
@@ -174,7 +177,7 @@ function tick(): void {
   for (let r = prev.row + 1; r <= Math.min(next.row, run.level.length - 1); r++) {
     const kind = run.grid.get(r * 8 + next.lane);
     const node = nodes.get(r * 8 + next.lane);
-    if (node && (kind === "coin" || (isObstacle(kind) && ev.crashed && r === next.row))) node.classList.add("gone");
+    if (node && (kind === "coin" || kind === "shield" || (isObstacle(kind) && (ev.crashed || ev.protected) && r === next.row))) node.classList.add("gone");
   }
   run.prev = prev;
   run.state = next;
@@ -182,6 +185,10 @@ function tick(): void {
   if (ev.crashed) {
     run.crashes++;
     flash("crash", `−${(run.level.crash_penalty / run.level.speed).toFixed(1)}s`, "#ff5a7a");
+  } else if (ev.protected) {
+    flash("", "SHIELD SAVE", "#88e7d0");
+  } else if (ev.shielded) {
+    flash("", "SHIELD ON", "#88e7d0");
   } else if (ev.boosted) {
     flash("", "BOOST", "#20e3ff");
   } else if (ev.coins) {
@@ -236,10 +243,13 @@ function draw(alpha: number): void {
   car.classList.toggle("left", state.lane < prev.lane && alpha < 1);
   car.classList.toggle("right", state.lane > prev.lane && alpha < 1);
   car.classList.toggle("stunned", state.stun > 0);
+  car.classList.toggle("shielded", state.shield > 0);
   el("road").classList.toggle("boost", state.boost > 0 && run.status === "running");
 }
 
 function hud(): void {
+  el("distance").textContent = `${Math.min(100, Math.floor(run.state.row / run.level.length * 100))}% COMPLETE`;
+  el("boost-status").textContent = run.state.boost > 0 ? `⚡ BOOST ×2 · ${run.state.boost} TICKS` : `${run.state.shield ? "◈ SHIELD ON" : "◈ NO SHIELD"} · ${run.crashes} CRASHES`;
   const left = Math.max(0, (run.level.time_limit - run.state.tick) / run.level.speed);
   el("time").textContent = left.toFixed(1);
   el("time").parentElement!.classList.toggle("low", left < 3 && run.status === "running");
@@ -325,6 +335,7 @@ function bindInput(): void {
 // ---------- loading ----------
 
 function loadSample(n: number): void {
+  if (run?.status === "running") sendEvent("quit");
   const i = Number.isInteger(n) && n >= 1 && n <= SAMPLES.length ? n : 1;
   load(SAMPLES[i - 1]!, null, i);
 }
@@ -355,6 +366,7 @@ function startAutoplay(): void {
 
 async function boot(): Promise<void> {
   bindInput();
+  el("restart").addEventListener("click", restart);
   const id = params.get("level");
   const data = params.get("data");
   let loaded = false;

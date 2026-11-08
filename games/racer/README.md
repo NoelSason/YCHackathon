@@ -49,6 +49,7 @@ npm run build      # static site in dist/
   - `min_moves`: the fastest finish in ticks.
   - `inputs`: the steering for that run.
 
+Historical baseline before oil/shields changed the generated samples; remeasure current content.
 Measured on "Rush Hour" (fastest finish 82 ticks), the human bot's win rate by `time_limit`:
 
 | `time_limit` | 82 | 87 | 92 | 97 | 102 |
@@ -84,3 +85,21 @@ the 3 bots take under half a second.
   `restart()`, `autoplay()`) over Chrome DevTools, and check that the track loads, renders, and
   finishes the way the solver expects.
 - **Events:** only `?level=<uuid>` plays send `attempt`, `win`, `loss`, and `quit`.
+
+## Visuals and LevelOps mechanics
+
+The mobile and desktop client uses original CSS vehicles and midnight motorsport scenery.
+The mission panel shows the finish distance and clock limit; the HUD shows route progress,
+active boost, shield, coins, and crashes. Arrow keys, touch buttons, and swipes steer.
+
+LevelOps uses the existing registered adapter and JSON Schema, with two additive object kinds:
+- `oil`: a hazard with the same crash penalty as a cone.
+- `shield`: collect to absorb one hazard without a crash or boost loss. Does not stack.
+
+Existing level JSON remains valid. The exact solver includes shield state; bots use the same
+engine as the browser. Coins remain optional score, not a hidden win requirement.
+The generated practice tracks now include oil and shields; prior difficulty figures require
+remeasurement. `SKILL.md` documents the authoring rules.
+
+Hosting and the platform runtime must be redeployed by Max and Abhinav to expose these changes
+on a live LevelOps deployment. Local builds alone do not update the hosted service.

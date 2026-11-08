@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#07060f">
   <title>Turbo Lanes</title>
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
   <main id="app">
+    <div class="eyebrow">LEVEL AI · ARCADE SERIES <span>05 / RACING</span></div>
     <header class="hud">
       <div class="brand">TURBO<span>LANES</span></div>
       <div class="stat time" aria-live="off"><small>TIME</small><b id="time">0.0</b></div>
@@ -17,6 +18,7 @@
     <div class="progress" aria-hidden="true"><div class="progress-fill" id="progress"></div></div>
     <p class="notice hidden" id="notice" role="status"></p>
 
+    <section class="mission"><div><small>YOUR MISSION</small><strong id="track-title">Night drive</strong></div><button id="restart" class="mini" type="button" aria-label="Restart race">↻ Restart</button><p id="objective">Beat the clock. Find your line.</p></section>
     <section class="road" id="road" aria-label="Road">
       <div class="world" id="world"></div>
       <div class="car" id="car" aria-label="Your car"><i class="flame"></i><i class="body"></i></div>
@@ -24,17 +26,19 @@
       <div class="float" id="float" aria-hidden="true"></div>
     </section>
 
+    <div class="telemetry"><span id="distance">0% COMPLETE</span><span id="boost-status">BOOST READY TO COLLECT</span></div>
     <section class="controls">
       <button class="steer" id="left" type="button" aria-label="Steer left">◀</button>
       <button class="steer" id="right" type="button" aria-label="Steer right">▶</button>
     </section>
 
+    <div class="legend"><span>◆ Coins</span><span>» Boost pads</span><span>◈ Shield</span><span>▰ Traffic · ▲ Cones · ● Oil</span></div>
     <nav class="samples" id="samples" aria-label="Practice tracks"></nav>
   </main>
 
   <div id="overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="ov-title">
     <div class="card">
-      <h2 id="ov-title">Turbo Lanes</h2>
+      <div class="badge">✦ NIGHT RUN CLUB</div><h2 id="ov-title">Turbo Lanes</h2>
       <p id="ov-text"></p>
       <div class="stars" id="ov-stars" aria-hidden="true"></div>
       <button class="btn" id="ov-btn" type="button">Start</button>

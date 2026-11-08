@@ -124,3 +124,37 @@ test("adapter follows platform/CONTRACTS.md §1 and runs in the solver harness",
   for (const bot of adapter.bots) assert.equal(out.results[bot]!.runs, 200);
   assert.equal(out.solvable, true);
 });
+
+test("a shield absorbs one oil slick; the next obstacle still crashes, and the solver replays it", () => {
+  const level: Level = { ...base, objects: [
+    { row: 1, lane: 1, kind: "shield" },
+    { row: 2, lane: 1, kind: "oil" },
+    { row: 3, lane: 1, kind: "cone" },
+  ] };
+  assert.deepEqual(adapter.validate(level), { ok: true });
+  const grid = buildGrid(level);
+  const pickup = step(level, grid, startState(level), 0);
+  assert.equal(pickup.next.shield, 1);
+  assert.equal(pickup.ev.shielded, true);
+  const save = step(level, grid, pickup.next, 0);
+  assert.equal(save.next.shield, 0);
+  assert.equal(save.ev.protected, true);
+  assert.equal(save.ev.crashed, false);
+  const crash = step(level, grid, save.next, 0);
+  assert.equal(crash.ev.crashed, true);
+  assert.equal(crash.next.stun, level.crash_penalty);
+  const result = solveLevel(level);
+  let state = startState(level);
+  for (const action of result.inputs) state = step(level, grid, state, action).next;
+  assert.equal(state.tick, result.min_ticks);
+  assert.ok(finished(level, state));
+});
+
+test("shield state is preserved in exact search when every lane has a hazard", () => {
+  const level: Level = { ...base, objects: [
+    { row: 1, lane: 1, kind: "shield" },
+    ...[0, 1, 2].map(lane => ({ row: 5, lane, kind: "oil" as const })),
+  ] };
+  assert.equal(solveLevel(level).min_ticks, level.length);
+  assert.equal(solveLevel(level).crashes, 0);
+});

@@ -158,3 +158,50 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Mineral glass: original artwork, rendered entirely with CSS. */
+:root { --bg1:#eff4ef; --bg2:#e3ede7; --ink:#183c36; --muted:#61776f; --accent:#267d68; --accent2:#79baa4; --glass:rgba(255,255,255,.65); --glass-edge:#b2c6bc; --unit:35px; --tube-w:57px; }
+html,body { background:radial-gradient(ellipse at 5% 20%,#dce9dd,transparent 50%),radial-gradient(ellipse at 100% 75%,#d4e6e2,transparent 50%),#f3f6f0; }
+#app { max-width:640px; padding:28px 28px 24px; gap:18px; }
+.eyebrow { display:flex; justify-content:space-between; gap:10px; font-size:9px; letter-spacing:1.8px; font-weight:800; color:#6b8176; }
+.brand { font-size:25px; letter-spacing:-1px; }
+.drop { width:21px; height:21px; background:linear-gradient(135deg,#acd5b6,#328e78); box-shadow:inset 2px 2px 3px #fff9; }
+.level-title { font-size:12px; }
+.mission { position:relative; padding:24px 26px; border:1px solid #fff; border-radius:24px; background:linear-gradient(120deg,#ffffffb3,#ffffff40); box-shadow:0 14px 35px #314e3f08; }
+.mission small { font-size:9px; letter-spacing:2px; color:#6a8274; font-weight:800; }
+.mission h1 { font-family:Georgia,serif; font-size:39px; line-height:1.05; font-weight:400; letter-spacing:-1.5px; margin:12px 0; }
+.mission p { font-size:12px; color:var(--muted); margin:0 0 18px; }
+#objective { font-size:10px; letter-spacing:1.4px; font-weight:800; color:#267d68; }
+.hud { gap:10px; }
+.pill { font-size:12px; background:#fff9; border-color:#fff; padding:12px; }
+.pill.low { color:#9d4f20; border-color:#c89a6b; }
+.btn { background:#267d68; box-shadow:0 7px 18px #267d6825; border-radius:12px; }
+.btn.ghost { color:var(--ink); background:#ffffff90; border-color:#cbd9cf; font-size:12px; }
+.board { position:relative; border:1px solid #fff; border-radius:28px; background:linear-gradient(155deg,#ffffff7a,#ffffff20); box-shadow:inset 0 0 50px #fff8,0 18px 45px #355a4610; min-height:250px; gap:28px 23px; padding:32px 20px 22px; }
+.glass { border-width:2px; border-top-width:4px; border-radius:9px 9px 25px 25px; padding:5px 4px 5px; gap:1px; background:linear-gradient(90deg,#ffffffb0,#ffffff30 30%,#ffffff60 70%,#ffffffc0); box-shadow:inset 3px 0 3px #fff8,5px 8px 12px #304a3920; }
+.slot { position:relative; border-radius:1px; }
+.slot.filled { box-shadow:inset 5px 0 7px #ffffff50,inset -5px 0 7px #00000012,inset 0 3px 1px #ffffff60; }
+.slot.filled::after { content:""; position:absolute; width:3px; height:65%; top:15%; left:4px; border-radius:5px; background:#ffffff60; }
+.tube-number { color:#82978a; font:600 10px system-ui; letter-spacing:2px; margin-top:13px; }
+.tube.done .glass { border-color:#65a68e; box-shadow:0 0 0 4px #69a99018,5px 8px 12px #304a3915; }
+.tube.done .tube-number { color:#267d68; }
+.tube.selected .glass,.tube.hinted .glass { border-color:#348e78; box-shadow:0 0 0 5px #348e781a,0 12px 20px #348e7820; }
+.tube.available .tube-number { color:#267d68; text-decoration:underline; }
+.tools { display:flex; align-items:center; justify-content:space-between; gap:15px; }
+.tools>span { color:var(--muted); font-size:10px; max-width:130px; text-align:right; }
+#hints { display:inline-grid; place-items:center; background:#dcece2; border-radius:50%; width:21px; height:21px; margin-left:8px; }
+button:disabled { opacity:.45; cursor:default; }
+.hint { font-size:12px; min-height:18px; }
+.samples { margin-top:2px; }
+.samples button { border-radius:50%; }
+.samples button[aria-current="true"] { color:#fff; background:#267d68; }
+.overlay { background:#16392d55; z-index:20; }
+.card { color:var(--ink); background:linear-gradient(145deg,#fcfff9,#e0eee4); border:1px solid #fff; box-shadow:0 30px 70px #153a3335; }
+.card h2 { font:400 38px Georgia,serif; }
+.burst { display:none; }
+.stars { color:#ba8832; }
+.stars .off { color:#cbd7cd; }
+.notice { color:#7b4f20; border-color:#d0b68c; background:#fff6e4; }
+button:focus-visible { outline:3px solid #257d68; outline-offset:5px; }
+@media (max-width:420px) { #app { padding:20px 16px; gap:14px; } .mission { padding:18px 22px; } .mission h1 { font-size:33px; } .board { gap:22px 18px; padding:30px 12px 20px; } :root { --tube-w:48px; --unit:30px; } }
+@media (min-width:760px) { #app { padding-top:40px; } .board { min-height:330px; } }

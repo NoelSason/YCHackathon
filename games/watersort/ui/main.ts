@@ -36,6 +36,8 @@ interface Game {
   startedAt: number;
   fresh: Set<string>; // slots filled by the last pour, for the fill animation
   splash: number | null;
+  hints: number;
+  hintPair: [number, number] | null;
 }
 
 let game: Game;
@@ -62,6 +64,8 @@ function sendEvent(type: "attempt" | "win" | "loss" | "quit", beacon = false): v
 // ---------- game flow ----------
 
 function start(level: Level, levelId: string | null, sample: number | null): void {
+  window.clearInterval(autoTimer);
+  el("hint").textContent = "Tap a tube, then tap the tube to pour into.";
   game = {
     level, levelId, sample,
     tubes: toTubes(level),
@@ -71,6 +75,8 @@ function start(level: Level, levelId: string | null, sample: number | null): voi
     startedAt: Date.now(),
     fresh: new Set(),
     splash: null,
+    hints: 3,
+    hintPair: null,
   };
   el("title").textContent = level.title ?? (sample ? `Practice ${sample}` : "Level");
   el("overlay").classList.add("hidden");
@@ -94,6 +100,7 @@ function tap(i: number): void {
   const cap = game.level.capacity;
   const tube = game.tubes[i];
   if (!tube) return;
+  game.hintPair = null;
   game.fresh = new Set();
   game.splash = null;
 
@@ -148,7 +155,8 @@ function finish(status: "won" | "lost", title?: string, text?: string): void {
     el("ov-stars").innerHTML = "";
     setButton("Try again", restart);
   }
-  window.setTimeout(() => ov.classList.remove("hidden"), status === "won" ? 450 : 250);
+  const completedGame = game;
+  window.setTimeout(() => { if (game === completedGame) ov.classList.remove("hidden"); }, status === "won" ? 450 : 250);
 }
 
 function setButton(label: string, action: () => void): void {
@@ -182,6 +190,8 @@ function render(): void {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "tube";
+      if (game.hintPair?.includes(i)) btn.classList.add("hinted");
+      if (game.selected !== null && pourAmount(game.tubes, cap, game.selected, i) > 0) btn.classList.add("available");
       if (game.selected === i) btn.classList.add("selected");
       if (isComplete(t, cap)) btn.classList.add("done");
       if (game.splash === i) btn.classList.add("splash");
@@ -202,10 +212,19 @@ function render(): void {
         glass.appendChild(slot);
       }
       btn.appendChild(glass);
+      const label = document.createElement("span");
+      label.className = "tube-number";
+      label.textContent = isComplete(t, cap) ? "✓" : String(i + 1).padStart(2, "0");
+      btn.appendChild(label);
       btn.addEventListener("click", () => tap(i));
       return btn;
     }),
   );
+  const complete = game.tubes.filter(t => isComplete(t, cap)).length;
+  const total = new Set(game.level.tubes.flat()).size;
+  el("objective").textContent = `${complete} / ${total} COLORS SORTED`;
+  el("hints").textContent = String(game.hints);
+  el<HTMLButtonElement>("hint-btn").disabled = game.hints === 0 || game.status !== "playing";
   const left = game.level.move_limit - game.moves;
   const pill = el("moves");
   pill.textContent = `Pours ${game.moves} / ${game.level.move_limit}`;
@@ -242,6 +261,8 @@ function notice(text: string): void {
 // ---------- loading ----------
 
 function startSample(n: number): void {
+  window.clearInterval(autoTimer);
+  if (game?.status === "playing") sendEvent("quit");
   const i = Number.isInteger(n) && n >= 1 && n <= SAMPLES.length ? n : 1;
   start(SAMPLES[i - 1]!, null, i);
 }
@@ -278,17 +299,35 @@ function autoplay(): void {
     return notice(`Autoplay stopped: ${e instanceof Error ? e.message : String(e)}`);
   }
   if (!inputs) return notice("Autoplay: this level has no solution.");
+  const replayGame = game;
   let k = 0;
   autoTimer = window.setInterval(() => {
     const pourStep = inputs![k++];
     if (game.status !== "playing" || !pourStep) return window.clearInterval(autoTimer);
     game.selected = null;
     tap(pourStep[0]);
-    window.setTimeout(() => tap(pourStep[1]), 260);
+    window.setTimeout(() => { if (game === replayGame && game.status === "playing") tap(pourStep[1]); }, 260);
   }, 700);
 }
 
+function revealHint(): void {
+  if (game.status !== "playing" || game.hints === 0) return;
+  try {
+    const result = solveLevel({ ...game.level, tubes: game.tubes.map(t => t.map(c => COLORS[c]!)) }, 50000);
+    const pair = result.inputs?.[0];
+    if (!pair) return notice("No solution from here. Restart to try a different route.");
+    game.hints--;
+    game.hintPair = pair;
+    game.selected = null;
+    render();
+    el("hint").textContent = `Pour tube ${pair[0] + 1} into tube ${pair[1] + 1}.`;
+  } catch {
+    notice("This position needs a deeper search. No hint was used.");
+  }
+}
+
 async function boot(): Promise<void> {
+  el("hint-btn").addEventListener("click", revealHint);
   el("restart").addEventListener("click", () => {
     window.clearInterval(autoTimer);
     restart();

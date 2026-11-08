@@ -37,10 +37,11 @@ export function generateTrack(opts: {
       [lanes[i], lanes[j]] = [lanes[j]!, lanes[i]!];
     }
     const n = Math.min(opts.blocked, opts.lanes - 1);
-    for (let i = 0; i < n; i++) put(row, lanes[i]!, rnd() < 0.6 ? "car" : "cone");
+    for (let i = 0; i < n; i++) put(row, lanes[i]!, rnd() < 0.6 ? "car" : rnd() < 0.5 ? "cone" : "oil");
   }
   for (let i = 0; i < opts.boosts; i++) put(4 + Math.floor(rnd() * (opts.length - 6)), Math.floor(rnd() * opts.lanes), "boost");
   for (let i = 0; i < opts.coins; i++) put(3 + Math.floor(rnd() * (opts.length - 4)), Math.floor(rnd() * opts.lanes), "coin");
+  for (let i = 0; i < 2; i++) put(5 + Math.floor(rnd() * (opts.length - 8)), Math.floor(rnd() * opts.lanes), "shield");
   objects.sort((a, b) => a.row - b.row || a.lane - b.lane);
   return {
     title: opts.title,

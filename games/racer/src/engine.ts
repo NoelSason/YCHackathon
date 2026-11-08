@@ -4,11 +4,11 @@
 // The track is a grid: `lanes` across, `length` rows long. The car starts at row 0 and moves one
 // row per tick (two while boosted). Each tick the driver may steer one lane left or right
 // (then must wait `lane_change_cooldown` ticks before steering again). Driving into a car or a
-// cone is a crash: the car stops for `crash_penalty` ticks. Boost pads give BOOST_TICKS ticks of
-// double speed. Coins are for score only. The level is won by crossing the finish row within
+// cone or oil slick is a crash: the car stops for `crash_penalty` ticks. Boost pads give BOOST_TICKS ticks of
+// double speed. Shields absorb one obstacle and do not stack. Coins are for score only. The level is won by crossing the finish row within
 // `time_limit` ticks. On screen one tick lasts 1/speed seconds.
 
-export const KINDS = ["car", "cone", "boost", "coin"] as const;
+export const KINDS = ["car", "cone", "oil", "shield", "boost", "coin"] as const;
 export type Kind = (typeof KINDS)[number];
 export const BOOST_TICKS = 4;
 
@@ -40,12 +40,15 @@ export interface CarState {
   cooldown: number;
   boost: number;
   stun: number;
+  shield: number; // 0 or 1: absorbs the next obstacle
 }
 
 export interface StepEvents {
   crashed: boolean;
   boosted: boolean;
   coins: number;
+  shielded: boolean;
+  protected: boolean;
 }
 
 export const LIMITS = {
@@ -142,10 +145,10 @@ export function buildGrid(level: Level): Grid {
   return g;
 }
 
-export const isObstacle = (k: Kind | undefined): boolean => k === "car" || k === "cone";
+export const isObstacle = (k: Kind | undefined): boolean => k === "car" || k === "cone" || k === "oil";
 
 export function startState(level: Level): CarState {
-  return { row: 0, lane: level.start_lane ?? Math.floor(level.lanes / 2), tick: 0, cooldown: 0, boost: 0, stun: 0 };
+  return { row: 0, lane: level.start_lane ?? Math.floor(level.lanes / 2), tick: 0, cooldown: 0, boost: 0, stun: 0, shield: 0 };
 }
 
 export const finished = (level: Level, s: CarState): boolean => s.row >= level.length;
@@ -158,7 +161,7 @@ export const canSteer = (s: CarState): boolean => s.stun === 0 && s.cooldown ===
  * coin once (rows only increase, so a coin cell is entered at most once anyway).
  */
 export function step(level: Level, grid: Grid, s: CarState, action: Action): { next: CarState; ev: StepEvents } {
-  const ev: StepEvents = { crashed: false, boosted: false, coins: 0 };
+  const ev: StepEvents = { crashed: false, boosted: false, coins: 0, shielded: false, protected: false };
   const n: CarState = { ...s, tick: s.tick + 1 };
   if (s.stun > 0) {
     n.stun = s.stun - 1;
@@ -179,13 +182,21 @@ export function step(level: Level, grid: Grid, s: CarState, action: Action): { n
     n.row += 1;
     if (n.row >= level.length) break;
     const kind = grid.get(n.row * 8 + n.lane);
+    if (isObstacle(kind) && n.shield > 0) {
+      n.shield = 0;
+      ev.protected = true;
+      continue;
+    }
     if (isObstacle(kind)) {
       ev.crashed = true;
       n.stun = level.crash_penalty;
       n.boost = 0;
       break;
     }
-    if (kind === "boost") {
+    if (kind === "shield") {
+      n.shield = 1;
+      ev.shielded = true;
+    } else if (kind === "boost") {
       ev.boosted = true;
       n.boost = BOOST_TICKS;
     } else if (kind === "coin") {

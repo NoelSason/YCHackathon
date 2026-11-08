@@ -176,3 +176,47 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Midnight motorsport: original CSS scenery and vehicles. */
+:root { --bg:#080f1c; --ink:#eaf3f3; --muted:#7f98a5; --neon:#edff86; --neon2:#88e7d0; --asphalt:#172432; }
+html,body { background:radial-gradient(ellipse at 20% 10%,#1d3843,transparent 50%),radial-gradient(ellipse at 90% 90%,#1c3048,transparent 50%),#080f1c; }
+#app { max-width:570px; gap:12px; padding:24px 24px 18px; min-height:720px; }
+.eyebrow { display:flex; justify-content:space-between; gap:8px; font-size:9px; font-weight:700; letter-spacing:1.8px; color:#829aa5; }
+.hud { padding:8px 0; }
+.brand { font-size:25px; letter-spacing:-1px; font-style:normal; }
+.brand span { color:var(--neon); }
+.stat small { font-size:8px; margin-bottom:5px; }
+.stat b { font-size:25px; font-weight:600; }
+.progress { height:3px; }
+.progress-fill { background:var(--neon); }
+.mission { display:grid; grid-template-columns:1fr auto; padding:15px 18px; border:1px solid #ffffff12; background:#ffffff04; border-radius:16px; gap:9px; }
+.mission small { display:block; font-size:8px; color:var(--neon); letter-spacing:1.8px; margin-bottom:5px; }
+.mission strong { font-size:17px; font-weight:600; }
+.mission p { grid-column:1/-1; font-size:10px; line-height:1.5; color:var(--muted); margin:0; }
+.mini { color:#c5d5d9; border:1px solid #ffffff18; background:#ffffff06; border-radius:9px; padding:8px 12px; cursor:pointer; font:500 11px system-ui; min-height:44px; }
+.road { min-height:200px; border-radius:14px; border:1px solid #90aec034; background:linear-gradient(90deg,#8ae0cf99 0 3px,#2c4651 3px 8px,transparent 8px calc(100% - 8px),#2c4651 calc(100% - 8px) calc(100% - 3px),#edff8699 calc(100% - 3px)),repeating-linear-gradient(0deg,#ffffff02 0 1px,transparent 1px 5px),#172432; box-shadow:inset 0 0 55px #0005,0 16px 40px #0004; }
+.road::after { content:""; position:absolute; inset:0; pointer-events:none; z-index:6; background:linear-gradient(#0b16247a,transparent 25%); }
+.lane-line { width:2px; background:repeating-linear-gradient(0deg,#b4c6cd44 0 calc(var(--row)*.5),transparent calc(var(--row)*.5) var(--row)); }
+.car .body { background:linear-gradient(90deg,transparent 44%,#1d353c 44% 56%,transparent 56%),linear-gradient(#f2ffa6,#a8c746); box-shadow:inset 0 10px 0 -5px #fff8,inset 0 -8px 0 -4px #0005,0 0 20px #edff862b,0 8px 12px #0008; border-radius:12px 12px 8px 8px; }
+.obj.car i { background:linear-gradient(#b8d4df,#5b7b93); }
+.obj.car.alt i { background:linear-gradient(#e9a17c,#ac604c); }
+.obj.oil i { width:65%; height:70%; border-radius:47% 53% 67% 33%; background:radial-gradient(ellipse,#263a46 10%,#756289 30%,#3e9e9b 45%,#080c16 65%); box-shadow:0 3px 6px #0008; transform:rotate(-20deg); }
+.obj.boost i { background:var(--neon2); filter:drop-shadow(0 0 6px #88e7d099); }
+.telemetry { display:flex; justify-content:space-between; gap:8px; font-size:8px; letter-spacing:1.2px; font-weight:700; color:var(--muted); }
+#boost-status { color:var(--neon2); text-align:right; }
+.steer { height:58px; font-size:22px; border-radius:13px; background:linear-gradient(#233745,#192734); border-color:#50677766; box-shadow:0 4px 0 #040b12; }
+.steer:active,.steer.on { background:#38544e; color:var(--neon); }
+.legend { display:flex; justify-content:center; flex-wrap:wrap; gap:14px; color:var(--muted); font-size:9px; }
+.samples button { border-radius:9px; color:#a8bbc4; font-size:11px; min-height:38px; background:#ffffff05; }
+.samples button[aria-current="true"] { background:var(--neon); color:#142321; }
+.overlay { background:#030b1699; backdrop-filter:blur(10px); }
+.card { padding:30px; background:linear-gradient(145deg,#243d49,#101e2f); border-color:#93b6bd3b; border-radius:22px; }
+.badge { color:var(--neon); font-size:9px; letter-spacing:2px; margin-bottom:22px; }
+.card h2 { font-size:36px; line-height:1.05; letter-spacing:-1px; font-style:normal; margin-bottom:14px; }
+.card p { font-size:13px; line-height:1.7; }
+.btn { background:var(--neon); color:#142321; box-shadow:0 7px 25px #edff8620; width:100%; border-radius:11px; }
+button:focus-visible { outline:3px solid var(--neon2); outline-offset:4px; }
+@media(max-width:420px) { #app { padding:16px; gap:10px; min-height:650px; } .brand { font-size:21px; } .mission { padding:12px 14px; } }
+@media(min-width:760px) { #app { padding-top:32px; } }
+.obj.shield i { width:39%; height:85%; background:linear-gradient(140deg,#d0fff0,#54c6b6); clip-path:polygon(50% 0,95% 20%,85% 70%,50% 100%,15% 70%,5% 20%); filter:drop-shadow(0 0 8px #88e7d0); }
+.car.shielded::after { content:""; position:absolute; inset:-12% 12%; border:2px solid #9affdf; border-radius:50%; box-shadow:0 0 18px #88e7d0aa,inset 0 0 15px #88e7d044; }

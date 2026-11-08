@@ -19,14 +19,14 @@ export function solveLevel(level: Level): SolveResult {
   const start = startState(level);
   type Node = { s: typeof start; parent: number; action: Action; crashes: number };
   const nodes: Node[] = [{ s: start, parent: -1, action: 0, crashes: 0 }];
-  const seen = new Set<number>([key(start.row, start.lane, start.cooldown, start.boost, start.stun)]);
+  const seen = new Set<number>([key(start.row, start.lane, start.cooldown, start.boost, start.stun) * 2 + start.shield]);
 
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i]!;
     for (const a of ACTIONS) {
       if (a !== 0 && (node.s.stun > 0 || node.s.cooldown > 0)) continue; // same as 0: skip duplicate
       const { next, ev } = step(level, grid, node.s, a);
-      const k = key(Math.min(next.row, level.length), next.lane, next.cooldown, next.boost, next.stun);
+      const k = key(Math.min(next.row, level.length), next.lane, next.cooldown, next.boost, next.stun) * 2 + next.shield;
       if (seen.has(k)) continue;
       seen.add(k);
       nodes.push({ s: next, parent: i, action: a, crashes: node.crashes + (ev.crashed ? 1 : 0) });

@@ -20,6 +20,15 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:46 PT · Pinara (Codex) · branch `main`
+
+**What:** Redesigned Splash Sort with mineral-glass tubes and Turbo Lanes with a midnight motorsport UI. Added visible objectives, progress, numbered tubes, legal-target cues, three solver-backed hints per sort attempt, racer restart, oil hazards and one-hit collectible shields.
+**Why:** Make Pinara's games polished and readable on phones and desktops while keeping LevelOps authoring, simulation and browser rules consistent.
+**Files:** `games/racer/{public,ui,src,test,README.md,SKILL.md}`, `games/watersort/{public,ui,UI.md}`.
+**State:** Works locally. Both builds and strict typechecks pass; racer 10/10 and watersort 8/8 tests pass. Headless Chromium at 390×844 and 1280×1000: both samples autoplay to wins, hints highlight a valid pair, no page exceptions or horizontal overflow. Intercepted LevelOps UUID loads emit attempt and win for both game IDs; no live data was written.
+**Next / heads-up:** **Max:** redeploy both static clients. **Abhinav:** redeploy the registered racer adapter/schema to expose additive `oil` and `shield` object kinds in LevelOps. Old level JSON still validates. Shield state is included in the exact solver and bot planning. Generated racer samples changed: remeasure difficulty rather than reusing historical win rates. Hints assist browser players only; bot figures remain unassisted. Live hosting/Neon and real-phone playtests were not verified. Other sessions' solver/eval changes are excluded from this commit.
+
+
 ### 2026-11-07 17:42 PT · Pinara (Claude Code) · branch `main`
 
 **What:** The rest of package 11 (evals and the CEO's decision check), plus fixes the evals found.

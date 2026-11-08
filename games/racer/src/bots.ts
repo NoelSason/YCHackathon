@@ -38,7 +38,7 @@ export function humanDriver(level: Level): Driver {
 const GREEDY: Driver = { horizon: 2, lateChance: 0, missChance: 0 };
 
 const reward = (from: CarState, to: CarState, ev: StepEvents): number =>
-  (ev.crashed ? -100 : 0) + (ev.boosted ? 6 : 0) + ev.coins * 2 + (to.row - from.row);
+  (ev.crashed ? -100 : 0) + (ev.boosted ? 6 : 0) + (ev.shielded ? 4 : 0) + ev.coins * 2 + (to.row - from.row);
 
 function choices(level: Level, s: CarState): Action[] {
   if (!canSteer(s)) return [0];
@@ -56,7 +56,7 @@ function plan(level: Level, view: Grid, s: CarState, horizon: number): Action {
   const memo = new Map<string, number>();
   const value = (st: CarState, depth: number): number => {
     if (depth === 0 || finished(level, st)) return 0;
-    const k = `${st.row},${st.lane},${st.cooldown},${st.boost},${st.stun},${depth}`;
+    const k = `${st.row},${st.lane},${st.cooldown},${st.boost},${st.stun},${st.shield},${depth}`;
     const hit = memo.get(k);
     if (hit !== undefined) return hit;
     let top = -Infinity;
