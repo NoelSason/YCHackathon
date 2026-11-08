@@ -26,13 +26,18 @@ npm run build      # static site in dist/
 | `?autoplay=1` | Drives the solver's fastest run. |
 | `?api=<url>` | Overrides the platform URL. |
 
-**Controls:** the ◀ ▶ buttons, a swipe or tap on the road, or the arrow keys or A/D.
+**Controls:** the ◀ ▶ buttons, a swipe or tap on the road, or the arrow keys or A/D. One lane per
+press or gesture.
+
+**Rules and sizes:** `RULES.md` lists the genre conventions the game follows, with sources. Every
+vehicle is 2 rows long and the same size on screen; sprite sizes come from `GEOMETRY` in
+`src/engine.ts`, so what you see is what collides.
 
 ## What's inside
 
 | File | What it is |
 |---|---|
-| `src/engine.ts` | `step()` (one tick of the rules), the level JSON Schema, and `validateLevel` |
+| `src/engine.ts` | `step()` (one tick of the rules), the shared sprite geometry, the level JSON Schema, and `validateLevel` |
 | `src/solver.ts` | Breadth-first search over car states, one tick per layer, for the fastest finish. It runs in about 1 ms on the samples. |
 | `src/bots.ts` | `human`, the reference bot: its lookahead shrinks and its reactions get later as speed rises, and it sometimes misses an obstacle. Also `greedy` (2 rows ahead, no mistakes) and `random`. The bots plan with memoized dynamic programming. |
 | `src/levels.ts` | 4 practice tracks and a seeded generator |

@@ -6,7 +6,8 @@
 //   ?autoplay=1   drive the solver's fastest run by itself (for phone playtests and demos)
 //   ?api=<url>    override the platform URL
 import {
-  type Action, buildGrid, canSteer, type CarState, finished, type Grid, isObstacle, type Level, startState, step, validateLevel,
+  type Action, type Box, buildGrid, canSteer, type CarState, cellKey, finished, GEOMETRY, type Grid, type Level, playerBox,
+  spriteBox, startState, step, validateLevel,
 } from "../src/engine.js";
 import { SAMPLES } from "../src/levels.js";
 import { solveLevel } from "../src/solver.js";
@@ -15,9 +16,8 @@ declare const __PLATFORM_URL__: string;
 
 const GAME_ID = "racer";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const VISIBLE_ROWS = 12;
-const CAR_OFFSET = 1.95; // rows between the bottom of the road and the car's middle
 const QUEUE_TICKS = 3;   // a steer pressed during a cooldown waits this many ticks at most
+const LANE_EASE = 2.5;   // a lane change finishes in the first 1/LANE_EASE of its tick
 
 const params = new URLSearchParams(location.search);
 const API = (params.get("api") ?? __PLATFORM_URL__).replace(/\/+$/, "");
@@ -43,8 +43,8 @@ interface Run {
 }
 
 let run: Run;
-let ROW = 40;
-let LANE = 80;
+let ROW = 40;  // px per row
+let LANE = 70; // px per lane (always ROW × GEOMETRY.laneAspect)
 const nodes = new Map<number, HTMLElement>();
 
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -81,7 +81,7 @@ function load(level: Level, levelId: string | null, sample: number | null): void
     acc: 0, last: 0, startedAt: 0,
   };
   el("track-title").textContent = level.title ?? "Custom circuit";
-  el("objective").textContent = `Finish ${level.length} rows in ${(level.time_limit / level.speed).toFixed(1)}s · Avoid traffic, cones & oil · Boost for double speed`;
+  el("objective").textContent = `Reach the finish in ${(level.time_limit / level.speed).toFixed(1)}s · Traffic, cones and oil cost you time · Boosts double your speed · A shield blocks one hit`;
   buildWorld();
   renderSamples();
   hud();
@@ -104,37 +104,59 @@ function buildWorld(): void {
   const finish = document.createElement("div");
   finish.className = "finish";
   world.appendChild(finish);
-  for (const o of level.objects) {
+  // Pads and slicks lie on the road, so they go under the cars.
+  const order = (k: string) => (k === "boost" || k === "oil" ? 0 : k === "car" ? 2 : 1);
+  for (const o of [...level.objects].sort((a, b) => order(a.kind) - order(b.kind))) {
     const n = document.createElement("div");
-    n.className = `obj ${o.kind}${o.kind === "car" && (o.row + o.lane) % 3 === 0 ? " alt" : ""}`;
+    const paint = o.kind === "car" ? ` vehicle paint-${(o.row * 7 + o.lane * 3) % 3}` : "";
+    n.className = `obj ${o.kind}${paint}`;
     n.dataset.row = String(o.row);
     n.dataset.lane = String(o.lane);
-    n.appendChild(document.createElement("i"));
+    n.dataset.kind = o.kind;
+    if (o.kind === "car") n.append(document.createElement("i"), document.createElement("b"));
     world.appendChild(n);
-    nodes.set(o.row * 8 + o.lane, n);
+    nodes.set(cellKey(o.row, o.lane), n);
   }
   layout();
 }
 
+/** Places a sprite box (track units) on screen; y is measured from the world's origin. */
+function place(node: HTMLElement, b: Box): void {
+  node.style.left = `${b.x0 * LANE}px`;
+  node.style.width = `${(b.x1 - b.x0) * LANE}px`;
+  node.style.bottom = `${b.y0 * ROW}px`;
+  node.style.height = `${(b.y1 - b.y0) * ROW}px`;
+}
+
+/**
+ * Sizes the road from the engine's GEOMETRY: a lane is always laneAspect rows wide, so every car
+ * keeps the same shape and size relative to its lane on any screen. The road is as wide as that
+ * allows while showing at least minVisibleRows rows; the space left over is roadside.
+ */
 function layout(): void {
   const road = el("road");
-  ROW = road.clientHeight / VISIBLE_ROWS;
-  LANE = road.clientWidth / run.level.lanes;
+  const { lanes } = run.level;
+  ROW = Math.min(road.clientHeight / GEOMETRY.minVisibleRows, road.clientWidth / (lanes * GEOMETRY.laneAspect));
+  LANE = ROW * GEOMETRY.laneAspect;
   const root = document.documentElement.style;
   root.setProperty("--row", `${ROW}px`);
   root.setProperty("--lane", `${LANE}px`);
+  root.setProperty("--road-w", `${lanes * LANE}px`);
   const world = el("world");
   for (const child of Array.from(world.children) as HTMLElement[]) {
     if (child.classList.contains("lane-line")) {
       child.style.left = `${Number(child.dataset.k) * LANE}px`;
-      child.style.height = `${(run.level.length + VISIBLE_ROWS) * ROW}px`;
+      child.style.height = `${(run.level.length + 2 * GEOMETRY.minVisibleRows) * ROW}px`;
     } else if (child.classList.contains("finish")) {
       child.style.bottom = `${run.level.length * ROW}px`;
     } else {
-      child.style.left = `${Number(child.dataset.lane) * LANE}px`;
-      child.style.bottom = `${Number(child.dataset.row) * ROW}px`;
+      place(child, spriteBox(child.dataset.kind as Level["objects"][number]["kind"], Number(child.dataset.row), Number(child.dataset.lane)));
     }
   }
+  // The player's car: same sprite rules as traffic, drawn in lane 0 and moved across by draw().
+  const car = el("car");
+  const box = playerBox(0, 0);
+  place(car, { ...box, y0: box.y0 + 1 + GEOMETRY.cameraRows, y1: box.y1 + 1 + GEOMETRY.cameraRows });
   draw(1);
 }
 
@@ -156,6 +178,7 @@ function restart(): void {
 }
 
 function steer(dir: Action): void {
+  if (run.status === "ready" && !run.autoplay) begin();
   if (run.status !== "running" || run.autoplay || dir === 0) return;
   if (run.queue.length < 2) run.queue.push({ dir, at: run.state.tick });
   const btn = el(dir < 0 ? "left" : "right");
@@ -173,18 +196,15 @@ function tick(): void {
   }
   const prev = run.state;
   const { next, ev } = step(run.level, run.grid, prev, a);
-  // Hide what the car just collected or smashed (the same cells step() looked at).
-  for (let r = prev.row + 1; r <= Math.min(next.row, run.level.length - 1); r++) {
-    const kind = run.grid.get(r * 8 + next.lane);
-    const node = nodes.get(r * 8 + next.lane);
-    if (node && (kind === "coin" || kind === "shield" || (isObstacle(kind) && (ev.crashed || ev.protected) && r === next.row))) node.classList.add("gone");
-  }
+  // Hide exactly what the rules say is gone: collected coins and shields, wrecks driven through.
+  for (const key of ev.cleared) nodes.get(key)?.classList.add("gone");
+  if (ev.sideswipe) bump(a);
   run.prev = prev;
   run.state = next;
   run.coins += ev.coins;
   if (ev.crashed) {
     run.crashes++;
-    flash("crash", `−${(run.level.crash_penalty / run.level.speed).toFixed(1)}s`, "#ff5a7a");
+    flash("crash", `${ev.sideswipe ? "SIDE HIT " : ""}−${(run.level.crash_penalty / run.level.speed).toFixed(1)}s`, "#ff5a7a");
   } else if (ev.protected) {
     flash("", "SHIELD SAVE", "#88e7d0");
   } else if (ev.shielded) {
@@ -233,13 +253,20 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 
+const easeOut = (t: number): number => 1 - (1 - t) ** 3;
+
 function draw(alpha: number): void {
   const { prev, state } = run;
   const row = prev.row + (Math.min(state.row, run.level.length + 1) - prev.row) * alpha;
-  const lane = prev.lane + (state.lane - prev.lane) * Math.min(1, alpha * 2.2);
-  el("world").style.transform = `translate3d(0, ${(row - CAR_OFFSET) * ROW}px, 0)`;
+  // Lane changes ease out and finish early in the tick, so a late dodge clears the hazard it
+  // dodged on screen as well as in the rules.
+  const lane = prev.lane + (state.lane - prev.lane) * easeOut(Math.min(1, alpha * LANE_EASE));
+  // The world scrolls so the player's rear bumper sits cameraRows above the road's bottom edge.
+  const scroll = (row - 1 - GEOMETRY.cameraRows) * ROW;
+  el("world").style.transform = `translate3d(0, ${scroll}px, 0)`;
+  el("road").style.setProperty("--scroll", `${scroll}px`);
   const car = el("car");
-  car.style.transform = `translate3d(${(lane + 0.5) * LANE}px, 0, 0)`;
+  car.style.transform = `translate3d(${lane * LANE}px, 0, 0)`;
   car.classList.toggle("left", state.lane < prev.lane && alpha < 1);
   car.classList.toggle("right", state.lane > prev.lane && alpha < 1);
   car.classList.toggle("stunned", state.stun > 0);
@@ -249,12 +276,21 @@ function draw(alpha: number): void {
 
 function hud(): void {
   el("distance").textContent = `${Math.min(100, Math.floor(run.state.row / run.level.length * 100))}% COMPLETE`;
-  el("boost-status").textContent = run.state.boost > 0 ? `⚡ BOOST ×2 · ${run.state.boost} TICKS` : `${run.state.shield ? "◈ SHIELD ON" : "◈ NO SHIELD"} · ${run.crashes} CRASHES`;
+  el("boost-status").textContent = run.state.boost > 0 ? `⚡ BOOST ×2 · ${run.state.boost} TICKS` : `${run.state.shield ? "◈ SHIELD ON" : "◈ NO SHIELD"} · ${run.crashes} CRASH${run.crashes === 1 ? "" : "ES"}`;
   const left = Math.max(0, (run.level.time_limit - run.state.tick) / run.level.speed);
   el("time").textContent = left.toFixed(1);
   el("time").parentElement!.classList.toggle("low", left < 3 && run.status === "running");
   el("coins").textContent = String(run.coins);
   el("progress").style.width = `${Math.min(100, (run.state.row / run.level.length) * 100)}%`;
+}
+
+/** A side crash: the car nudges toward the lane it tried to take, then settles back. */
+function bump(dir: Action): void {
+  const car = el("car");
+  car.style.setProperty("--bump", `${dir * LANE * 0.22}px`);
+  car.classList.remove("bump");
+  void car.offsetWidth;
+  car.classList.add("bump");
 }
 
 function flash(roadClass: string, text: string, color: string): void {
@@ -312,24 +348,49 @@ function notice(text: string): void {
 function bindInput(): void {
   el("left").addEventListener("pointerdown", (e) => (e.preventDefault(), steer(-1)));
   el("right").addEventListener("pointerdown", (e) => (e.preventDefault(), steer(1)));
+  // One lane per key press: held keys don't auto-repeat into extra lane changes.
   window.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") steer(-1);
-    else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") steer(1);
-    else if ((e.key === " " || e.key === "Enter") && run.status !== "running") el<HTMLButtonElement>("ov-btn").click();
+    const left = e.key === "ArrowLeft" || e.key === "a" || e.key === "A";
+    const right = e.key === "ArrowRight" || e.key === "d" || e.key === "D";
+    if (left || right) {
+      e.preventDefault();
+      if (!e.repeat) steer(left ? -1 : 1);
+    } else if ((e.key === " " || e.key === "Enter") && run.status !== "running" && !e.repeat) {
+      e.preventDefault();
+      el<HTMLButtonElement>("ov-btn").click();
+    }
   });
-  // Swipe on the road, or tap its left/right half.
+  // Swipe on the road (fires as soon as the finger has moved far enough), or tap its left or
+  // right half. One lane per gesture.
   const road = el("road");
+  const SWIPE_PX = 24;
   let x0 = 0;
-  road.addEventListener("pointerdown", (e) => (x0 = e.clientX));
-  road.addEventListener("pointerup", (e) => {
+  let down = false;
+  let swiped = false;
+  road.addEventListener("pointerdown", (e) => {
+    x0 = e.clientX;
+    down = true;
+    swiped = false;
+  });
+  road.addEventListener("pointermove", (e) => {
+    if (!down || swiped) return;
     const dx = e.clientX - x0;
-    if (Math.abs(dx) > 28) steer(dx < 0 ? -1 : 1);
-    else {
+    if (Math.abs(dx) >= SWIPE_PX) {
+      swiped = true;
+      steer(dx < 0 ? -1 : 1);
+    }
+  });
+  road.addEventListener("pointerup", (e) => {
+    if (down && !swiped) {
       const r = road.getBoundingClientRect();
       steer(e.clientX < r.left + r.width / 2 ? -1 : 1);
     }
+    down = false;
   });
-  window.addEventListener("resize", layout);
+  road.addEventListener("pointercancel", () => (down = false));
+  // Re-fit whenever the road's box changes (rotation, resize, or the panels above it reflowing).
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(() => run && layout()).observe(road);
+  else window.addEventListener("resize", layout);
 }
 
 // ---------- loading ----------

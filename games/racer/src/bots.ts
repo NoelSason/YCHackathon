@@ -5,7 +5,7 @@
 //           and sometimes doesn't notice an obstacle
 //   greedy  looks only two rows ahead, but never makes mistakes
 //   random  steers at random
-import { type Action, buildGrid, canSteer, type CarState, finished, type Grid, isObstacle, type Level, startState, step, type StepEvents } from "./engine.js";
+import { type Action, buildGrid, canSteer, cellKey, type CarState, finished, type Grid, isObstacle, type Level, startState, step, type StepEvents } from "./engine.js";
 
 export const BOTS = ["human", "greedy", "random"] as const;
 export type BotName = (typeof BOTS)[number];
@@ -56,7 +56,7 @@ function plan(level: Level, view: Grid, s: CarState, horizon: number): Action {
   const memo = new Map<string, number>();
   const value = (st: CarState, depth: number): number => {
     if (depth === 0 || finished(level, st)) return 0;
-    const k = `${st.row},${st.lane},${st.cooldown},${st.boost},${st.stun},${st.shield},${depth}`;
+    const k = `${st.row},${st.lane},${st.cooldown},${st.boost},${st.stun},${st.shield},${st.rear},${depth}`;
     const hit = memo.get(k);
     if (hit !== undefined) return hit;
     let top = -Infinity;
@@ -97,7 +97,7 @@ export function drive(level: Level, bot: string, seed: number): DriveResult {
   if (driver.missChance > 0) {
     view = new Map(grid);
     for (const o of level.objects) {
-      if (isObstacle(o.kind) && rnd() < driver.missChance) view.delete(o.row * 8 + o.lane);
+      if (isObstacle(o.kind) && rnd() < driver.missChance) view.delete(cellKey(o.row, o.lane));
     }
   }
 

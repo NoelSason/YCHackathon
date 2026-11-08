@@ -55,76 +55,8 @@ html, body {
 .road.crash { animation: jolt 0.3s; }
 .road.boost .speedlines { opacity: 1; }
 
-.world { position: absolute; left: 0; right: 0; bottom: 0; height: 0; will-change: transform; }
-.lane-line {
-  position: absolute; bottom: 0; width: 3px; margin-left: -1.5px;
-  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.28) 0 calc(var(--row) * 0.6), transparent calc(var(--row) * 0.6) var(--row));
-}
-.finish {
-  position: absolute; left: 0; right: 0; height: calc(var(--row) * 0.7);
-  background: repeating-conic-gradient(#fff 0 25%, #111 0 50%) 0 0 / 22px 22px;
-  box-shadow: 0 0 24px rgba(255, 255, 255, 0.35);
-}
-.obj { position: absolute; width: var(--lane); height: var(--row); display: grid; place-items: center; transition: opacity 0.2s, transform 0.2s; }
-.obj.gone { opacity: 0; transform: scale(1.6); }
-.obj.car i {
-  width: 52%; height: 150%; border-radius: 10px 10px 8px 8px;
-  background: linear-gradient(180deg, #7a86ff, #4b55d6);
-  box-shadow: inset 0 10px 0 -4px rgba(255, 255, 255, 0.35), inset 0 -8px 0 -3px rgba(0, 0, 0, 0.35), 0 6px 10px rgba(0, 0, 0, 0.5);
-}
-.obj.car.alt i { background: linear-gradient(180deg, #ffb347, #e8752a); }
-/* Windshield and rear window, so traffic and the player's car read as cars. */
-.obj.car i, .car .body { position: relative; }
-.obj.car i::before, .car .body::before {
-  content: ""; position: absolute; left: 14%; right: 14%; top: 16%; height: 20%;
-  border-radius: 7px 7px 3px 3px;
-  background: linear-gradient(180deg, rgba(200, 240, 255, 0.95), rgba(80, 130, 200, 0.9));
-}
-.obj.car i::after, .car .body::after {
-  content: ""; position: absolute; left: 20%; right: 20%; bottom: 10%; height: 11%;
-  border-radius: 3px; background: rgba(15, 15, 40, 0.55);
-}
-.obj.cone i {
-  width: 34%; height: 80%;
-  background: linear-gradient(180deg, #ff9a3c, #ff6a00);
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5));
-}
-.obj.boost i {
-  width: 70%; height: 85%;
-  background: linear-gradient(180deg, rgba(32, 227, 255, 0.95), rgba(255, 43, 214, 0.85));
-  clip-path: polygon(0 55%, 50% 15%, 100% 55%, 100% 85%, 50% 45%, 0 85%);
-  filter: drop-shadow(0 0 8px rgba(32, 227, 255, 0.9));
-  animation: pulse 0.8s ease-in-out infinite alternate;
-}
-.obj.coin i {
-  width: 34%; aspect-ratio: 1; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff6c2, var(--gold) 45%, #c58b00);
-  box-shadow: 0 0 10px rgba(255, 210, 63, 0.7);
-  animation: spin 1.2s linear infinite;
-}
-
-.car { position: absolute; bottom: calc(var(--row) * 1.6); width: var(--lane); height: calc(var(--row) * 1.7); margin-left: calc(var(--lane) / -2); display: grid; place-items: center; z-index: 5; will-change: transform; }
-.car .body {
-  width: 50%; height: 100%; border-radius: 14px 14px 10px 10px;
-  background:
-    linear-gradient(90deg, transparent 43%, rgba(255, 255, 255, 0.7) 43% 57%, transparent 57%),
-    linear-gradient(180deg, #ff4fd8, #b014c9);
-  box-shadow: inset 0 14px 0 -6px rgba(255, 255, 255, 0.45), inset 0 -10px 0 -4px rgba(0, 0, 0, 0.35), 0 0 22px rgba(255, 43, 214, 0.55);
-  transition: transform 0.12s;
-}
-.car.left .body { transform: rotate(-9deg); }
-.car.right .body { transform: rotate(9deg); }
-.car.stunned .body { animation: spinout 0.6s; filter: saturate(0.4) brightness(0.8); }
-.car .flame {
-  position: absolute; bottom: -18%; width: 22%; height: 30%; border-radius: 0 0 50% 50%;
-  background: linear-gradient(180deg, #fff, var(--neon2) 40%, transparent);
-  opacity: 0; transition: opacity 0.15s;
-}
-.road.boost .car .flame { opacity: 1; animation: flicker 0.08s infinite alternate; }
-
 .speedlines {
-  position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.2s;
+  position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 4;
   background: repeating-linear-gradient(90deg, transparent 0 18%, rgba(255, 255, 255, 0.10) 18% 18.6%);
   mask-image: linear-gradient(180deg, transparent, #000 40%, transparent);
   animation: rush 0.25s linear infinite;
@@ -196,12 +128,6 @@ html,body { background:radial-gradient(ellipse at 20% 10%,#1d3843,transparent 50
 .mini { color:#c5d5d9; border:1px solid #ffffff18; background:#ffffff06; border-radius:9px; padding:8px 12px; cursor:pointer; font:500 11px system-ui; min-height:44px; }
 .road { min-height:200px; border-radius:14px; border:1px solid #90aec034; background:linear-gradient(90deg,#8ae0cf99 0 3px,#2c4651 3px 8px,transparent 8px calc(100% - 8px),#2c4651 calc(100% - 8px) calc(100% - 3px),#edff8699 calc(100% - 3px)),repeating-linear-gradient(0deg,#ffffff02 0 1px,transparent 1px 5px),#172432; box-shadow:inset 0 0 55px #0005,0 16px 40px #0004; }
 .road::after { content:""; position:absolute; inset:0; pointer-events:none; z-index:6; background:linear-gradient(#0b16247a,transparent 25%); }
-.lane-line { width:2px; background:repeating-linear-gradient(0deg,#b4c6cd44 0 calc(var(--row)*.5),transparent calc(var(--row)*.5) var(--row)); }
-.car .body { background:linear-gradient(90deg,transparent 44%,#1d353c 44% 56%,transparent 56%),linear-gradient(#f2ffa6,#a8c746); box-shadow:inset 0 10px 0 -5px #fff8,inset 0 -8px 0 -4px #0005,0 0 20px #edff862b,0 8px 12px #0008; border-radius:12px 12px 8px 8px; }
-.obj.car i { background:linear-gradient(#b8d4df,#5b7b93); }
-.obj.car.alt i { background:linear-gradient(#e9a17c,#ac604c); }
-.obj.oil i { width:65%; height:70%; border-radius:47% 53% 67% 33%; background:radial-gradient(ellipse,#263a46 10%,#756289 30%,#3e9e9b 45%,#080c16 65%); box-shadow:0 3px 6px #0008; transform:rotate(-20deg); }
-.obj.boost i { background:var(--neon2); filter:drop-shadow(0 0 6px #88e7d099); }
 .telemetry { display:flex; justify-content:space-between; gap:8px; font-size:8px; letter-spacing:1.2px; font-weight:700; color:var(--muted); }
 #boost-status { color:var(--neon2); text-align:right; }
 .steer { height:58px; font-size:22px; border-radius:13px; background:linear-gradient(#233745,#192734); border-color:#50677766; box-shadow:0 4px 0 #040b12; }
@@ -218,5 +144,124 @@ html,body { background:radial-gradient(ellipse at 20% 10%,#1d3843,transparent 50
 button:focus-visible { outline:3px solid var(--neon2); outline-offset:4px; }
 @media(max-width:420px) { #app { padding:16px; gap:10px; min-height:650px; } .brand { font-size:21px; } .mission { padding:12px 14px; } }
 @media(min-width:760px) { #app { padding-top:32px; } }
-.obj.shield i { width:39%; height:85%; background:linear-gradient(140deg,#d0fff0,#54c6b6); clip-path:polygon(50% 0,95% 20%,85% 70%,50% 100%,15% 70%,5% 20%); filter:drop-shadow(0 0 8px #88e7d0); }
-.car.shielded::after { content:""; position:absolute; inset:-12% 12%; border:2px solid #9affdf; border-radius:50%; box-shadow:0 0 18px #88e7d0aa,inset 0 0 15px #88e7d044; }
+
+/* ---------- Road, roadside, and sprites ----------
+   Every sprite's box comes from the engine (GEOMETRY, spriteBox, playerBox), set inline by
+   ui/main.ts, so the drawing and the collision rules always agree. CSS only paints inside it. */
+.road {
+  --scroll: 0px;
+  background:
+    radial-gradient(circle at 50% 50%, #25414b 0 1.5px, transparent 2px) 0 var(--scroll) / 46px calc(var(--row) * 3),
+    repeating-linear-gradient(0deg, #ffffff05 0 1px, transparent 1px 9px) 0 var(--scroll),
+    #0d1a22;
+}
+.road.boost .speedlines { opacity: 1; }
+.surface {
+  position: absolute; top: 0; bottom: 0; left: 50%; width: var(--road-w); transform: translateX(-50%);
+  background: #172432;
+  box-shadow: -10px 0 0 #2c4651, 10px 0 0 #2c4651, -13px 0 0 #8ae0cf88, 13px 0 0 #edff8688, 0 0 40px #0008;
+}
+.surface::before, .surface::after {
+  /* rumble strips along both road edges, scrolling with the track */
+  content: ""; position: absolute; top: 0; bottom: 0; width: 6px; z-index: 1;
+  background: repeating-linear-gradient(0deg, #edff8655 0 calc(var(--row) * 0.5), #172432 calc(var(--row) * 0.5) var(--row)) 0 var(--scroll);
+}
+.surface::before { left: 0; }
+.surface::after { right: 0; }
+.world { position: absolute; left: 0; right: 0; bottom: 0; height: 0; will-change: transform; }
+.lane-line {
+  position: absolute; bottom: 0; width: 2px; margin-left: -1px;
+  background: repeating-linear-gradient(0deg, #b4c6cd55 0 calc(var(--row) * 0.5), transparent calc(var(--row) * 0.5) var(--row));
+}
+.finish {
+  position: absolute; left: 0; right: 0; height: calc(var(--row) * 0.6);
+  background: repeating-conic-gradient(#fff 0 25%, #111 0 50%) 0 0 / calc(var(--row) * 0.3) calc(var(--row) * 0.3);
+  box-shadow: 0 0 24px #fff5;
+}
+.obj { position: absolute; transition: opacity 0.2s, transform 0.2s; }
+.obj.gone { opacity: 0; transform: scale(1.4); }
+
+/* Vehicles: one shape for the player and for traffic, so they read as the same size. */
+.vehicle {
+  --paint: #b8d4df; --paint-dark: #5b7b93;
+  position: absolute; border-radius: 26% 26% 20% 20% / 13% 13% 10% 10%;
+  background:
+    linear-gradient(90deg, #0006 0 7%, transparent 7% 93%, #0006 93%),
+    linear-gradient(180deg, var(--paint), var(--paint-dark));
+  box-shadow: inset 0 3px 0 #fff5, inset 0 -3px 0 #0005, 0 5px 9px #0009;
+}
+.vehicle i, .vehicle b { position: absolute; left: 15%; right: 15%; display: block; }
+.vehicle i { top: 20%; height: 17%; border-radius: 30% 30% 12% 12%; background: linear-gradient(180deg, #d4f2ff, #5d84b6); } /* windshield */
+.vehicle b { bottom: 9%; height: 10%; border-radius: 12% 12% 30% 30%; background: #10182ccc; }                              /* rear window */
+.vehicle::before, .vehicle::after { content: ""; position: absolute; width: 18%; height: 4%; border-radius: 2px; }
+/* Traffic drives the same way as the player, so the player sees its tail lights. */
+.obj.vehicle::before, .obj.vehicle::after { bottom: 1.5%; background: #ff4d5e; box-shadow: 0 0 6px #ff4d5e; }
+.obj.vehicle::before { left: 8%; }
+.obj.vehicle::after { right: 8%; }
+.obj.vehicle.paint-1 { --paint: #e9a17c; --paint-dark: #ac604c; }
+.obj.vehicle.paint-2 { --paint: #c9b6f2; --paint-dark: #6e5ca8; }
+
+.player { z-index: 5; will-change: transform; --paint: #f2ffa6; --paint-dark: #a8c746; }
+.player {
+  background:
+    linear-gradient(90deg, transparent 44%, #1d353c 44% 56%, transparent 56%),
+    linear-gradient(90deg, #0005 0 7%, transparent 7% 93%, #0005 93%),
+    linear-gradient(180deg, var(--paint), var(--paint-dark));
+  box-shadow: inset 0 3px 0 #fff8, inset 0 -3px 0 #0005, 0 0 18px #edff8633, 0 6px 10px #0009;
+  transition: rotate 0.12s;
+}
+.player::before, .player::after { top: 1.5%; background: #fffbe0; box-shadow: 0 0 8px #fffbe0; } /* headlights */
+.player::before { left: 8%; }
+.player::after { right: 8%; }
+.player.left { rotate: -7deg; }
+.player.right { rotate: 7deg; }
+.player.stunned { filter: saturate(0.4) brightness(0.8); }
+.player.bump { animation: bump 0.32s ease-out; }
+.player.shielded { outline: 2px solid #9affdf; outline-offset: 4px; box-shadow: 0 0 18px #88e7d0aa, inset 0 3px 0 #fff8, 0 6px 10px #0009; }
+.player .flame {
+  position: absolute; left: 39%; width: 22%; bottom: -24%; height: 24%; border-radius: 0 0 50% 50%;
+  background: linear-gradient(180deg, #fff, var(--neon2) 40%, transparent);
+  opacity: 0; transition: opacity 0.15s;
+}
+.road.boost .player .flame { opacity: 1; animation: flicker 0.08s infinite alternate; }
+
+/* Hazards: warm colours and hard edges. Pickups: glowing teal and gold. */
+.obj.cone {
+  background: linear-gradient(180deg, #ff9a3c 0 38%, #fff 38% 50%, #ff6a00 50%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  filter: drop-shadow(0 3px 3px #0009);
+}
+.obj.oil {
+  border-radius: 46% 54% 60% 40% / 55% 45% 55% 45%;
+  background: radial-gradient(ellipse at 40% 40%, #2b3f4c 0 18%, #6d5b8a 30%, #2f8e8b 44%, #05080f 64%);
+  box-shadow: 0 0 0 2px #ff8a3c66, 0 3px 6px #0008;
+}
+.obj.boost {
+  background: linear-gradient(180deg, #88e7d0, #3fbfa3);
+  clip-path: polygon(0 55%, 50% 15%, 100% 55%, 100% 85%, 50% 45%, 0 85%);
+  filter: drop-shadow(0 0 6px #88e7d099);
+  animation: pulse 0.8s ease-in-out infinite alternate;
+}
+.obj.shield {
+  background: linear-gradient(140deg, #d0fff0, #54c6b6);
+  clip-path: polygon(50% 0, 95% 20%, 85% 70%, 50% 100%, 15% 70%, 5% 20%);
+  filter: drop-shadow(0 0 8px #88e7d0);
+}
+.obj.coin {
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6c2, var(--gold) 45%, #c58b00);
+  box-shadow: 0 0 10px #ffd23fb0;
+  animation: spin 1.2s linear infinite;
+}
+
+.legend { align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend .key { display: inline-block; width: 10px; height: 12px; }
+.legend .key.boost { background: #88e7d0; clip-path: polygon(0 55%, 50% 15%, 100% 55%, 100% 85%, 50% 45%, 0 85%); }
+.legend .key.shield { background: #7fe0cc; clip-path: polygon(50% 0, 95% 20%, 85% 70%, 50% 100%, 15% 70%, 5% 20%); }
+.legend .key.coin { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
+.legend .key.car { width: 7px; height: 13px; border-radius: 2px; background: #b8d4df; }
+.legend .key.cone { background: #ff8a2c; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.legend .key.oil { width: 13px; height: 9px; border-radius: 50%; background: radial-gradient(ellipse, #6d5b8a, #2f8e8b 50%, #05080f 75%); }
+
+@keyframes bump { 35% { translate: var(--bump) 0; } 100% { translate: 0 0; } }

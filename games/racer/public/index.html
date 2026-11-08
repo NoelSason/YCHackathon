@@ -20,9 +20,11 @@
 
     <section class="mission"><div><small>YOUR MISSION</small><strong id="track-title">Night drive</strong></div><button id="restart" class="mini" type="button" aria-label="Restart race">↻ Restart</button><p id="objective">Beat the clock. Find your line.</p></section>
     <section class="road" id="road" aria-label="Road">
-      <div class="world" id="world"></div>
-      <div class="car" id="car" aria-label="Your car"><i class="flame"></i><i class="body"></i></div>
-      <div class="speedlines" aria-hidden="true"></div>
+      <div class="surface" id="surface">
+        <div class="world" id="world"></div>
+        <div class="player vehicle" id="car" aria-label="Your car"><i></i><b></b><span class="flame"></span></div>
+        <div class="speedlines" aria-hidden="true"></div>
+      </div>
       <div class="float" id="float" aria-hidden="true"></div>
     </section>
 
@@ -32,7 +34,12 @@
       <button class="steer" id="right" type="button" aria-label="Steer right">▶</button>
     </section>
 
-    <div class="legend"><span>◆ Coins</span><span>» Boost pads</span><span>◈ Shield</span><span>▰ Traffic · ▲ Cones · ● Oil</span></div>
+    <div class="legend">
+      <span><i class="key boost"></i>Boost: double speed</span>
+      <span><i class="key shield"></i>Shield: blocks one hit</span>
+      <span><i class="key coin"></i>Coin</span>
+      <span><i class="key car"></i><i class="key cone"></i><i class="key oil"></i>Traffic, cones, oil: crash</span>
+    </div>
     <nav class="samples" id="samples" aria-label="Practice tracks"></nav>
   </main>
 
@@ -42,7 +49,7 @@
       <p id="ov-text"></p>
       <div class="stars" id="ov-stars" aria-hidden="true"></div>
       <button class="btn" id="ov-btn" type="button">Start</button>
-      <p class="keys">Tap ◀ ▶, swipe, or use the arrow keys</p>
+      <p class="keys">Swipe or tap the road, or use ◀ ▶, the arrow keys, or A and D. One lane per move.</p>
     </div>
   </div>
 

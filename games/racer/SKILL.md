@@ -8,11 +8,16 @@ for an agent.
 
 - The track is a grid: `lanes` across (3 to 5) and `length` rows long.
 - The car starts at row 0, in the middle lane unless `start_lane` is set.
+- **Sizes:** every vehicle, the player's and each `car`, is **2 rows long**. A `car` placed at row
+  `r` covers rows `r` and `r + 1` of its lane. Cones, oil, and pickups cover one row.
 - **Movement:** the car moves one row per tick, or two rows per tick while boosted.
 - **Steering:** each tick the driver may steer one lane left or right. After steering, they must
   wait `lane_change_cooldown` ticks before steering again.
 - **Objects:**
   - `car`, `cone`, or `oil`: driving into one is a **crash**, and the car stops for `crash_penalty` ticks.
+  - Steering into a lane where a hazard is right beside the car is a **side crash**: the car bounces
+    back to its own lane and stops for `crash_penalty` ticks. So a lane is only free to move into
+    once the car's rear bumper is past the hazard.
   - `boost`: double speed for 4 ticks.
   - `coin`: points only.
   - `shield`: absorbs the next obstacle with no stun or boost loss, then disappears. Shields do not stack.
@@ -51,6 +56,9 @@ for an agent.
 
 - Objects: `row` from 1 to `length - 1`, `lane` from 0 to `lanes - 1`, and `kind` one of `car`,
   `cone`, `oil`, `shield`, `boost`, `coin`. No two objects share a cell.
+- Don't put anything in the row right ahead of a `car` in the same lane (`row + 1`). It would sit
+  under the car, hidden, and only be reachable by crashing. The validator allows it for older
+  levels, but never design it.
 - Fields: `start_lane` and `title` are optional. No other fields.
 
 ## How difficulty works
@@ -65,7 +73,9 @@ The Tuner measures difficulty; never guess it from the layout. The solver harnes
 - **`solvable` and `min_moves`.** An exact search finds the fastest possible finish in ticks
   (`min_moves`). The track is `solvable` if that finish beats `time_limit`.
 
-Knobs, strongest first. The figures below are historical measurements before oil and shields were added to the generated samples. Re-run simulations for current tracks; do not report these as current results.
+Knobs, strongest first. The figures below are historical measurements from before oil, shields,
+two-row cars, and side crashes. Re-run simulations for current tracks; do not report these as
+current results.
 
 1. **`time_limit` relative to `min_moves`.** On "Rush Hour" (minimum 82 ticks), the human bot's win
    rate was:
@@ -82,6 +92,8 @@ Knobs, strongest first. The figures below are historical measurements before oil
 
 3. **Obstacle density and patterns.** Rows where only one lane is open, and walls a few rows apart
    that need quick double steers, are hard. Cooldown 1 or more makes double steers much harder.
+   Cars are 2 rows long and block side moves until the player is past them, so walls of cars need
+   more room than walls of cones: leave at least 4 rows between car walls if the open lane moves.
 4. **Boosts.** They cut the fastest time. A boost right before an obstacle tempts a crash.
 
 Always leave at least one open lane in a row unless a forced crash is the point (the solver counts
