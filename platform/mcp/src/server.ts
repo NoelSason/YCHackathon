@@ -47,6 +47,21 @@ app.get("/games/:game_id/schema", (req, res) => {
   res.json(a.schema);
 });
 
+// Public read path used by level URLs. Level ids are random UUIDs and the content is designed
+// for public play; writes remain behind the authenticated MCP endpoint.
+app.get("/levels/:level_id", async (req, res) => {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.level_id)) {
+    res.status(400).json({ error: "invalid level id" });
+    return;
+  }
+  const row = await q<{ level_id: string; game_id: string; level: object; status: string }>(
+    "select level_id, game_id, level, status from levels where level_id = $1",
+    [req.params.level_id],
+  );
+  if (!row.length) { res.status(404).json({ error: "level not found" }); return; }
+  res.json(row[0]);
+});
+
 // MCP endpoint. Naïve injects the bearer from its vault; local clients send it directly.
 app.all("/mcp", async (req, res) => {
   const auth = req.header("authorization") ?? "";

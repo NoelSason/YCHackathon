@@ -11,25 +11,26 @@ the product, and handle day-to-day operations.
 - **Company:** **Level AI**, an autonomous level studio for puzzle games. Sales inbox:
   `levelai@agentmail.to`. Any game plugs in through an adapter.
   Agents design levels, test each one hundreds of times with bot players or exact solvers, tune
-  the difficulty, playtest on real phones, and ship. We run three forked open-source games as our
-  first customers (a match-3 puzzle game, a rhythm runner, and a property-trading board game) and sell
+  the difficulty, playtest on real phones, and ship. We run
+  two programmatic game adapters (match-3 and platformer) plus a separate Geometry Dash editor
+  workflow, then sell
   the same service to studios. We don't build a game.
 - **Decided Nov 7, ~1:45 PM:** the team dropped the earlier streaming idea completely. Don't build
   anything for streaming, chat, or clipping streams.
 - **Full plan:** `README.md` has the agents, the sponsor-tool map, each person's plan, the
   timeline, and the risks. Read it before starting work.
 - **Games: open source only.** Fork only open-source games whose license allows it, and keep their
-  credit and license files. Our forks are "Candy Crush–style," "Geometry Dash–style," and
-  "Monopoly-style" in genre only. Never use those games' names, logos, art, music, levels, boards,
-  or card text, and replace any copied assets a repo ships with.
+  credit and license files. Candy Crush, Mario, and Geometry Dash are genre references only. Never
+  use those games' names, logos, art, music, levels, or other copyrighted content. Geometry Dash
+  work uses the official editor on an existing authorized Mobilerun device and is not a product fork.
   The levels the agents make are new. Phones may play other companies' games only to study them.
 
 ## Team and ownership
 
 | Person | Owns |
 |---|---|
-| **Max** | Game integration: the three forks, their own names and art, each game's adapter (schema, validate, simulate or solve, load by URL, events, `SKILL.md`), hosting, then the heartbeat dashboard |
-| **Pinara** | Level quality: the Solver harness, bot players, the three solvers, the Designer and Tuner agents, evals, and the CEO's expected-vs-result check |
+| **Max** | Game integration: match-3 and platformer adapters and game clients, the Geometry Dash Mobilerun editor workflow, hosting, then the heartbeat dashboard |
+| **Pinara** | Level quality: the Solver harness, bot players and solvers for programmatic adapters, the Designer and Tuner agents, evals, and the CEO's expected-vs-result check |
 | **Abhinav** | The Naïve backbone: Neon, the platform MCP server, the Naïve Team setup (roster, board, skills, budgets, permissions, cron, kill switch), the CEO loop, and the demo-readiness checks |
 | **Noel** | Business ops as Naïve agents (outreach, finance, billing, CRM), Mobilerun playtests, and the demo script |
 

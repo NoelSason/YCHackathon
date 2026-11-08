@@ -10,5 +10,5 @@ device, with status and trajectory results. This skill does not provision or res
 does not upload or publish levels.
 
 Remote mobile interaction can check editor navigation, save state, and visual loading. It cannot
-substitute for a headless solver or prove frame-accurate completion. Keep the rhythm-runner adapter
-and solver as the source of truth for our product.
+substitute for a headless solver or prove frame-accurate completion. This editor workflow is
+separate from the match-3 and platformer product adapters.

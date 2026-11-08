@@ -38,11 +38,11 @@
       "operations": ["validate_level", "solve_level", "save_level"],
       "verification": "Schema and rules validation, then seeded bot simulation. Do not claim completion until the adapter is connected and returns results."
     },
-    "provided_platformer_editor": {
-      "mode": "user_provided_editor",
-      "availability": "external_environment_required",
-      "operations": [],
-      "verification": "Use the supplied editor/game save and playtest flow. No programmatic solver is declared."
+    "platformer_adapter": {
+      "mode": "programmatic",
+      "availability": "adapter_registered_browser_pending",
+      "operations": ["validate_level", "solve_level", "save_level"],
+      "verification": "Use adapter validation, shortest-route solve, and seeded bot simulation. Browser loading and play events remain pending a connected game client."
     },
     "geometry_dash_editor_mobilerun": {
       "mode": "mobilerun_agent",
@@ -61,9 +61,9 @@
         "implement": "games/match3/SKILL.md"
       }
     },
-    "platformer-editor": {
-      "label": "External platformer editor",
-      "interface": "provided_platformer_editor",
+    "platformer": {
+      "label": "Mosslight Trails Platformer",
+      "interface": "platformer_adapter",
       "skills": {
         "design": "games/platformer/SKILL.md",
         "evaluate": "games/platformer/SKILL.md",
