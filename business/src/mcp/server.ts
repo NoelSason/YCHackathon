@@ -6,6 +6,7 @@ import {
   toolFindTargets,
   toolFinance,
   toolPaymentLink,
+  toolPostUpdate,
   toolRecordReply,
   toolRunPlaytest,
   toolSaveLead,
@@ -147,6 +148,16 @@ export function buildMcpServer(ctx: ToolContext): McpServer {
       inputSchema: { plan: PlanSchema, deviceId: z.string().optional() },
     },
     async (args) => json(await toolRunPlaytest(ctx, args)),
+  );
+
+  server.registerTool(
+    "post_update",
+    {
+      description:
+        "Marketing: publish a short 'for hire' post on Level AI's connected LinkedIn, X, Threads, Bluesky, and Reddit accounts. angle 'levels' offers puzzle levels for studios; 'playtest' offers an iPhone playtest of an app. Posts are labeled AI-generated, use only our own numbers, and are capped per network per day.",
+      inputSchema: { angle: z.enum(["levels", "playtest"]) },
+    },
+    async (args) => json(await toolPostUpdate(ctx, args)),
   );
 
   server.registerTool(

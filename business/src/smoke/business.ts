@@ -11,7 +11,7 @@ const base = process.env.BUSINESS_BASE_URL ?? "http://localhost:8787";
 const token = process.env.BUSINESS_MCP_TOKEN ?? "";
 const EXPECTED_TOOLS = [
   "find_targets", "audit_game", "save_lead", "list_leads", "set_sample_url", "draft_outreach", "send_outreach",
-  "record_reply", "send_reply", "create_payment_link", "finance_snapshot", "run_playtest", "recent_activity", "log_activity",
+  "record_reply", "send_reply", "create_payment_link", "finance_snapshot", "run_playtest", "post_update", "recent_activity", "log_activity",
 ];
 
 type Check = { name: string; run: () => Promise<string> };

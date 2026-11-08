@@ -265,3 +265,13 @@ export async function toolRunPlaytest(ctx: ToolContext, args: { plan: PlanInput;
   });
   return outcome;
 }
+
+/** The Marketing agent: publish a "for hire" post on Level AI's connected social accounts through Naïve. */
+export async function toolPostUpdate(ctx: ToolContext, args: { angle: "levels" | "playtest" }) {
+  if (!ctx.naive || !ctx.config.NAIVE_IDENTITY_ID) throw new Error("Naïve social isn't set up (NAIVE_IDENTITY_ID).");
+  const { gatherStats, composePost, publish } = await import("../marketing/posts.js");
+  const stats = await gatherStats(ctx.store);
+  const playtest = ctx.config.PUBLIC_BASE_URL.startsWith("https://") ? `${ctx.config.PUBLIC_BASE_URL}/playtest` : null;
+  const post = composePost(args.angle, stats, { site: ctx.config.SITE_URL, playtest });
+  return publish({ naive: ctx.naive, identityId: ctx.config.NAIVE_IDENTITY_ID, store: ctx.store, post, dailyCap: ctx.config.SOCIAL_DAILY_CAP });
+}

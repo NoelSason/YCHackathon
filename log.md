@@ -20,6 +20,27 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:45 PT · Noel (Claude Code) · branch `main`
+
+**What:** **The Marketing agent posts automatically through Naïve's Social API.**
+- **New `post_update` business tool:** it publishes a short "[For Hire]" post, offering either levels for studios or an
+  iPhone playtest for app teams, on Level AI's connected LinkedIn, X, Threads, Bluesky, and Reddit accounts, through
+  `client.social.createPost`. Each post is labeled as AI-generated, uses only numbers from our own records, fits X's
+  280 characters, and is capped at 2 per network per day.
+- **New `marketing` agent in `platform/naive/src/roster.ts`**, on Naïve cron every 6 hours. It alternates between the
+  levels and playtest angles.
+- **Naïve identity "Level AI" created** (`NAIVE_IDENTITY_ID` in `.env`). Social isn't on yet: the current API key lacks
+  the `billing:write` scope.
+**Files:** `business/src/marketing/posts.ts`, `business/src/mcp/`, `business/src/config.ts`,
+`platform/naive/src/roster.ts`.
+**State:** 62 business tests pass, and the roster typechecks. No posts published yet (blocked on Social activation).
+**Next / heads-up:**
+- **Noel:** turn on Social for the "Level AI" identity in Naïve Studio, or make an API key with `billing:write`. Then
+  open the connect link and sign in to LinkedIn, X, Reddit, Threads, and Bluesky. Only a person can do that step.
+- **Abhinav:** rerun `npm run setup` in `platform/naive` to create the `marketing` agent and its cron.
+
+---
+
 ### 2026-11-07 16:10 PT · Pinara (Claude Code) · branch `main`
 
 **What:**

@@ -15,6 +15,12 @@ const EnvSchema = z.object({
   NAIVE_BASE_URL: z.string().default("https://api.vetta.sh"),
   /** The Sales Reader agent's id (agt_...), woken when a reply arrives. */
   SALES_READER_AGENT_ID: z.string().optional(),
+  /** The "Level AI" Naïve identity that owns the connected social accounts. */
+  NAIVE_IDENTITY_ID: z.string().optional(),
+  /** Public website shown in posts. */
+  SITE_URL: z.string().default("https://levelai.vercel.app"),
+  /** At most this many posts per network per day. */
+  SOCIAL_DAILY_CAP: z.coerce.number().int().positive().default(2),
 
   // Monid (CLI reads its own configured key; this is only checked for presence)
   MONID_API_KEY: z.string().optional(),

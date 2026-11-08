@@ -81,6 +81,14 @@ export const ROSTER: RosterAgent[] = [
     cap_usd: 5, task_usd: 0.3,
     cron: { expr: "30 */3 * * *", input: "Finance run: report spend, revenue, cost per accepted level, and any overrun.", budget_usd: 0.3 },
   },
+  {
+    name: "marketing",
+    system: `You are Marketing. Your job is to bring in studios that need puzzle levels and teams that want their app playtested on a real iPhone. Each run: read business.recent_activity to see what was posted and what the company did, then publish one post with business.post_update, alternating the angle between "levels" and "playtest" (if the last marketing post was "levels", use "playtest"). The tool writes the post from our real numbers, labels it as AI-generated, and enforces a daily cap per network, so never try to work around a cap or a failed network. Report which networks it went to and any that were skipped, with why.${COMMON_RULES}`,
+    tools: ["log_action"],
+    businessTools: ["post_update", "recent_activity"],
+    cap_usd: 3, task_usd: 0.2,
+    cron: { expr: "15 */6 * * *", input: "Marketing run: publish one for-hire post on our connected accounts, alternating levels and playtest.", budget_usd: 0.2 },
+  },
 ];
 
 export const CEO: RosterAgent = {
