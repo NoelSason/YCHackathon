@@ -21,4 +21,4 @@ and rules are authoritative; do not invent tile symbols, fields, or movement rul
 Report the level ID, validation and solver output, bot metrics, and any playtest performed. Do not
 infer a human difficulty score from route length alone. The browser client now shares `src/engine.ts`
 with the adapter, at `/games/platformer/`; distinguish local checks from verified live deployment.
-The greedy bot is an exact-route reference and wins all valid levels, not a human skill model.
+The greedy bot is an exact-route reference and wins whenever `move_limit` allows the shortest route. The `human` bot is the difficulty reference: it follows the shortest route but sometimes lands on a wrong ledge at a fork and re-plans, so its win rate rises smoothly with `move_limit` (an optional step budget; running out loses the trail).

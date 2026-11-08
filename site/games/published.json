@@ -2,5 +2,6 @@
   "match3": true,
   "watersort": true,
   "racer": true,
-  "lotescape": true
+  "lotescape": true,
+  "platformer": true
 }

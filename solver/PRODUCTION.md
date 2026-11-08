@@ -152,3 +152,11 @@ minimum + 40, under the schema's 300 cap), measured with the game's `human` bot.
 `Lot 0001` … and ids are the same deterministic `levelId(game, position, series)` as the other
 games, so the Lot Escape page walks the verified series in order (Lot n → Lot n+1).
 
+## Mosslight Trails (added Nov 7, 23:45)
+
+Mosslight Trails uses `games/platformer/src/generate.ts` (notch 1–12; learning slots notch 1,
+normal 1→8 with depth, challenges +3, recoveries −2). Its optional `move_limit` is the tuned
+allowance, measured with the game's `human` bot. The ceiling is the shortest route + 80, because
+a wrong turn on a long trail can cost many steps. Titles are `Trail 0001` …, with the same
+deterministic ids, so the Mosslight page walks the verified series in order.
+

@@ -114,3 +114,16 @@ test("lotescape production: tuned move_limit is above the exact minimum and acce
   assert.equal(fingerprint("lotescape", accepted.level), fingerprint("lotescape", { ...(accepted.level as object), move_limit: 300, title: "Other" }));
   assert.match((accepted.level as { title: string }).title, /^Lot 0012$/);
 });
+
+test("platformer production: move_limit above the shortest route, accepted by an independent human replay", () => {
+  let accepted: ReturnType<typeof calibrate> | undefined;
+  for (let attempt = 0; attempt < 8 && !accepted; attempt++) {
+    try { accepted = calibrate(recipe("platformer", 6, attempt)); } catch { /* next layout */ }
+  }
+  assert.ok(accepted, "no platformer layout accepted in 8 attempts");
+  assert.equal(accepted.bot, "human");
+  assert.ok(accepted.min_moves !== null && (accepted.level as { move_limit: number }).move_limit >= accepted.min_moves);
+  const replay = runLevel(getAdapter("platformer")!, accepted.level, [accepted.bot], 200, accepted.evidence.first_seed);
+  assert.deepEqual(replay.results[accepted.bot], accepted.evidence);
+  assert.match((accepted.level as { name: string }).name, /^Trail 0006$/);
+});

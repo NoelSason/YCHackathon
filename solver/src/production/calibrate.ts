@@ -53,7 +53,9 @@ export function calibrate(r: Recipe, opts: { trainingRuns?: number; verification
     minimum = solution.min_moves ?? null;
   }
   // move_limit games have a 300 cap in their schemas; a generous ceiling above the exact minimum.
-  const ceiling = r.game_id === "watersort" || r.game_id === "lotescape" ? Math.min(300, (minimum ?? 20) + 40) : 1000;
+  const ceiling = r.game_id === "watersort" || r.game_id === "lotescape" ? Math.min(300, (minimum ?? 20) + 40)
+    : r.game_id === "platformer" ? Math.min(500, (minimum ?? 20) + 80) // wrong turns on long trails can cost many steps
+    : 1000;
   const probe = allowance(r, ceiling), values: number[] = [];
   const firstSeed = (r.seed ^ 0x91e10da5) >>> 0;
   for (let i = 0; i < trainingRuns; i++) {

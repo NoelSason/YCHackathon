@@ -1,5 +1,7 @@
 // Shared original grid-step rules: browser, adapter, bots and solver all import this module.
-export type PlatformLevel = { name: string; map: string[]; jump_height: number; fall_limit: number };
+// move_limit is optional: without it a trail can't be lost (the authored practice trails). With it,
+// running out of steps before the goal loses the trail; the tuner sets it to reach a win rate.
+export type PlatformLevel = { name: string; map: string[]; jump_height: number; fall_limit: number; move_limit?: number };
 export type Pos = { x: number; y: number };
 const WALKABLE = new Set([".", "S", "G", "C"]);
 export const schema = {
@@ -12,6 +14,7 @@ export const schema = {
     map: { type: "array", minItems: 5, maxItems: 32, items: { type: "string", minLength: 8, maxLength: 64, pattern: "^[.#^SCG]+$" } },
     jump_height: { type: "integer", minimum: 1, maximum: 4 },
     fall_limit: { type: "integer", minimum: 1, maximum: 8 },
+    move_limit: { type: "integer", minimum: 1, maximum: 500, description: "Optional step budget; reaching it before the goal loses the trail." },
   },
 } as const;
 
@@ -79,11 +82,14 @@ export function validateLevel(value: unknown): { ok: true } | { ok: false; error
     if (!Number.isInteger(l.fall_limit) || (l.fall_limit ?? 0) < 1 || (l.fall_limit ?? 0) > 8) errors.push("fall_limit must be an integer from 1 to 8");
     if (rowsAreStrings && mapRows.some((row, y) => [...row].some((c, x) => c === "S" && cell(mapRows, x, y + 1) !== "#"))) errors.push("start S must stand on solid ground");
     if (rowsAreStrings && mapRows.some((row, y) => [...row].some((c, x) => c === "G" && cell(mapRows, x, y + 1) !== "#"))) errors.push("goal G must stand on solid ground");
-    if (!errors.length && !path(l as PlatformLevel)) errors.push("goal is unreachable under the declared jump and fall limits");
+    if (l.move_limit !== undefined && (!Number.isInteger(l.move_limit) || l.move_limit < 1 || l.move_limit > 500)) errors.push("move_limit, if set, must be an integer from 1 to 500");
+    const route = errors.length ? undefined : path(l as PlatformLevel);
+    if (!errors.length && !route) errors.push("goal is unreachable under the declared jump and fall limits");
+    if (!errors.length && route && l.move_limit !== undefined && l.move_limit < route.length - 1) errors.push(`move_limit ${l.move_limit} is below the shortest route (${route.length - 1} steps)`);
     return errors.length ? { ok: false, errors } : { ok: true };
 }
 
-export interface PlayState { position: Pos; moves: number; collected: string[]; status: "playing" | "won"; }
+export interface PlayState { position: Pos; moves: number; collected: string[]; status: "playing" | "won" | "lost"; }
 export function initialState(level: PlatformLevel): PlayState {
   return { position: find(level.map,"S")[0]!, moves: 0, collected: [], status: "playing" };
 }
@@ -92,5 +98,5 @@ export function move(level: PlatformLevel, state: PlayState, target: Pos): PlayS
   const token = `${target.x},${target.y}`;
   return { position: {...target}, moves: state.moves+1,
     collected: cell(level.map,target.x,target.y)==="C" && !state.collected.includes(token) ? [...state.collected,token] : state.collected,
-    status: cell(level.map,target.x,target.y)==="G" ? "won" : "playing" };
+    status: cell(level.map,target.x,target.y)==="G" ? "won" : level.move_limit !== undefined && state.moves+1 >= level.move_limit ? "lost" : "playing" };
 }
