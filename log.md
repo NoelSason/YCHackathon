@@ -20,6 +20,34 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 19:45 PT · Pinara (Claude Code) · branch `main`
+
+**What:** The match-3 greedy bot is about 30× faster: 1,525 ms → about 53 ms per game. A
+100-game tune round on 6 threads now takes about 3 s instead of minutes. Results are unchanged.
+Three changes:
+- (1) The greedy bot reads each candidate's goal progress once, with `goalValue`. Before, it called
+  `statusOf()` inside the sort comparator, and every call rescanned every legal move.
+- (2) `settle` calls `advanceTicks(state, 3600)` once instead of 3600 single-tick calls.
+- (3) The engine's `listLegalSwaps` checks only the two swapped cells' rows and columns instead of
+  copying and rescanning the whole board for every swap. The board has no runs at that point, so
+  any new match must pass through a swapped cell.
+
+**Why:** Match-3 tuning took 1 to 2 minutes per round and kept the Tuner slow. Now
+measurements take seconds.
+**Files:** `games/match3/adapter/index.ts`,
+`games/match3/engine/houseki-gem-swap/gem-swap/board.ts`.
+**State:** Works. Results are identical, and checked three ways:
+- The same won/moves/detail over 24 seeded games (random and greedy), compared by hash.
+- `listLegalSwaps` old vs. new on 5,000 board states and 83,849 swaps, including masked boards and
+  seals: 0 differences.
+- The match-3 rule tests pass 8/8, the solver tests 32/32, and the `platform/mcp` typecheck is
+  clean.
+
+**Next / heads-up:**
+- **Max:** this edits your adapter and the vendored engine's `board.ts`, with Pinara's go-ahead.
+  The engine change is marked in a comment, and the MIT credit is untouched.
+- **Everyone running a worker:** pull and restart it to get the speed-up.
+
 ### 2026-11-07 7:44 PM PT · Noel · Claude Code · main
 - **What:** Fixed the pricing cards: a row with a live-updated number ("20 new levels…") broke into one word per line, because the number's span became its own grid cell. Each row's text is now wrapped in one element.
 - **Why:** Noel's screenshot of the broken level-pack card.
