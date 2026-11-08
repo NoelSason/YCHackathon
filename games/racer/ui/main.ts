@@ -33,6 +33,7 @@ interface Run {
   state: CarState;
   prev: CarState;
   status: Status;
+  paused: boolean;
   coins: number;
   crashes: number;
   queue: Array<{ dir: Action; at: number }>;
@@ -75,11 +76,14 @@ function load(level: Level, levelId: string | null, sample: number | null): void
     grid: buildGrid(level),
     state: s, prev: s,
     status: "ready",
+    paused: false,
     coins: 0, crashes: 0,
     queue: [],
     autoplay: null,
     acc: 0, last: 0, startedAt: 0,
   };
+  el<HTMLButtonElement>("pause").disabled = true;
+  el("road").classList.remove("paused");
   el("track-title").textContent = level.title ?? "Custom circuit";
   el("objective").textContent = `Reach the finish in ${(level.time_limit / level.speed).toFixed(1)}s · Traffic, cones and oil cost you time · Boosts double your speed · A shield blocks one hit`;
   buildWorld();
@@ -166,10 +170,28 @@ function begin(): void {
   if (run.status !== "ready") return;
   el("overlay").classList.add("hidden");
   run.status = "running";
+  el<HTMLButtonElement>("pause").disabled = false;
   run.last = performance.now();
   run.acc = 0;
   run.startedAt = Date.now();
   sendEvent("attempt");
+}
+
+function pause(): void {
+  if (!run || run.status !== "running" || run.paused) return;
+  run.paused = true;
+  run.queue = [];
+  el("road").classList.add("paused");
+  showOverlay("Take a pit stop.", "Your race is paused. Resume when you’re ready to find your line.", "", "Resume race", resume);
+}
+
+function resume(): void {
+  if (run.status !== "running" || !run.paused) return;
+  run.paused = false;
+  run.last = performance.now();
+  el("overlay").classList.add("hidden");
+  el("road").classList.remove("paused");
+  el("pause").focus();
 }
 
 function restart(): void {
@@ -179,7 +201,7 @@ function restart(): void {
 
 function steer(dir: Action): void {
   if (run.status === "ready" && !run.autoplay) begin();
-  if (run.status !== "running" || run.autoplay || dir === 0) return;
+  if (run.status !== "running" || run.paused || run.autoplay || dir === 0) return;
   if (run.queue.length < 2) run.queue.push({ dir, at: run.state.tick });
   const btn = el(dir < 0 ? "left" : "right");
   btn.classList.add("on");
@@ -220,6 +242,7 @@ function tick(): void {
 
 function end(won: boolean): void {
   run.status = won ? "won" : "lost";
+  el<HTMLButtonElement>("pause").disabled = true;
   sendEvent(won ? "win" : "loss");
   hud();
   const secs = (run.state.tick / run.level.speed).toFixed(1);
@@ -238,7 +261,7 @@ function end(won: boolean): void {
 // ---------- drawing ----------
 
 function frame(now: number): void {
-  if (run?.status === "running") {
+  if (run?.status === "running" && !run.paused) {
     const tickMs = 1000 / run.level.speed;
     run.acc += now - run.last;
     run.last = now;
@@ -316,22 +339,28 @@ function showOverlay(title: string, text: string, starsHtml: string, button: str
   b.textContent = button;
   b.onclick = action;
   el("overlay").classList.remove("hidden");
+  b.focus();
 }
 
 function renderSamples(): void {
   const nav = el("samples");
+  el("collection-label").classList.toggle("hidden", run.levelId !== null);
   if (run.levelId) return void nav.replaceChildren();
   nav.replaceChildren(
     ...SAMPLES.map((s, n) => {
       const b = document.createElement("button");
       b.type = "button";
-      b.textContent = String(n + 1);
+      const number = document.createElement("span");
+      number.className = "sample-number";
+      number.textContent = String(n + 1).padStart(2, "0");
+      const title = document.createElement("strong");
+      title.textContent = s.title ?? `Track ${n + 1}`;
+      const detail = document.createElement("small");
+      detail.textContent = `${s.lanes} lanes · ${(s.time_limit / s.speed).toFixed(1)}s`;
+      b.append(number, title, detail);
       b.setAttribute("aria-label", `Practice track ${n + 1}: ${s.title ?? ""}`);
       if (run.sample === n + 1) b.setAttribute("aria-current", "true");
-      b.addEventListener("click", () => {
-        if (run.status === "running") sendEvent("quit");
-        loadSample(n + 1);
-      });
+      b.addEventListener("click", () => loadSample(n + 1));
       return b;
     }),
   );
@@ -350,6 +379,14 @@ function bindInput(): void {
   el("right").addEventListener("pointerdown", (e) => (e.preventDefault(), steer(1)));
   // One lane per key press: held keys don't auto-repeat into extra lane changes.
   window.addEventListener("keydown", (e) => {
+    if ((e.key === "Escape" || e.key.toLowerCase() === "p") && run?.status === "running" && !e.repeat) {
+      e.preventDefault();
+      return run.paused ? resume() : pause();
+    }
+    if (!el("overlay").classList.contains("hidden") && e.key === "Tab") {
+      e.preventDefault();
+      return el("ov-btn").focus();
+    }
     const left = e.key === "ArrowLeft" || e.key === "a" || e.key === "A";
     const right = e.key === "ArrowRight" || e.key === "d" || e.key === "D";
     if (left || right) {
@@ -428,6 +465,8 @@ function startAutoplay(): void {
 async function boot(): Promise<void> {
   bindInput();
   el("restart").addEventListener("click", restart);
+  el("pause").addEventListener("click", pause);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
   const id = params.get("level");
   const data = params.get("data");
   let loaded = false;

@@ -109,3 +109,11 @@ remeasurement. `SKILL.md` documents the authoring rules.
 
 Hosting and the platform runtime must be redeployed by Max and Abhinav to expose these changes
 on a live LevelOps deployment. Local builds alone do not update the hosted service.
+
+### Pit stops and track collection
+
+The Pause button, P, or Escape suspends browser ticks and opens a Resume dialog. Switching away
+from the page pauses automatically; returning never resumes without the player. Resuming keeps
+the same attempt and tick accumulator, so it adds no gameplay time or extra attempt event.
+The practice cards display each track's title, lane count, and time limit directly from level
+data. Platform levels hide the practice collection. These controls do not change engine or bot rules.

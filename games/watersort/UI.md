@@ -29,3 +29,10 @@ old autoplay callbacks and result overlays cannot mutate a newly loaded board.
 
 Build with `npm run build`. Hosting and live platform availability need the respective owners'
 deployment; no deployment is implied by a source push.
+
+### Color labels and practice collection
+
+The Color labels toggle adds three-letter color names to every liquid band, so players can
+identify colors without relying on hue. The preference is saved locally when browser storage is
+available; the control still works if storage is blocked. Level cards display actual color counts
+and pour limits from the built-in levels. Saved platform levels hide this practice collection.

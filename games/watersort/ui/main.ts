@@ -58,6 +58,8 @@ interface Game {
 }
 
 let game: Game;
+let colorLabels = false;
+try { colorLabels = localStorage.getItem("splash-sort-color-labels") === "true"; } catch { /* Storage can be unavailable in private browsers. */ }
 
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -272,6 +274,11 @@ function bands(t: number[]): Array<{ color: number; n: number }> {
 function liquid(color: number, n: number, fromN?: number): HTMLElement {
   const band = document.createElement("div");
   band.className = "liquid";
+  const label = document.createElement("span");
+  label.className = "color-code";
+  label.textContent = COLORS[color]!.slice(0, 3).toUpperCase();
+  label.setAttribute("aria-hidden", "true");
+  band.appendChild(label);
   band.style.setProperty("--n", String(n));
   band.style.backgroundColor = HEX[COLORS[color]!];
   if (fromN !== undefined && fromN !== n) {
@@ -288,6 +295,8 @@ function columns(n: number): number {
 }
 
 function render(): void {
+  document.documentElement.classList.toggle("color-labels", colorLabels);
+  el("color-labels").setAttribute("aria-pressed", String(colorLabels));
   const cap = game.level.capacity;
   const board = el("board");
   const focused = (document.activeElement as HTMLElement | null)?.dataset?.index;
@@ -368,6 +377,7 @@ function tilt(from: number, to: number): void {
 
 function renderSamples(): void {
   const nav = el("samples");
+  el("collection-label").classList.toggle("hidden", game.levelId !== null);
   if (game.levelId) {
     nav.replaceChildren();
     return;
@@ -377,7 +387,14 @@ function renderSamples(): void {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "btn ghost";
-      b.textContent = String(n + 1);
+      const number = document.createElement("span");
+      number.className = "sample-number";
+      number.textContent = String(n + 1).padStart(2, "0");
+      const title = document.createElement("strong");
+      title.textContent = s.title ?? `Level ${n + 1}`;
+      const detail = document.createElement("small");
+      detail.textContent = `${new Set(s.tubes.flat()).size} colors · ${s.move_limit} pours`;
+      b.append(number, title, detail);
       b.setAttribute("aria-label", `Practice level ${n + 1}: ${s.title ?? ""}`);
       if (game.sample === n + 1) b.setAttribute("aria-current", "true");
       b.addEventListener("click", () => startSample(n + 1));
@@ -507,6 +524,12 @@ function onResize(): void {
 }
 
 async function boot(): Promise<void> {
+  el("color-labels").addEventListener("click", () => {
+    colorLabels = !colorLabels;
+    try { localStorage.setItem("splash-sort-color-labels", String(colorLabels)); } catch { /* Keep the preference for this page. */ }
+    game.lastPour = null;
+    render();
+  });
   el("hint-btn").addEventListener("click", revealHint);
   el("undo-btn").addEventListener("click", undo);
   document.addEventListener("keydown", onKey);
