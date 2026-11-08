@@ -79,14 +79,39 @@ export function listLegalSwaps(
 ): readonly { readonly kind: "swap"; readonly from: number; readonly to: number }[] {
   if (state.phase !== "ready" || findMatches(state.board, state.settings).length) return [];
   const moves: { kind: "swap"; from: number; to: number }[] = [];
-  for (let from = 0; from < state.board.length; from++) {
-    if (!state.board[from]) continue;
+  // The board has no runs here, so a swap makes a match only if a run of three passes through
+  // `from` or `to`. Checking just those two cells gives the same list as rescanning the whole
+  // board for every swap (Level AI change, for solver speed; see games/match3/README.md).
+  const board = [...state.board];
+  for (let from = 0; from < board.length; from++) {
+    if (!board[from]) continue;
     for (const to of neighbors(from, state.settings.width, state.settings.height, state.settings.mask)) {
-      if (to <= from || !state.board[to] || state.board[from]!.colour === state.board[to]!.colour) continue;
-      if (matchesAfterSwap(state, from, to).length) moves.push({ kind: "swap", from, to });
+      if (to <= from || !board[to] || board[from]!.colour === board[to]!.colour) continue;
+      [board[from], board[to]] = [board[to]!, board[from]!];
+      const match = runThrough(board, state.settings, from) || runThrough(board, state.settings, to);
+      [board[from], board[to]] = [board[to]!, board[from]!];
+      if (match) moves.push({ kind: "swap", from, to });
     }
   }
   return moves;
+}
+
+/** True if `index` is part of a horizontal or vertical run of at least three (same rules as findMatches). */
+function runThrough(board: readonly (Gem | null)[], settings: Settings, index: number): boolean {
+  const gem = board[index];
+  if (!gem) return false;
+  const { width, height, mask } = settings;
+  const x = index % width;
+  const y = (index - x) / width;
+  const same = (cell: number) => mask[cell] && board[cell]?.colour === gem.colour;
+  let run = 1;
+  for (let k = x - 1; k >= 0 && same(y * width + k); k--) run++;
+  for (let k = x + 1; k < width && same(y * width + k); k++) run++;
+  if (run >= 3) return true;
+  run = 1;
+  for (let k = y - 1; k >= 0 && same(k * width + x); k--) run++;
+  for (let k = y + 1; k < height && same(k * width + x); k++) run++;
+  return run >= 3;
 }
 
 /** Checks whether a partially filled row-major board already contains a run. */

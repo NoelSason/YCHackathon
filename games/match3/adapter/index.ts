@@ -1,5 +1,6 @@
 import type { Adapter } from "../../../platform/mcp/src/adapters.js";
 import { advanceTicks, applyAction, createGame, legalActions, statusOf } from "../engine/houseki-gem-swap/gem-swap/engine.js";
+import { goalValue } from "../engine/houseki-gem-swap/gem-swap/engine-ticks.js";
 import type { Action } from "../engine/houseki-gem-swap/gem-swap/types-actions.js";
 import type { GameState } from "../engine/houseki-gem-swap/gem-swap/types-state.js";
 import type { GemColour } from "../engine/houseki-gem-swap/gem-swap/types-pieces.js";
@@ -32,9 +33,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function settle(state: GameState): GameState {
-  for (let i = 0; i < 3600 && state.phase !== "ready" && state.phase !== "finished"; i++) {
-    state = advanceTicks(state, 1).state;
-  }
+  // One call that runs up to 3600 ticks and stops when the board settles: the same game state as
+  // advanceTicks(state, 1) in a loop, without the per-call replay-history copy (about 2x faster).
+  if (state.phase !== "ready" && state.phase !== "finished") state = advanceTicks(state, 3600).state;
   if (state.phase !== "ready" && state.phase !== "finished") throw new Error("match-3 engine did not settle within 3600 ticks");
   return state;
 }
@@ -115,13 +116,17 @@ export const adapter: Adapter = {
       if (bot === "random") {
         next = transitionFor(state, swaps[Math.floor(random() * swaps.length)]!);
       } else {
-        const candidates = swaps.map((action) => transitionFor(state, action));
-        candidates.sort((a, b) => {
-          const aGoal = statusOf(a).goalProgress[0]?.current ?? 0;
-          const bGoal = statusOf(b).goalProgress[0]?.current ?? 0;
-          return bGoal - aGoal || b.score - a.score || random() - 0.5;
+        // Goal progress is read once per candidate with goalValue (what statusOf reports as
+        // goalProgress[0].current). statusOf() also rescans every legal move, and calling it inside
+        // the comparator made the greedy bot about 20x slower. Same comparisons, same order, same
+        // random() calls, so the results are unchanged.
+        const candidates = swaps.map((action) => {
+          const s = transitionFor(state, action);
+          const goal = s.challenge?.goals[0];
+          return { s, goal: goal ? goalValue(s, goal) : 0 };
         });
-        next = candidates[0]!;
+        candidates.sort((a, b) => b.goal - a.goal || b.s.score - a.s.score || random() - 0.5);
+        next = candidates[0]!.s;
       }
       state = next;
     }
