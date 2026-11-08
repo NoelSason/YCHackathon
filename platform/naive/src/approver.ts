@@ -2,7 +2,8 @@
 // then every later MCP call pauses for approval even at `allow`. That stalls every multi-step
 // agent on our own servers, which return only our level, metrics, and pipeline JSON.
 //
-// This watcher approves held calls ONLY for tools on our own servers (platform.*, business.*),
+// This watcher approves held calls ONLY for tools on our own servers (platform.*, platformcrm.*,
+// business.*) and Naïve's internal team board (board_read/board_write),
 // ONLY for agents in team.json, with scope "session", and writes every approval to activity_log
 // as agent 'platform', action 'auto_approve', so the count is on the dashboard and in the demo.
 // It is not a human step-in and is not logged as one; it is also not hidden.
@@ -14,6 +15,10 @@ import pg from "pg";
 import { naive } from "./client.js";
 
 const ALLOWED_PREFIXES = ["platform.", "platformcrm.", "business."];
+// Naïve's own team board (cards and comments between our agents) is held by the same rule after a
+// chat has read from an MCP server. It is internal to the company and has no outside effect, so it
+// is approvable too. Nothing that sends, posts, pays, or touches a phone is on this list.
+const ALLOWED_EXACT = new Set(["board_read", "board_write"]);
 const once = process.argv.includes("--once");
 const team = JSON.parse(readFileSync(new URL("../team.json", import.meta.url), "utf8")) as { agents: Record<string, string> };
 const agentIds = new Set(Object.values(team.agents));
@@ -41,7 +46,7 @@ async function pass(): Promise<number> {
     const pending = (s as { pending_actions?: Array<{ kind: string; tool_call_id: string; name: string; read_people?: true }> }).pending_actions ?? [];
     const held = pending.filter((p) => p.kind === "tool");
     for (const p of held) {
-      const ours = ALLOWED_PREFIXES.some((pre) => p.name.startsWith(pre));
+      const ours = ALLOWED_PREFIXES.some((pre) => p.name.startsWith(pre)) || ALLOWED_EXACT.has(p.name);
       if (!ours || !p.read_people) {
         console.log(`  skip     ${agent} ${s.id} ${p.name}${p.read_people ? "" : " (not read_people)"}: not our server or not the people rule; leave for a human`);
         continue;

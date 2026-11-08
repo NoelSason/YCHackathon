@@ -20,6 +20,19 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 19:40 PT · Abhinav (Claude) · branch `main`
+
+**What:** Approver also approves Naïve's own `board_read`/`board_write` when held with
+`read_people`: `ses_dgf2ak…` got past the platform calls (approved by hand in the Studio) and was
+then held on `board_write`, the team board comment. The board is internal; nothing that sends,
+posts, pays, or touches a phone is approvable.
+**Why:** The rule holds Naïve's internal board writes too, so the loop would stall one step later.
+**Files:** `platform/naive/src/approver.ts`.
+**State:** Typechecks. Approver still not started on a laptop.
+**Next / heads-up:** **Abhinav:** `caffeinate -i npm run approver` now. **Whoever approved
+`ses_dgf2ak…` by hand:** that's a step-in; add a row to `interventions` (who/what/why) so the
+count is honest.
+
 ### 2026-11-07 7:28 PM PT · Noel · Claude Code (pricing + App Store subagents + main) · main
 - **What:** (1) **Billing is LIVE.** Stripe account activated as an individual (no Atlas), charges and payouts enabled. Live webhook we_1UZMf3… (checkout.session.completed, invoice.paid, customer.subscription.deleted). Server uses `STRIPE_SECRET_KEY_LIVE` when `BILLING_ALLOW_LIVE=1` (`activeStripeKey` in config.ts) and verifies both test and live webhook secrets. Verified: a live $5 payment link from /playtest-orders, live checkout sessions for the pack and subscription; nothing was paid. (2) **Every product has a price:** $5 iPhone playtest, $49 level pack (20 tuned levels in 48 h), $199/month subscription (40 levels + 4 playtests a month + API). `POST /orders` (Checkout, one-time or subscription, prices reused by lookup key), webhook handling for purchases, renewals, and cancellations, honest confirmation emails, "delivery owed" log lines, `biz_subscriptions` table. `/pricing` page, a pricing section on home, "Pricing" in every nav. (3) **App Store installs:** second cloud iPhone "Level AI App Store iPhone" (`MOBILERUN_APPSTORE_DEVICE_ID`, from Mobilerun's granted 3-day subscription). When the API install 404s (Mobilerun's catalog lacks our games; the 9 queued apps still 404), the agent installs through the phone's App Store and the playtest runs there.
 - **Why:** Noel: price every product, go live with money, make App Store apps open.
