@@ -28,7 +28,8 @@ export const adapter = {
     };
   },
   level_url(level_id: string) {
-    return `${GAMES_BASE_URL}/watersort/?level=${encodeURIComponent(level_id)}`;
+    // The site serves the game at /games/watersort/ (site/build-games.sh); /watersort/ is a 404.
+    return `${GAMES_BASE_URL}/games/watersort/?level=${encodeURIComponent(level_id)}`;
   },
 };
 

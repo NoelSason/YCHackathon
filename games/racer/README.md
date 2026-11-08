@@ -81,7 +81,8 @@ the 3 bots take under half a second.
    same route Splash Sort needs.
 4. **Push the skill** (`naive skill push --slug game-racer`) and attach it to the Designer and
    Tuner.
-5. **Host `dist/`** at `${GAMES_BASE_URL}/racer/`.
+5. **Host `dist/`** at `${GAMES_BASE_URL}/games/racer/`, which is where `level_url` points
+   (`./site/build-games.sh racer`).
 
 ## Phone playtests
 

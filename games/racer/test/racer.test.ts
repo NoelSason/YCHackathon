@@ -116,7 +116,7 @@ test("higher speed makes the human bot lose more", () => {
 test("adapter follows platform/CONTRACTS.md §1 and runs in the solver harness", () => {
   assert.equal(adapter.game_id, "racer");
   assert.deepEqual(adapter.bots, ["human", "greedy", "random"]);
-  assert.match(adapter.level_url("abc"), /\/racer\/\?level=abc$/);
+  assert.match(adapter.level_url("abc"), /\/games\/racer\/\?level=abc$/);
   const s = adapter.solve(SAMPLES[0]!);
   assert.equal(s.solvable, true);
   assert.equal(adapter.solve({ ...SAMPLES[0]!, time_limit: s.min_moves - 1 }).solvable, false);

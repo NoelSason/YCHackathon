@@ -25,7 +25,8 @@ export const adapter = {
     return { solvable: r.min_ticks <= l.time_limit, min_moves: r.min_ticks, inputs: r.inputs };
   },
   level_url(level_id: string) {
-    return `${GAMES_BASE_URL}/racer/?level=${encodeURIComponent(level_id)}`;
+    // The site serves the game at /games/racer/ (site/build-games.sh); /racer/ is a 404.
+    return `${GAMES_BASE_URL}/games/racer/?level=${encodeURIComponent(level_id)}`;
   },
 };
 

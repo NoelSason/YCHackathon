@@ -78,8 +78,8 @@ of the 3 bots take about 0.3 s.
    notice and falls back to practice levels.
 4. **Push the skill** (`naive skill push --slug game-watersort`, from this `SKILL.md`) and attach it
    to the Designer and Tuner.
-5. **Host `dist/`** at `${GAMES_BASE_URL}/watersort/`, which is where `level_url` points:
-   `PLATFORM_URL=<platform url> npm run build`.
+5. **Host `dist/`** at `${GAMES_BASE_URL}/games/watersort/`, which is where `level_url` points:
+   `PLATFORM_URL=<platform url> npm run build`, then `./site/build-games.sh watersort`.
 
 ## Phone playtests
 

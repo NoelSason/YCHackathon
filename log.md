@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:05 PM PT · Pinara · Claude Code · main
+- **What:** Splash Sort and Turbo Lanes level links now open the game. `level_url` returns `${GAMES_BASE_URL}/games/watersort/?level=<id>` and `/games/racer/?level=<id>`, where the site serves the games (`site/build-games.sh`). The old `/watersort/` and `/racer/` paths return 404 on levelai.vercel.app. READMEs and tests updated.
+- **Why:** `save_level` and `publish_pack` return these links (CONTRACTS.md §1: "public URL that opens that level in the browser game"), and they were dead.
+- **Files:** `games/watersort/adapter/index.ts`, `games/racer/adapter/index.ts`, both games' `README.md` and tests.
+- **State:** works; checked live: `/games/watersort/?level=x` and `/games/racer/?level=x` return 200, `/watersort/` and `/racer/` 404. Splash Sort 14/14. Turbo Lanes 21/21 on an idle machine; its speed test fails under load (fixed in the next push).
+- **Next / heads-up:** **Abhinav:** the deployed platform builds these links, so they change on your next platform redeploy (no rush; nothing else changes). The pack link in `publish_pack` (`/<game_id>/?pack=`, `platform/mcp/src/tools.ts`) is also a 404 for these two games, and their pages don't read `?pack=` yet; the per-level `level_urls` work.
+
 ### 2026-11-07 19:20 PT · Abhinav (Claude) · branch `main`
 
 **What:** **Workaround attempt for `read_people`: the platform MCP server now has two catalogs

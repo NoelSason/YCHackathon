@@ -155,7 +155,7 @@ test("useful pours never include pointless ones", () => {
 test("adapter follows platform/CONTRACTS.md §1 and runs in the solver harness", () => {
   assert.equal(adapter.game_id, "watersort");
   assert.deepEqual(adapter.bots, ["human", "greedy", "random"]);
-  assert.match(adapter.level_url("abc"), /\/watersort\/\?level=abc$/);
+  assert.match(adapter.level_url("abc"), /\/games\/watersort\/\?level=abc$/);
   assert.equal(typeof adapter.schema, "object");
   const s = adapter.solve(firstSplash);
   assert.deepEqual([s.solvable, s.min_moves], [true, 7]);
