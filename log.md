@@ -26,6 +26,23 @@ This is the team's build log. It isn't the company's agent activity log, which t
 - **Files:** `demo/public/index.html`
 - **State:** works; demo typecheck and 17 tests pass.
 - **Next / heads-up:** none.
+### 2026-11-07 19:05 PT · Abhinav (Claude) · branch `main`
+
+**What:** **`docs/audit.md`: full product audit** at c9128f2. Status by area (built / verified
+live / blocked), blockers in order, risks, what is demoable tonight regardless of the stall, and
+the recommended order for the next three hours. Two fixes from it: the platform's
+`create_payment_link` no longer returns a fake `example.invalid` link (it now errors and points
+at `business.create_payment_link`); my billing check renamed to `billing_payment`
+(`16-billing-payment.ts`) to stop colliding with Noel's `billing`.
+**Why:** The team needs one honest picture before the 8 PM decision and before the demo script is
+rewritten from the logs.
+**Files:** `docs/audit.md`, `platform/mcp/src/tools.ts`, `platform/checks/src/checks/16-billing-payment.ts`.
+**State:** Typechecks. Audit is from code, tests, and `log.md`; the agent reports were re-read,
+not re-run.
+**Next / heads-up:** **Team:** read §3 (blockers) and §6 (order). The verdict: the loop has never
+completed once; the business side is verified; `read_people` is the only P0. **Noel:** `/thanks`
+route is missing (404 after a pilot payment); pilot delivery is manual, say so on stage.
+**Abhinav:** redeploy for the tool change (`neon deploy --env .env`), `npm run kill -- on`.
 
 ### 2026-11-07 6:58 PM PT · Noel · Claude Code (Lot Escape subagent) · main
 - **What:** Lot Escape fixed to standard sliding-vehicle rules (games/lotescape/RULES.md, with sources). Vehicles fill their cells exactly: car 2:1, truck 3:1, same thickness (vertical cars used to be drawn horizontally and rotated into slivers). System fonts replace the failing Google Fonts. Per-vehicle exit gates. The grid follows the lot size. Animated moves, live drag that stops at legal positions, keyboard (arrows/WASD, Tab/n/[ ]). The solver reports "unfinished" instead of "unsolvable" at its size cap. The rules stay in the shared engine; level JSON is unchanged. The Preview badge is gone from the hub.

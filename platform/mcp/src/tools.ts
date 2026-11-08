@@ -430,21 +430,10 @@ export function registerTools(server: McpServer) {
   server.registerTool(
     "create_payment_link",
     {
-      description: "Create a Stripe payment link (test mode until the team goes live). Returns the URL to send.",
+      description: "Deprecated on the platform: payment links are made by the business server (business.create_payment_link), which holds the Stripe key and the webhook. This tool only points you there.",
       inputSchema: { studio_id: z.string().uuid().optional(), product: z.enum(["pilot_pack", "hint_pack"]), amount_usd: z.number().positive(), description: z.string() },
     },
-    async ({ studio_id, product, amount_usd, description }) => {
-      // TODO(Noel/Abhinav): call Stripe once STRIPE_SECRET_KEY is set. Until then, record the intent
-      // and return a placeholder so the Sales agent can be built. Never present this as revenue.
-      const row = await one<{ id: string }>(
-        `insert into payments(studio_id, product, amount_usd, mode, status) values ($1,$2,$3,'test','created') returning id`,
-        [studio_id ?? null, product, amount_usd],
-      );
-      if (!process.env.STRIPE_SECRET_KEY) {
-        return ok({ url: `https://example.invalid/pay/${row!.id}`, payment_link_id: row!.id, note: "STRIPE_SECRET_KEY not set; placeholder link", description });
-      }
-      return err("not_implemented", "Stripe call not wired yet");
-    },
+    async () => err("use_business_tool", "Payment links come from business.create_payment_link (Stripe, test mode until the team goes live). The platform does not create them."),
   );
 
   server.registerTool(
