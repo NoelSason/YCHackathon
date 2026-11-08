@@ -176,9 +176,10 @@ pass() {
   if [ "$c" = "401" ]; then cred="$(mark console ok)"; else cred="$(mark console fail)"; fi
 
   # 3 and 4. Activity log and solver heartbeat
-  local fresh agent_age solver_age playtest_age ared sred kill
+  local fresh agent_age ceo_age solver_age playtest_age ared sred kill
   fresh="$(envrun env NODE_NO_WARNINGS=1 node "$ROOT/ops/db.cjs" fresh 2>&1 | tail -1)"
   agent_age="$(echo "$fresh" | sed -nE 's/.*agent_age_s=([0-9]+).*/\1/p')"
+  ceo_age="$(echo "$fresh" | sed -nE 's/.*ceo_age_s=([0-9]+).*/\1/p')"
   solver_age="$(echo "$fresh" | sed -nE 's/.*solver_age_s=([0-9]+).*/\1/p')"
   playtest_age="$(echo "$fresh" | sed -nE 's/.*playtest_age_s=([0-9]+).*/\1/p')"
   kill="$(echo "$fresh" | sed -nE 's/.*kill_switch=([a-z]+).*/\1/p')"
@@ -200,6 +201,11 @@ pass() {
   [ "$hred$cred$ared$sred$pred" = "00000" ] || status=RED
   say "$status health=$h$( [ "$hred" -gt 0 ] && echo "(red $(mins "$hred"))") console=$c$( [ "$cred" -gt 0 ] && echo "(red $(mins "$cred"))") agent_row_age=${agent_age:-?}s$( [ "$ared" -gt 0 ] && echo "(red $(mins "$ared"))") solver_heartbeat_age=${solver_age:-?}s$( [ "$sred" -gt 0 ] && echo "(red $(mins "$sred"))") playtest_row_age=${playtest_age:-?}s phones=${phones:-?}$( [ "$pred" -gt 0 ] && echo "(red $(mins "$pred"))") kill_switch=${kill:-?}"
   [ -n "$agent_age" ] || say "  db check failed: $fresh"
+  # The CEO runs hourly, and other agents keep the activity check green while it's silent (for
+  # example when it's paused on its daily budget). No recovery: raising a budget is a person's call.
+  if [ -n "$ceo_age" ] && [ "$ceo_age" -gt "${CEO_WARN_S:-5400}" ]; then
+    say "  WARN: no CEO row for $(mins "$ceo_age"). Check for budget_paused CEO sessions on Naive."
+  fi
 
   # Recoveries, only for checks red 15+ minutes
   local out

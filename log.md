@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 11:02 PM PT · Noel · Claude Code (Sentinel 10 ops, second pass) · main
+- **What:** The monitor now logs a WARN after 90 minutes with no CEO row (other agents' rows had kept the activity check green). Slow-failure check: logs under 250 KB, solver and console memory flat, Neon 2,459 rows with no tight loop, snapshots will fire at 8:00 and 10:30 AM. Projected at 11 AM: Naïve about $204 left, Monid about $15, Mobilerun at most 36 of 72 device-hours.
+- **Why:** The CEO had stopped unnoticed.
+- **Files:** `ops/monitor.sh`, `ops/db.cjs`
+- **State:** monitor works (dry run fired the WARN; running as pid 83197). Readiness 16/17; `deployments` went red on Naïve 429s and passed on the third manual retry.
+- **Next / heads-up:** **Abhinav:** the CEO has been `budget_paused` since 10:01 PM: it spent $10.02 of its $10/day cap, $7.01 of that on board wakes (`platform/naive/src/roster.ts:140`). Raising the cap resumes 10 paused sessions that hold stale numbers. `07-deployments.ts:21` has no retry on 429s. The approver's keepalive lives only in Noel's session scratchpad and the monitor doesn't watch it.
+
 ### 2026-11-07 11:01 PM PT · Noel · Claude Code (Sentinel 13 script) · main
 - **What:** Rewrote `docs/demo-script.md` for a cold read: morning checklist in time order, a one-paste numbers command, numbers with 11 PM values and where to reread them, the video and live scripts, segments A–G, fallbacks, and a verified vs. not verified table.
 - **Why:** Noel records from this tomorrow morning.

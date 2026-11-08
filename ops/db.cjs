@@ -21,6 +21,7 @@ async function main() {
           extract(epoch from now() - (select max(ts) from activity_log))::int as any_age_s,
           extract(epoch from now() - (select max(ts) from activity_log
              where agent <> 'watchdog' and not (agent = 'platform' and action like 'production.%')))::int as agent_age_s,
+          extract(epoch from now() - (select max(ts) from activity_log where agent = 'ceo'))::int as ceo_age_s,
           extract(epoch from now() - (select max(ts) from activity_log where agent = 'playtest-lead'))::int as playtest_age_s,
           extract(epoch from now() - (select max(ts) from activity_log where agent = 'research'))::int as research_age_s,
           (select extract(epoch from now() - max((value->>'at')::timestamptz))::int from settings
