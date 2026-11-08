@@ -20,6 +20,23 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:40 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Demo-readiness checks runner** (`platform/checks/`, package: demo-readiness). `npm run
+check` runs 12 checks (platform health, MCP tools, solver queue, levels flow, publish → play,
+player events, CEO decision, deployments, kill switch, business health, outreach cap, autonomy
+number), prints a table, writes a `checks` row per check, exits 1 on red. `EXPECT_RUNNING=1` after
+the 6 PM switch-on makes the "loop is producing" checks required.
+**Why:** Master plan: every demo path has an automated check, run at 6 PM / 10 PM / 1:30 AM / 8 AM
+/ 10:30 AM; nothing deploys after 8 AM unless all green.
+**Files:** `platform/checks/`.
+**State:** Typechecks. Ran against a local Postgres + the local function handler: 8/12 green, the
+4 reds correct for that environment (no solver draining, no pack, Naïve unreachable from the
+sandbox, no business URL). Not yet run against Neon from a laptop.
+**Next / heads-up:** **Noel:** owed checks: phone playtest, billing (Stripe test payment →
+delivery), live phone view. **Max:** owed: dashboard numbers all from Neon. Add each as one file in
+`platform/checks/src/checks/` (see its README). **Max:** the dashboard's "checks" panel reads the
+latest `checks` row per `name`.
 ### 2026-11-07 17:05 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Business MCP now has a permanent URL: `https://levelai.vercel.app/mcp`.** The site forwards it to the laptop's

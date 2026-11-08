@@ -1,0 +1,17 @@
+{
+  "name": "@studio/checks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check": "node --env-file=.env --import tsx src/run.ts",
+    "check:json": "node --env-file=.env --import tsx src/run.ts --json"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@usenaive-sdk/managed-agents": "^0.12.3",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": { "@types/node": "^22.15.0", "@types/pg": "^8.15.4", "tsx": "^4.20.3", "typescript": "^5.9.2" }
+}
