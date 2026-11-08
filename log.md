@@ -20,6 +20,39 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 00:52 PT · Pinara (Claude Code) · branch `main`
+
+**What:** **Incident, my mistake, now fixed:** uncommitted tuner code ran in production for about 55
+minutes.
+- **What happened:** I restarted Pinara's solver worker at 23:56 and 00:10 from the main
+  checkout, which holds an ended session's uncommitted difficulty-curve edits to
+  `solver/src/autotune.ts`. That worker tuned 2 Designer levels with them. Before tuning, it
+  replaced each Designer target with the curve's 35%:
+  - match3 `864e5e4d…` (00:02), Designer target 30%: accepted version `ec64beed…` measured 32%.
+  - watersort `1d584cf0…` (00:21), Designer target 30% ("designed for … a 30% target"):
+    accepted version `53fda527…` measured 39%. That's 9 points off its original target, so it
+    would not have been accepted.
+  - Both rows say "(difficulty curve: … is hard)" in `activity_log`, so the record is accurate.
+    Noel's worker was not affected.
+- **Fix:** the worker and the lot/platformer watcher now run from a clean worktree at
+  `origin/main`, `/private/tmp/levelai-claude-runtime`, since 00:51 (commit `19d9f88`). Logs and
+  checkpoints are still in `solver/production/` in the main checkout. To update: `git -C
+  /private/tmp/levelai-claude-runtime checkout --detach origin/main`, then SIGINT and restart
+  both.
+
+**Why:** Production must only run committed, reviewed code.
+**Files:** `log.md` only.
+**State:** Both processes are running from the clean runtime: worker heartbeat with all 6 games,
+watcher reports `buffer_healthy`. Nothing in the database was changed by me; writes are blocked for
+me.
+**Next / heads-up:**
+- **Pinara:** decide whether to restore those two levels' targets to 0.30, or reject
+  `53fda527…`, which is 39% vs. its original 30%.
+- **Pinara:** finish or discard the uncommitted curve edits in the main checkout (`autotune.ts`,
+  its test, `solver/README.md`, `roster.ts`).
+- **Everyone running a worker or producer:** run it from a clean checkout, not a working copy
+  with uncommitted changes.
+
 ### 2026-11-08 00:50 PT · Pinara (Claude Code) · branch `main`
 
 **What:** **The automatic Tuner handles Lot Escape and Mosslight Trails like the first three games,
