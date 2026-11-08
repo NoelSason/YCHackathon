@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:29 PM PT · Pinara · Claude Code · main
+- **What:** The auto-tuner resumes a tune that stopped mid-way. A version left `solving` (worker stopped or crashed) is taken again by any worker once it has been untouched for 20 minutes and has no queued or running measurement and no newer version, so a live tune is never taken. Its log rows say "resumed". A version whose measurement stopped twice is rejected instead of retried. Saving a new version and retiring the old one is now one statement. README: "at most 4 rounds" corrected to 6. Also fixed my 7:16 PM log merge (a stray heading, and the 7:14 → 7:09 PM correction landing on the right entry).
+- **Why:** A worker restart mid-tune (needed after every pull) left the level `solving` forever: never accepted or rejected, so the Designer's work was lost and the pipeline numbers stayed off.
+- **Files:** `solver/src/autotune.ts`, `solver/test/autotune.test.ts`, `solver/README.md`.
+- **State:** works; solver 27/27 (2 new tests: what is and isn't resumed; a resumed tune finishes, and a version that stopped twice is rejected). Removing the live-tune guards makes the new test fail, so it checks them. Typecheck clean.
+- **Next / heads-up:** none for others. Next push reworks the tuner's steps (the 7:01 PM match-3 tune jumped from 90% to 0% and was rejected).
+
 ### 2026-11-07 19:40 PT · Abhinav (Claude) · branch `main`
 
 **What:** Approver also approves Naïve's own `board_read`/`board_write` when held with
@@ -72,8 +79,6 @@ the approver off and say so.
 - **State:** works; checked against a local Postgres: during a 75 s match-3 run the heartbeat advanced every 30 s (3:13:26, 3:13:56, 3:14:26 UTC); one Ctrl-C mid-run kept the job going, a second quit at once; one Ctrl-C while idle stopped in 5 s with `stopped: true`. Solver 25/25, typecheck clean.
 - **Next / heads-up:** **Pinara:** restart your worker to pick this up (Ctrl-C twice if it's mid-tune; the next push resumes an interrupted tune). Noel's worker is from before the auto-tuner; restarting it after a pull gives it both.
 
-### 2026-11-07 7:09 PM PT · Pinara · Claude Code · main
-
 ### 2026-11-07 19:35 PT · Abhinav (Claude) · branch `main`
 
 **What:** **Catalog split did not fix `read_people`.** Probe `ses_e9f0pnhfdr12kghsmgp2k4bssm`
@@ -102,7 +107,7 @@ service is at capacity". Platform redeployed at 19:12 with the two catalogs.
 **State:** Typechecks. Vault/setup/approval-test not yet run with the split.
 **Next / heads-up:** Abhinav: `npm run vault && npm run setup && npm run approval-test`.
 
-### 2026-11-07 7:14 PM PT · Pinara · Claude Code · main
+### 2026-11-07 7:09 PM PT · Pinara · Claude Code · main
 - **What:** The speed tests in Splash Sort and Turbo Lanes measure CPU time (`process.cpuUsage`) instead of wall time. The limits are the same (3 s and 4 s).
 - **Why:** Turbo Lanes' test failed 4 of 5 runs while a solver worker was using the laptop's cores (load average about 30 on 8 cores): 6.0 s wall time, but only 2.1 s of CPU. A test that fails on a busy machine says nothing about the game.
 - **Files:** `games/racer/test/racer.test.ts`, `games/watersort/test/watersort.test.ts`.

@@ -8,7 +8,7 @@ import type { Adapter } from "../../platform/mcp/src/adapters.js";
 import { getAdapter } from "../../platform/mcp/src/adapters.js";
 import { SAMPLES as WATERSORT } from "../../games/watersort/src/levels.js";
 import { SAMPLES as RACER } from "../../games/racer/src/levels.js";
-import { claimDesign, MAX_ROUNDS, TOLERANCE, tuneNextDesign } from "../src/autotune.js";
+import { claimDesign, MAX_ROUNDS, RESUME_AFTER_MINUTES, TOLERANCE, tuneNextDesign } from "../src/autotune.js";
 import type { Query } from "../src/queue.js";
 
 const schema = await readFile(new URL("../../platform/db/schema.sql", import.meta.url), "utf8");
@@ -28,6 +28,21 @@ async function design(game: string, level: object, target: number, by = "designe
   );
   return String(r!.id);
 }
+
+/** A version left 'solving' by a tune that stopped `minutesAgo` minutes ago (worker stopped or crashed). */
+async function leftMidTune(game: string, level: object, target: number, minutesAgo: number, by = "designer", parent: string | null = null): Promise<string> {
+  const [r] = await q(
+    `insert into levels(game_id, level, target_win_rate, status, created_by, parent_level_id, created_at, updated_at)
+     values ($1, $2, $3, 'solving', $4, $5, now() - make_interval(mins => $6::int + 1), now() - make_interval(mins => $6::int))
+     returning level_id::text as id`,
+    [game, JSON.stringify(level), target, by, parent, minutesAgo],
+  );
+  return String(r!.id);
+}
+
+const interruptedRun = (levelId: string) =>
+  q(`insert into solver_runs(level_id, bots, status, error, started_at, finished_at)
+     values ($1, '["human"]', 'failed', 'harness stopped before finishing', now() - interval '1 hour', now())`, [levelId]);
 
 // A fast stand-in for match-3: a bigger goal makes it harder (the knob runs downward).
 const fakeMatch3: Adapter = {
@@ -103,6 +118,7 @@ test("only fresh Designer roots for tunable games are claimed, and each only onc
   const mine = await design("watersort", WATERSORT[2]!, 0.5);
   const a = await claimDesign(q, ["watersort", "platformer", "racer"]);
   assert.equal(a?.level_id, mine);
+  assert.equal(a?.resumed, false);
   assert.equal(await claimDesign(q, ["watersort", "platformer", "racer"]), null);
   const [row] = await q(`select status from levels where level_id = $1`, [mine]);
   assert.equal(row!.status, "solving");
@@ -114,6 +130,46 @@ test("an invalid design is rejected with the reason, not left hanging", async ()
   assert.equal(out.kind, "rejected");
   assert.match(out.kind === "rejected" ? out.reason : "", /invalid level/);
   const [row] = await q(`select status from levels where level_id = $1`, [root]);
+  assert.equal(row!.status, "rejected");
+});
+
+test("a tune that stopped mid-way is resumed later; a live or recent one is never taken", async () => {
+  const L = { ...WATERSORT[2]!, move_limit: 40 };
+  const old = RESUME_AFTER_MINUTES + 10;
+  const stopped = await leftMidTune("watersort", L, 0.5, old + 3);
+  await leftMidTune("watersort", L, 0.5, RESUME_AFTER_MINUTES - 5);           // touched recently: may be live
+  const measuring = await leftMidTune("watersort", L, 0.5, old + 2);          // a measurement is running
+  await q(`insert into solver_runs(level_id, bots, status, started_at) values ($1, '["human"]', 'running', now())`, [measuring]);
+  const parent = await leftMidTune("watersort", L, 0.5, old + 1);             // has a newer version...
+  const child = await leftMidTune("watersort", L, 0.5, old, "tuner", parent); // ...which is the one to resume
+  await leftMidTune("platformer", { name: "p" }, 0.5, old);                   // no knob for this game
+  const games = ["watersort", "platformer"];
+  const a = await claimDesign(q, games);
+  assert.deepEqual([a?.level_id, a?.resumed], [stopped, true]);
+  const b = await claimDesign(q, games);
+  assert.deepEqual([b?.level_id, b?.resumed], [child, true]);
+  assert.equal(await claimDesign(q, games), null);
+});
+
+test("a resumed tune finishes and its log says so; a version that stopped twice is rejected instead", async () => {
+  const old = RESUME_AFTER_MINUTES + 10;
+  const once = await leftMidTune("watersort", { ...WATERSORT[2]!, move_limit: 40 }, 0.5, old + 1);
+  await interruptedRun(once);
+  const out = await tuneNextDesign(q, "w", getAdapter, { games: ["watersort"], threads: 1, maxSeconds: 30 });
+  assert.ok(out.kind === "accepted" || out.kind === "rejected", out.kind);
+  assert.equal(out.resumed, true);
+  const reasons = await q(`select reason from activity_log where agent = 'tuner'`);
+  assert.ok(reasons.length > 0 && reasons.every((r) => String(r.reason).includes("resumed")), "every step says it was a resumed tune");
+  const [left] = await q(`select count(*)::int as n from levels where status = 'solving'`);
+  assert.equal(left!.n, 0, "nothing left mid-tune");
+
+  const twice = await leftMidTune("watersort", WATERSORT[2]!, 0.5, old);
+  await interruptedRun(twice);
+  await interruptedRun(twice);
+  const out2 = await tuneNextDesign(q, "w", getAdapter, { games: ["watersort"], threads: 1, maxSeconds: 30 });
+  assert.equal(out2.kind, "rejected");
+  assert.match(out2.kind === "rejected" ? out2.reason : "", /stopped mid-way twice/);
+  const [row] = await q(`select status from levels where level_id = $1`, [twice]);
   assert.equal(row!.status, "rejected");
 });
 

@@ -87,10 +87,16 @@ call. When its queue is idle, the worker tunes each new Designer level:
 1. Claim it (`draft` → `solving`, `for update skip locked`).
 2. Measure the reference bot. Each measurement is a `solver_runs` row with the usual seeds.
 3. Move the game's knob, and save the new version with `parent_level_id`.
-4. Accept within 5 pts of the target in at most 4 rounds, or reject with the reason.
+4. Accept within 5 pts of the target in at most 6 rounds (`MAX_ROUNDS`), or reject with the reason.
 
 Superseded versions are retired as `rejected`. Each step is an `activity_log` row: agent `tuner`,
 reason starting "auto-tuner (program):".
+
+**A tune that stops mid-way is resumed.** If the worker stops or crashes during a tune, the current
+version stays `solving`. Any worker takes it again once it has been untouched for 20 minutes
+(`RESUME_AFTER_MINUTES`) and has no queued or running measurement and no newer version, so a live
+tune is never taken. Its log rows say "resumed". A version whose measurement stopped twice is
+rejected instead of retried, in case it is what stops the harness.
 
 **Knobs:**
 
