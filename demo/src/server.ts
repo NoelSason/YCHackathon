@@ -5,9 +5,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import QRCode from "qrcode";
 import { timingSafeEqual } from "node:crypto";
-import { loadOutreach } from "./outreach.js";
+import { loadOutreach, sampleOutreach } from "./outreach.js";
+import { momentFor } from "./moments.ts";
 import { computeStats, type StageEvent } from "./events.ts";
-import { DEFAULT_ACTIVITY, DEFAULT_STEPINS, LiveFeed, ReplayFeed, SampleFeed, parseTables, type Feed, type HealthItem, type Pipeline } from "./feeds.ts";
+import { DEFAULT_ACTIVITY, DEFAULT_STEPINS, LiveFeed, RehearsalFeed, ReplayFeed, parseTables, type Feed, type HealthItem, type Pipeline } from "./feeds.ts";
 import { PhoneView } from "./phone.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -34,7 +35,8 @@ const replayFile = option("--replay");
 const env = process.env;
 
 function makeFeed(): Feed {
-  if (flag("--sample")) return new SampleFeed();
+  // --rehearsal (or the older --sample): the invented practice story. Live stays the default.
+  if (flag("--rehearsal") || flag("--sample")) return new RehearsalFeed();
   if (replayFile) return new ReplayFeed(resolve(process.cwd(), replayFile), Number(env.DEMO_REPLAY_SECONDS ?? 90));
   const tables = [
     ...parseTables(env.DEMO_ACTIVITY_TABLES ?? DEFAULT_ACTIVITY, false),
@@ -72,6 +74,9 @@ function health(): HealthItem[] {
   return items;
 }
 
+/** Events as sent to the page: each one carries the moment it triggers, if any (see moments.ts). */
+const annotate = (list: StageEvent[]) => list.map((e) => ({ ...e, moment: momentFor(e) }));
+
 function snapshot(limit = 150) {
   return {
     mode: feed.mode,
@@ -80,7 +85,7 @@ function snapshot(limit = 150) {
     clock: feed.clock(),
     clockTicks: feed.clockTicks,
     stats: computeStats(events),
-    events: events.slice(-limit),
+    events: annotate(events.slice(-limit)),
     stepIns: events.filter((e) => e.human).slice(-6),
     pipeline,
     health: health(),
@@ -106,7 +111,7 @@ async function tick(): Promise<void> {
       events.push(...fresh);
       events.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
       if (events.length > MAX_EVENTS) events.splice(0, events.length - MAX_EVENTS);
-      broadcast({ type: "events", events: fresh.slice(-100), stats: computeStats(events), clock: feed.clock() });
+      broadcast({ type: "events", events: annotate(fresh.slice(-100)), stats: computeStats(events), clock: feed.clock() });
     }
   } catch (err) {
     console.error("Feed error:", err instanceof Error ? err.message : err);
@@ -178,9 +183,10 @@ const server = createServer(async (req, res) => {
         res.end(readFileSync(join(demoDir, "public", "outreach.html"), "utf8"));
         return;
       case "/api/outreach": {
-        const board = await loadOutreach(env.DATABASE_URL);
+        // Sample mode is invented end to end, so its outreach board is too (and labeled as such).
+        const board = feed.mode === "sample" ? sampleOutreach() : await loadOutreach(env.DATABASE_URL);
         res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
-        res.end(JSON.stringify(board));
+        res.end(JSON.stringify({ ...board, mode: feed.mode }));
         return;
       }
       case "/api/state":
@@ -210,7 +216,7 @@ const server = createServer(async (req, res) => {
           res.end();
           return;
         }
-        const svg = await QRCode.toString(joinUrl, { type: "svg", margin: 1, color: { dark: "#0b0d10", light: "#ffffff" } });
+        const svg = await QRCode.toString(joinUrl, { type: "svg", margin: 1, color: { dark: "#1a1d3a", light: "#ffffff" } });
         res.writeHead(200, { "content-type": "image/svg+xml", "cache-control": "max-age=60" });
         res.end(svg);
         return;
@@ -221,7 +227,7 @@ const server = createServer(async (req, res) => {
           res.end();
           return;
         }
-        const svg = await QRCode.toString(playUrl, { type: "svg", margin: 1, color: { dark: "#0b0d10", light: "#ffffff" } });
+        const svg = await QRCode.toString(playUrl, { type: "svg", margin: 1, color: { dark: "#1a1d3a", light: "#ffffff" } });
         res.writeHead(200, { "content-type": "image/svg+xml", "cache-control": "max-age=60" });
         res.end(svg);
         return;
@@ -247,7 +253,7 @@ function openWindow(target: string): void {
 
 // ---- Main -------------------------------------------------------------------------------------
 
-const label = { live: "LIVE from the activity log", replay: "REPLAY of a recorded run", sample: "SAMPLE DATA (rehearsal only)" }[feed.mode];
+const label = { live: "LIVE from the activity log", replay: "REPLAY of a recorded run", sample: "REHEARSAL DATA (practice only, never show it as live)" }[feed.mode];
 console.log(`\n  Demo stage · ${label}`);
 const items = await preflight();
 printHealth(items);
@@ -267,6 +273,6 @@ setInterval(() => broadcast({ type: "ping", clock: feed.clock() }), 15_000);
 
 server.listen(port, () => {
   const target = `http://localhost:${port}`;
-  console.log(`  Stage: ${target}   (F: full screen, D: setup details, Ctrl+C: stop)\n`);
+  console.log(`  Stage: ${target}   (?: keys, F: full screen, O: outreach, Q: big QR, P: phone, D: setup details, Ctrl+C: stop)\n`);
   if (flag("--open")) openWindow(target);
 });

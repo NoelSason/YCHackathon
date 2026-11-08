@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:20 PM PT · Noel · Claude Code · main
+- **What:** Console scrolls now: the page scrolls when the window is shorter than the layout, and the activity feed scrolls on its own. Includes the demo agent's in-progress console work that was already live.
+- **Why:** On a laptop the bottom row (Studios funnel, step-ins) was cut off and nothing scrolled.
+- **Files:** `demo/public/index.html`, `demo/public/outreach.html`, `demo/src/*`
+- **State:** works; checked the served page at localhost:4545 and demo typecheck passes.
+- **Next / heads-up:** Demo agent is still adding click-through drawers (agent filter, stat details, funnel stages, phone modal).
+
 ### 2026-11-07 16:55 PT · Pinara (Claude Code) · branch `main`
 
 **What:**

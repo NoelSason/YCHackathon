@@ -3,83 +3,204 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Level AI · Outreach</title>
+<title>Level AI Outreach</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a1d3a'/%3E%3Crect x='4' y='19' width='8' height='8' rx='2' fill='%2322b893'/%3E%3Crect x='12' y='12' width='8' height='8' rx='2' fill='%23ffc53d'/%3E%3Crect x='20' y='5' width='8' height='8' rx='2' fill='%23ff5b4f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { --bg: #0b0d10; --panel: #141821; --line: #232a37; --text: #eef1f5; --muted: #8d97a8; --accent: #7c5cff; --go: #3ddc97; --warn: #ffb547; --mono: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-  body { padding: 2.2vh 2.4vw; min-height: 100vh; font-size: clamp(14px, 1.05vw, 22px); }
-  header { display: flex; align-items: baseline; justify-content: space-between; gap: 1em; margin-bottom: 1.6vh; }
-  h1 { margin: 0; font-size: 2em; letter-spacing: -.02em; }
-  h1 small { color: var(--muted); font-weight: 500; font-size: .5em; margin-left: .6em; }
-  .back { color: var(--muted); text-decoration: none; font: 500 .85em var(--mono); }
-  .totals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1vw; margin-bottom: 2vh; }
-  .tot { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 1.2vh 1.2vw; }
-  .tot .n { font-size: 2.4em; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-  .tot .l { color: var(--muted); margin-top: .4em; font-size: .9em; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 30em), 1fr)); gap: 1vw; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 1.4vh 1.2vw; display: flex; flex-direction: column; gap: .55em; }
-  .card.fresh { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
-  .top { display: flex; justify-content: space-between; gap: .8em; align-items: baseline; }
-  .co { font-weight: 700; font-size: 1.15em; }
-  .badge { font: 600 .75em var(--mono); text-transform: uppercase; letter-spacing: .04em; padding: .25em .6em; border-radius: 999px; background: #222a38; color: var(--muted); white-space: nowrap; }
-  .badge.emailed { background: rgba(124,92,255,.18); color: #b9a8ff; }
-  .badge.replied, .badge.pilot_offered { background: rgba(255,181,71,.16); color: var(--warn); }
-  .badge.pilot_paid, .badge.delivered { background: rgba(61,220,151,.16); color: var(--go); }
-  .src { color: var(--muted); font-size: .8em; }
-  .reason { color: var(--text); }
-  .quote { color: #cfd6e2; font-style: italic; border-left: 3px solid var(--accent); padding-left: .7em; }
-  .meta { color: var(--muted); font: .82em var(--mono); display: flex; gap: 1.2em; flex-wrap: wrap; }
-  .reply { background: rgba(255,181,71,.08); border: 1px solid rgba(255,181,71,.25); border-radius: 10px; padding: .6em .8em; }
-  .reply b { color: var(--warn); font-weight: 600; }
-  .none { color: var(--muted); padding: 4vh 0; text-align: center; grid-column: 1 / -1; }
+  :root {
+    --paper: #eef1f7; --grid: #dbe1ee;
+    --ink: #1a1d3a; --ink-2: #262a52; --ink-3: #30356a; --ink-deep: #0c0e22; --ink-soft: #474c6e;
+    --on-ink-2: #c3c7e6; --on-ink-3: #9096c4;
+    --sun: #ffc53d; --sun-d: #d4960f;
+    --tomato: #ff5b4f; --tomato-d: #c93a30;
+    --mint: #22b893; --mint-d: #15876a; --mint-l: #8ff0d3;
+    --cobalt: #3b5bff; --cobalt-d: #2338c4;
+    --grape: #9061f9; --grape-d: #6739cc;
+    --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+    --body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --gap: 0.9rem;
+    font-size: clamp(12px, min(1.02vw, 1.78vh), 24px);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background-color: var(--paper);
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 1.6rem 1.6rem; background-position: -1px -1px;
+    color: var(--ink); font: 500 1rem/1.35 var(--body); -webkit-font-smoothing: antialiased;
+    padding: 0.85rem 1.3rem 1.4rem;
+  }
+  body.embed { padding-top: 0.2rem; }
+  :focus-visible { outline: 3px solid var(--cobalt); outline-offset: 3px; border-radius: 6px; }
+
+  header { display: flex; align-items: center; gap: 1rem; margin-bottom: var(--gap); min-height: 2.6rem; }
+  .brand { display: flex; align-items: center; gap: 0.65rem; font: 800 1.45rem/1 var(--display); letter-spacing: -0.03em; text-decoration: none; color: inherit; }
+  .brand svg { width: 2.3rem; height: 2.3rem; }
+  .updated { margin-left: auto; font: 700 1rem/1 var(--body); color: var(--ink-soft); }
+  kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 1.7em; height: 1.7em; padding: 0 0.4em; background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 0.45em; box-shadow: 0 2px 0 var(--ink); font: 800 0.8em/1 var(--display); }
+  .back { font: 700 0.95rem/1 var(--body); color: var(--ink-soft); text-decoration: none; display: inline-flex; gap: 0.4rem; align-items: center; }
+
+  .banner { border: 3px solid var(--ink); border-radius: 1rem; box-shadow: 0 4px 0 var(--ink); padding: 0.55rem 3.2rem; display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: var(--gap);
+    background: repeating-linear-gradient(135deg, var(--ink) 0 0.7rem, var(--sun) 0.7rem 1.4rem) left / 2.2rem 100% no-repeat, repeating-linear-gradient(135deg, var(--ink) 0 0.7rem, var(--sun) 0.7rem 1.4rem) right / 2.2rem 100% no-repeat, var(--sun); }
+  .banner b { font: 800 1.6rem/1.1 var(--display); letter-spacing: -0.02em; }
+  .banner span { font-weight: 700; font-size: 1.05rem; }
+
+  /* Title row and totals */
+  .head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--gap); margin-bottom: calc(var(--gap) * 1.2); align-items: stretch; }
+  .title { background: var(--sun); border: 3px solid var(--ink); border-radius: 1.35rem; box-shadow: 0 0.4rem 0 var(--ink); padding: 0.9rem 1.3rem; display: grid; align-content: center; gap: 0.35rem; }
+  .title h1 { margin: 0; font: 800 2.3rem/1 var(--display); letter-spacing: -0.045em; }
+  .title p { margin: 0; font: 700 1rem/1.3 var(--body); color: #4a3a07; max-width: 22em; }
+  .totals { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--gap); }
+  .tot { background: var(--ink); color: #fff; border-radius: 1rem; box-shadow: 0 0.35rem 0 var(--ink-deep); padding: 0.8rem 1rem; display: grid; grid-template-columns: auto 1fr; column-gap: 0.6rem; align-content: center; min-width: 0; }
+  .tot .tile { width: 1.15rem; height: 1.15rem; border-radius: 0.3rem; margin-top: 0.12rem; }
+  .tot .l { font: 700 0.95rem/1.2 var(--body); color: var(--on-ink-2); }
+  .tot .n { grid-column: 1 / -1; font: 800 2.9rem/1 var(--display); letter-spacing: -0.04em; margin-top: 0.4rem; font-variant-numeric: tabular-nums; }
+  .bump { animation: bump 0.7s ease-out; }
+  @keyframes bump { 30% { transform: translateY(-0.25rem) scale(1.06); color: var(--sun); } }
+
+  .tile { --c: var(--cobalt); --cd: var(--cobalt-d); position: relative; flex: none; width: 1.9rem; height: 1.9rem; border-radius: 0.5rem; background: var(--c); box-shadow: inset 0 -0.2rem 0 var(--cd); }
+  .tile::after { content: ""; position: absolute; inset: 29%; background: rgba(255, 255, 255, 0.88); }
+  .tile[data-s="circle"]::after { border-radius: 50%; }
+  .tile[data-s="triangle"]::after { clip-path: polygon(50% 4%, 96% 92%, 4% 92%); }
+  .tile[data-s="diamond"]::after { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+  .tile[data-s="square"]::after { border-radius: 2px; inset: 33%; }
+  .tile[data-s="star"]::after { clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); inset: 22%; }
+
+  /* Studio cards */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr)); gap: calc(var(--gap) * 1.2) var(--gap); }
+  .card { background: var(--ink); color: #fff; border-radius: 1.35rem; box-shadow: 0 0.4rem 0 var(--ink-deep); padding: 1rem 1.1rem 1.05rem; display: flex; flex-direction: column; gap: 0.65rem; min-width: 0; border: 3px solid transparent; }
+  .card.fresh { border-color: var(--sun); animation: fresh 1s cubic-bezier(.2, 1.3, .4, 1); }
+  @keyframes fresh { 0% { transform: scale(0.97); box-shadow: 0 0 0 0.5rem rgba(255, 197, 61, 0.6), 0 0.4rem 0 var(--ink-deep); } }
+  .top { display: flex; align-items: flex-start; gap: 0.7rem; }
+  .co { font: 800 1.3rem/1.15 var(--display); letter-spacing: -0.03em; overflow-wrap: anywhere; }
+  .src { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.3rem; font: 700 0.9rem/1.2 var(--body); color: var(--on-ink-3); }
+  .src .tile { width: 0.95rem; height: 0.95rem; border-radius: 0.25rem; }
+  .badge { margin-left: auto; flex: none; font: 800 0.82rem/1 var(--body); padding: 0.4rem 0.7rem; border-radius: 999px; background: var(--c, var(--ink-3)); color: #fff; box-shadow: inset 0 -3px 0 var(--cd, rgba(0, 0, 0, 0.2)); white-space: nowrap; }
+  .badge.dark { color: var(--ink); }
+  .reason { font: 600 1.08rem/1.35 var(--body); color: #fff; }
+  .quote { position: relative; background: #fff; color: var(--ink); border-radius: 1rem 1rem 1rem 0.3rem; padding: 0.7rem 0.95rem; font: 700 1.08rem/1.35 var(--body); margin-left: 0.4rem; }
+  .quote::before { content: ""; position: absolute; left: -0.45rem; bottom: 0; width: 0.9rem; height: 0.9rem; background: #fff; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+  .quote small { display: block; margin-top: 0.3rem; font: 700 0.8rem/1 var(--body); color: var(--ink-soft); }
+  .mail { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.15rem 0.6rem; align-items: center; background: var(--ink-2); border-radius: 0.9rem; padding: 0.6rem 0.8rem; margin-top: auto; }
+  .mail svg { width: 1.3rem; height: 1.3rem; grid-row: span 2; color: var(--sun); }
+  .mail b { font: 700 1rem/1.25 var(--body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mail span { font: 600 0.88rem/1.2 var(--body); color: var(--on-ink-3); }
+  .reply { border-radius: 0.9rem; padding: 0.6rem 0.8rem; background: var(--mint); color: var(--ink); box-shadow: inset 0 -0.2rem 0 var(--mint-d); font: 600 1rem/1.3 var(--body); }
+  .reply b { display: block; font: 800 0.9rem/1.2 var(--display); letter-spacing: -0.015em; margin-bottom: 0.2rem; }
+  .noreply { font: 700 0.9rem/1.2 var(--body); color: var(--on-ink-3); display: flex; align-items: center; gap: 0.45rem; }
+  .noreply::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--on-ink-3); }
+  .none { grid-column: 1 / -1; background: #fff; border: 3px solid var(--ink); border-radius: 1.35rem; box-shadow: 0 0.4rem 0 var(--ink); padding: 2rem; text-align: center; font: 700 1.2rem/1.3 var(--body); }
+
+  @media (max-width: 1100px), (max-aspect-ratio: 5/4) {
+    :root { font-size: 15px; }
+    body { padding: 0.8rem 16px 1.4rem; }
+    .head { grid-template-columns: 1fr; }
+    .totals { grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); }
+    .banner { padding: 0.55rem 2.6rem; }
+    .banner b { font-size: 1.2rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>Outreach <small id="updated">live</small></h1>
-  <a class="back" href="/">← back to the company</a>
+<header id="top">
+  <a class="brand" href="/" aria-label="Back to the company">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1a1d3a"/><rect x="4" y="19" width="8" height="8" rx="2" fill="#22b893"/><rect x="12" y="12" width="8" height="8" rx="2" fill="#ffc53d"/><rect x="20" y="5" width="8" height="8" rx="2" fill="#ff5b4f"/></svg>
+    Level AI
+  </a>
+  <span class="updated" id="updated">Loading</span>
+  <a class="back" href="/"><kbd>O</kbd> Back to the company</a>
 </header>
-<section class="totals">
-  <div class="tot"><div class="n" id="t-researched">0</div><div class="l">studios found by research</div></div>
-  <div class="tot"><div class="n" id="t-signups">0</div><div class="l">signed up at our table</div></div>
-  <div class="tot"><div class="n" id="t-emailed">0</div><div class="l">emailed by agents</div></div>
-  <div class="tot"><div class="n" id="t-replied">0</div><div class="l">replied</div></div>
-  <div class="tot"><div class="n" id="t-won">0</div><div class="l">paid</div></div>
+<div class="banner" id="banner" hidden><b>REHEARSAL DATA</b><span>Invented studios for practicing the demo. Nothing here is real.</span></div>
+
+<section class="head">
+  <div class="title">
+    <h1>Outreach</h1>
+    <p id="title-sub">Every studio our agents found or that signed up, what their players said, and what we sent.</p>
+  </div>
+  <div class="totals">
+    <div class="tot"><span class="tile" data-s="circle"></span><span class="l">Found by research</span><div class="n" id="t-researched">0</div></div>
+    <div class="tot"><span class="tile" data-s="circle" style="--c:var(--sun);--cd:var(--sun-d)"></span><span class="l">Signed up at our table</span><div class="n" id="t-signups">0</div></div>
+    <div class="tot"><span class="tile" data-s="triangle" style="--c:var(--tomato);--cd:var(--tomato-d)"></span><span class="l">Emailed by agents</span><div class="n" id="t-emailed">0</div></div>
+    <div class="tot"><span class="tile" data-s="diamond" style="--c:var(--mint);--cd:var(--mint-d)"></span><span class="l">Replied</span><div class="n" id="t-replied">0</div></div>
+    <div class="tot"><span class="tile" data-s="square" style="--c:var(--grape);--cd:var(--grape-d)"></span><span class="l">Paid</span><div class="n" id="t-won">0</div></div>
+  </div>
 </section>
-<section class="grid" id="grid"><div class="none">Loading…</div></section>
+
+<section class="grid" id="grid"><div class="none">Loading the studios…</div></section>
+
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const when = (iso) => iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " · " + new Date(iso).toLocaleDateString([], { weekday: "short" }) : "";
-const STAGE = { found: "found", sample_made: "sample made", emailed: "emailed", replied: "replied", pilot_offered: "pilot offered", pilot_paid: "paid", delivered: "delivered", lost: "not now", opted_out: "opted out" };
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const embed = new URLSearchParams(location.search).has("embed");
+if (embed) { document.body.classList.add("embed"); $("top").hidden = true; }
+
+const pt = (iso, opts) => new Date(iso).toLocaleString("en-US", { timeZone: "America/Los_Angeles", ...opts });
+const when = (iso) => iso ? `${pt(iso, { weekday: "short", hour: "numeric", minute: "2-digit" })} PT` : "";
+const STAGE = {
+  found: ["Found", "--c:var(--cobalt);--cd:var(--cobalt-d)", false],
+  sample_made: ["Sample made", "--c:var(--grape);--cd:var(--grape-d)", false],
+  emailed: ["Emailed", "--c:var(--tomato);--cd:var(--tomato-d)", false],
+  replied: ["Replied", "--c:var(--sun);--cd:var(--sun-d)", true],
+  pilot_offered: ["Pilot offered", "--c:var(--grape);--cd:var(--grape-d)", false],
+  pilot_paid: ["Paid", "--c:var(--mint);--cd:var(--mint-d)", true],
+  delivered: ["Delivered", "--c:var(--mint);--cd:var(--mint-d)", true],
+  lost: ["Not now", "", false],
+  opted_out: ["Opted out", "", false],
+};
+const MAIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>';
+
+function bump(el, value) {
+  if (el.textContent === String(value)) return;
+  el.textContent = value; el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
+}
+
 let seen = new Set();
+function card(r, fresh) {
+  const [label, style, dark] = STAGE[r.stage] || [r.stage, "", false];
+  const inbound = r.source === "inbound_qr";
+  const srcTile = inbound ? 'style="--c:var(--sun);--cd:var(--sun-d)" data-s="circle"' : 'data-s="circle"';
+  return `<article class="card${fresh ? " fresh" : ""}">
+    <div class="top"><div><div class="co">${esc(r.company)}</div>
+      <div class="src"><span class="tile" ${srcTile}></span>${inbound ? "Signed up at our table" : "Found by the Research agent"}</div></div>
+      <span class="badge${dark ? " dark" : ""}" style="${style}">${esc(label)}</span></div>
+    ${r.reason ? `<div class="reason">${esc(r.reason)}</div>` : ""}
+    ${r.quote ? `<div class="quote">“${esc(r.quote)}”<small>A player, in a public review</small></div>` : ""}
+    ${r.subject ? `<div class="mail">${MAIL}<b>${esc(r.subject)}</b><span>Sent ${esc(when(r.sentAt))}</span></div>` : ""}
+    ${r.replyAt ? `<div class="reply"><b>Replied ${esc(when(r.replyAt))}</b>${esc(r.replySummary || "")}</div>` : r.subject ? '<div class="noreply">No reply yet</div>' : ""}
+  </article>`;
+}
+
 async function refresh() {
   try {
     const b = await (await fetch("/api/outreach", { cache: "no-store" })).json();
-    if (!b.live) { $("grid").innerHTML = '<div class="none">Not connected to the company database.</div>'; return; }
-    for (const k of ["researched", "signups", "emailed", "replied", "won"]) $("t-" + k).textContent = b.totals[k];
-    $("updated").textContent = "live · updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
-    if (!b.rows.length) { $("grid").innerHTML = '<div class="none">No studios yet.</div>'; return; }
+    $("banner").hidden = embed || b.mode !== "sample";
+    if (!b.live) { $("grid").innerHTML = '<div class="none">The outreach board needs the company database. Press D on the stage for setup details.</div>'; $("updated").textContent = "Not connected"; return; }
+    for (const k of ["researched", "signups", "emailed", "replied", "won"]) bump($("t-" + k), b.totals[k]);
+    $("updated").textContent = `${b.mode === "sample" ? "Rehearsal" : "Live"}, updated ${pt(new Date().toISOString(), { hour: "numeric", minute: "2-digit", second: "2-digit" })} PT`;
+    if (!b.rows.length) { $("grid").innerHTML = '<div class="none">No studios yet. The Research agent adds them as it finds unhappy players.</div>'; return; }
     const first = seen.size === 0;
     $("grid").innerHTML = b.rows.map((r) => {
-      const key = r.company + (r.sentAt || "") + (r.replyAt || "");
+      const key = r.company + "|" + r.stage + "|" + (r.sentAt || "") + "|" + (r.replyAt || "");
       const fresh = !first && !seen.has(key);
       seen.add(key);
-      return `<article class="card${fresh ? " fresh" : ""}">
-        <div class="top"><span class="co">${esc(r.company)}</span><span class="badge ${esc(r.stage)}">${esc(STAGE[r.stage] || r.stage)}</span></div>
-        <div class="src">${r.source === "inbound_qr" ? "Signed up at our table" : "Found by the Research agent"}</div>
-        ${r.reason ? `<div class="reason">${esc(r.reason)}</div>` : ""}
-        ${r.quote ? `<div class="quote">“${esc(r.quote)}”</div>` : ""}
-        ${r.subject ? `<div class="meta"><span>✉ ${esc(r.subject)}</span><span>${esc(when(r.sentAt))}</span></div>` : ""}
-        ${r.replyAt ? `<div class="reply"><b>Reply · ${esc(when(r.replyAt))}</b><br>${esc(r.replySummary || "")}</div>` : ""}
-      </article>`;
+      return card(r, fresh);
     }).join("");
-  } catch { $("updated").textContent = "reconnecting…"; }
+  } catch { $("updated").textContent = "Reconnecting…"; }
 }
 refresh();
 setInterval(refresh, 5000);
+
+// Keys: inside the stage, pass them up so O, Q, P, and the rest keep working. On its own, O goes back.
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (embed) { parent.postMessage({ key: e.key }, location.origin); return; }
+  if (e.key === "o" || e.key === "O" || e.key === "Escape") location.href = "/";
+});
 </script>
 </body>
 </html>

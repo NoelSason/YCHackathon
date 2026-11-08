@@ -3,7 +3,8 @@ import { neon } from "@neondatabase/serverless";
 /**
  * The outreach board: every studio the agents found or that signed up, the evidence they used,
  * the email they sent, and any reply. Read live from the platform tables (studios, emails).
- * Nothing here is typed in; with no database it says so.
+ * Nothing here is typed in; with no database it says so. The team's own test orders
+ * (source 'internal_test') and smoke-test rows aren't customers, so they're left out.
  */
 export interface OutreachRow {
   company: string;
@@ -42,7 +43,7 @@ export async function loadOutreach(databaseUrl: string | undefined): Promise<Out
                            where e.studio_id = s.studio_id and e.direction = 'out' order by ts asc limit 1) o on true
        left join lateral (select summary, ts from emails e
                            where e.studio_id = s.studio_id and e.direction = 'in' order by ts desc limit 1) i on true
-      where s.name not ilike '%smoke test%'
+      where s.name not ilike '%smoke test%' and coalesce(s.source, '') <> 'internal_test'
       order by coalesce(i.ts, o.ts, s.updated_at) desc
       limit 24`,
   )) as Array<Record<string, unknown>>;
@@ -70,8 +71,28 @@ export async function loadOutreach(databaseUrl: string | undefined): Promise<Out
             count(*) filter (where exists (select 1 from emails e where e.studio_id = s.studio_id and e.direction = 'out'))::int as emailed,
             count(*) filter (where exists (select 1 from emails e where e.studio_id = s.studio_id and e.direction = 'in'))::int as replied,
             count(*) filter (where stage in ('pilot_paid', 'delivered'))::int as won
-       from studios s where s.name not ilike '%smoke test%'`,
+       from studios s where s.name not ilike '%smoke test%' and coalesce(s.source, '') <> 'internal_test'`,
   )) as Array<OutreachBoard["totals"]>;
   if (t[0]) board.totals = t[0];
   return board;
+}
+
+/**
+ * Invented rows for `--rehearsal` only, matching the rehearsal story in feeds.ts. The page shows a
+ * "REHEARSAL DATA" banner over them. Every name is made up; addresses use the reserved .example domain.
+ */
+/** Fixed when the server starts, so the rehearsal board's times don't shift on every refresh. */
+const REHEARSAL_START = Date.now();
+
+export function sampleOutreach(now = REHEARSAL_START): OutreachBoard {
+  const ago = (min: number) => new Date(now - min * 60_000).toISOString();
+  const rows: OutreachRow[] = [
+    { company: "Mossberry Studio", source: "research", stage: "pilot_paid", reason: "8 of the 150 newest store reviews of Teacup Tiles say a level is too hard or impossible.", quote: "Stuck on level 34 for three days. It feels impossible without boosters.", subject: "Smoothing a tough spot in Teacup Tiles", sentAt: ago(130), replyAt: ago(40), replySummary: "Interested. Asked for five easier levels to try in Teacup Tiles." },
+    { company: "Hexbloom", source: "inbound_qr", stage: "found", reason: "Signed up at our table for free levels for Cozy Hex.", quote: null, subject: "Your iPhone playtest report: Cozy Hex", sentAt: ago(55), replyAt: null, replySummary: null },
+    { company: "Pebblewick Games", source: "research", stage: "emailed", reason: "5 of the 120 newest store reviews of Lantern Lane say the levels are too easy.", quote: "Beat the first 60 levels in one evening. Way too easy.", subject: "A harder early curve for Lantern Lane", sentAt: ago(95), replyAt: null, replySummary: null },
+    { company: "Thimble & Kite", source: "research", stage: "replied", reason: "6 of the 150 newest store reviews of Paper Boats Puzzle say a level is impossible.", quote: "Level 112 is physically impossible.", subject: "Smoothing a tough spot in Paper Boats Puzzle", sentAt: ago(240), replyAt: ago(150), replySummary: "Not right now. Asked us to check back after their next update." },
+    { company: "Starling Bay Games", source: "research", stage: "emailed", reason: "4 of the 150 newest store reviews of Orbit Garden ask for more levels.", quote: "Finished everything in a week. Please add more levels!", subject: "More levels for Orbit Garden", sentAt: ago(200), replyAt: null, replySummary: null },
+    { company: "Quillfeather Studio", source: "research", stage: "found", reason: "3 of the 90 newest store reviews of Marble Orchard ask for more levels.", quote: null, subject: null, sentAt: null, replyAt: null, replySummary: null },
+  ];
+  return { live: true, totals: { studios: 6, researched: 5, signups: 1, emailed: 5, replied: 2, won: 1 }, rows };
 }
