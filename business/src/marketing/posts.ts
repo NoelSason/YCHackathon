@@ -108,6 +108,8 @@ export async function publish(args: {
   store: Store;
   post: Post;
   dailyCap: number;
+  /** Wait between status checks after posting (tests pass 0). */
+  pollMs?: number;
 }): Promise<{ posted: SocialPlatform[]; skipped: Array<{ platform: SocialPlatform; reason: string }> }> {
   const posted: SocialPlatform[] = [];
   const skipped: Array<{ platform: SocialPlatform; reason: string }> = [];
@@ -136,10 +138,27 @@ export async function publish(args: {
         platforms: [platform],
         ai_generated: true,
       });
+      // "scheduled" only means accepted. Wait for the network's answer (seen Nov 7: X failed ~4 s later).
+      let status = String(res.status);
+      let error: string | null = null;
+      const getPost = (args.naive.social as unknown as { getPost?: (i: string, p: string) => Promise<{ status: string; error?: string | null }> }).getPost;
+      for (let i = 0; getPost && i < 6 && (status === "scheduled" || status === "processing"); i++) {
+        await new Promise((r) => setTimeout(r, args.pollMs ?? 4000));
+        const p = await getPost.call(args.naive.social, args.identityId, res.id).catch(() => null);
+        if (p) { status = p.status; error = p.error ?? null; }
+      }
+      if (status === "failed") {
+        skipped.push({ platform, reason: error ?? "the network rejected the post" });
+        await args.store.logActivity({
+          at: new Date().toISOString(), agent: "marketing", action: `couldn't post on ${platform}`,
+          why: error ?? "the network rejected the post", result: `[${platform}] failed ${res.id}`, costUsd: null, human: false,
+        });
+        continue;
+      }
       posted.push(platform);
       await args.store.logActivity({
         at: new Date().toISOString(), agent: "marketing", action: `posted on ${platform}: ${args.post.title}`,
-        why: "find studios and teams who need levels or playtests", result: `[${platform}] ${res.status} ${res.id}`, costUsd: null, human: false,
+        why: "find studios and teams who need levels or playtests", result: `[${platform}] ${status} ${res.id}`, costUsd: null, human: false,
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message.slice(0, 200) : "unknown error";

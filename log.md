@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 6:52 PM PT · Noel · Claude Code · main
+- **What:** Social posting now waits for the network's real answer. A post that comes back "failed" after being "scheduled" is logged as "couldn't post on x", not "posted".
+- **Why:** All four X posts (6:11–6:28 PM) were accepted, then failed within ~4 s with no error. The log had called them posted.
+- **Files:** `business/src/marketing/posts.ts`, `business/test/marketing.test.ts`
+- **State:** works; tests pass, server restarted.
+- **Next / heads-up:** X still fails for @uselevelai on Naïve's side (account connected, no error given). Needs the X account checked or reconnected.
+
 ### 2026-11-07 6:45 PM PT · Noel · Claude Code (+ docs subagent) · main
 - **What:** (1) New logo everywhere: three tiles with googly eyes (`site/logo.svg`, `site/logo.png`). Used for the header mark and favicon on every site page, the console and outreach board, the games hub and game pages (build-games.sh now links /logo.svg), the email header (PNG, since email clients block SVG), and the README. (2) Developer docs: `/developers` rewritten as real docs (quickstart, REST reference with live responses, level JSON per game, studio connector setup for Claude Code/Cursor/Codex, errors, how levels are made and tested, what isn't built) plus `docs/developers.md`. The new `/api/*` endpoints are already live from the running server; their code lands with the watch-live commit because it shares app.ts.
 - **Why:** Noel: use this logo everywhere; dev docs so studios can access level creations.

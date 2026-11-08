@@ -74,3 +74,17 @@ describe("social loop", () => {
     expect(pickAngle({ turn: 3, lastResearchReviews: 0 }, 100, false)).toBe("levels");
   });
 });
+
+describe("post status", () => {
+  it("counts a post the network rejected as failed, not posted", async () => {
+    const store = new MemoryStore();
+    const naive = { social: {
+      createPost: async () => ({ id: "p1", status: "scheduled" }),
+      getPost: async () => ({ status: "failed", error: null }),
+    } } as unknown as NaiveClient;
+    const r = await publish({ naive, identityId: "idn", store, post: { title: "t", content: "c", platforms: ["x"] }, dailyCap: 4, pollMs: 0 });
+    expect(r.posted).toEqual([]);
+    expect(r.skipped[0]?.reason).toBe("the network rejected the post");
+    expect((await store.listActivity())[0]?.action).toBe("couldn't post on x");
+  });
+});
