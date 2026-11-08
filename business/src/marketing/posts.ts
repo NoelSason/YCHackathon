@@ -13,18 +13,33 @@ export interface Stats {
   studiosResearched: number;
   studiosEmailed: number;
   playtestsDelivered: number;
+  /** Market research totals from the outreach loop's chart passes. */
+  reviewsRead: number;
+  gamesRead: number;
+  tooHard: number;
+  tooEasy: number;
+  wantsMoreLevels: number;
+  repetitive: number;
 }
 
 export async function gatherStats(store: Store): Promise<Stats> {
   const leads = await store.listLeads();
+  const runs = await store.listResearchRuns(500).catch(() => []);
+  const sum = (k: "reviewsRead" | "gamesRead" | "tooHard" | "tooEasy" | "wantsMoreLevels" | "repetitive") => runs.reduce((n, r) => n + r[k], 0);
   return {
+    reviewsRead: sum("reviewsRead"),
+    gamesRead: sum("gamesRead"),
+    tooHard: sum("tooHard"),
+    tooEasy: sum("tooEasy"),
+    wantsMoreLevels: sum("wantsMoreLevels"),
+    repetitive: sum("repetitive"),
     studiosResearched: leads.filter((l) => l.source === "research").length,
     studiosEmailed: leads.filter((l) => ["emailed", "replied", "pilot_offered", "pilot_paid", "delivered"].includes(l.stage)).length,
     playtestsDelivered: leads.filter((l) => l.source === "inbound_form" && l.stage === "delivered" && (l.reason ?? "").startsWith("Ordered a phone playtest")).length,
   };
 }
 
-export type Angle = "levels" | "playtest";
+export type Angle = "levels" | "playtest" | "research";
 
 export interface Post {
   title: string;
@@ -33,7 +48,27 @@ export interface Post {
 }
 
 /** One post per angle, written for people who hire help for their games. */
+const pct = (n: number, total: number): number => Math.round((n / total) * 100);
+
 export function composePost(angle: Angle, stats: Stats, links: { site: string; playtest: string | null }): Post {
+  const complaints = stats.tooHard + stats.tooEasy + stats.wantsMoreLevels + stats.repetitive;
+  if (angle === "research" && stats.reviewsRead > 0 && complaints >= 10) {
+    const parts = [
+      [stats.tooHard, "say a level is too hard"],
+      [stats.tooEasy, "say it's too easy"],
+      [stats.wantsMoreLevels, "want more levels"],
+      [stats.repetitive, "say it gets repetitive"],
+    ] as Array<[number, string]>;
+    // Percentages only once the sample is big enough to mean something; counts before that.
+    const big = complaints >= 50;
+    const breakdown = parts.filter(([n]) => n > 0).sort((a, b) => b[0] - a[0]).map(([n, t]) => `${big ? `${pct(n, complaints)}%` : n} ${t}`).join(", ");
+    const lead = big ? "When players complain about the levels," : `${complaints} reviews complain about the levels:`;
+    return {
+      title: "What puzzle-game players say about levels",
+      content: `Our agents have read ${stats.reviewsRead.toLocaleString("en-US")} player reviews of ${stats.gamesRead} top mobile puzzle and casual games. ${lead} ${breakdown}. Want this for your game? Free difficulty audit: ${links.site.replace(/\/$/, "")}/join`,
+      platforms: ["linkedin", "x", "threads", "bluesky", "reddit"],
+    };
+  }
   if (angle === "playtest" && links.playtest) {
     const proof = stats.playtestsDelivered > 0 ? ` We've delivered ${stats.playtestsDelivered} so far.` : "";
     return {
@@ -48,7 +83,7 @@ export function composePost(angle: Angle, stats: Stats, links: { site: string; p
       : "";
   return {
     title: "[For Hire] New puzzle levels for your game, tested before your players see them",
-    content: `Need more levels for your puzzle game? Level AI designs levels in your game's style and plays each one hundreds of times until it hits the difficulty you want.${proof} Free sample set for your game: ${links.site}`,
+    content: `Need more levels for your puzzle game? Level AI designs levels in your game's style, and bots play every one before a person does, so each lands at the difficulty you asked for.${proof} Free sample set for your game: ${links.site}`,
     platforms: ["linkedin", "x", "threads", "bluesky", "reddit"],
   };
 }
@@ -76,7 +111,19 @@ export async function publish(args: {
 }): Promise<{ posted: SocialPlatform[]; skipped: Array<{ platform: SocialPlatform; reason: string }> }> {
   const posted: SocialPlatform[] = [];
   const skipped: Array<{ platform: SocialPlatform; reason: string }> = [];
+  // Post only where an account is connected, so unconnected networks don't fill the log with failures.
+  let connected: Set<string> | null = null;
+  try {
+    const accounts = await (args.naive.social as unknown as { accounts?: (id: string) => Promise<{ data?: Array<{ platform: string }> }> }).accounts?.(args.identityId);
+    if (accounts?.data) connected = new Set(accounts.data.map((a) => a.platform));
+  } catch {
+    connected = null;
+  }
   for (const platform of args.post.platforms) {
+    if (connected && !connected.has(platform)) {
+      skipped.push({ platform, reason: "no account connected" });
+      continue;
+    }
     if ((await postedToday(args.store, platform)) >= args.dailyCap) {
       skipped.push({ platform, reason: `daily cap of ${args.dailyCap} reached` });
       continue;

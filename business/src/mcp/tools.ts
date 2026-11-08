@@ -291,7 +291,7 @@ export async function toolRunPlaytest(ctx: ToolContext, args: { plan: PlanInput;
 }
 
 /** The Marketing agent: publish a "for hire" post on Level AI's connected social accounts through Naïve. */
-export async function toolPostUpdate(ctx: ToolContext, args: { angle: "levels" | "playtest" }) {
+export async function toolPostUpdate(ctx: ToolContext, args: { angle: "levels" | "playtest" | "research" }) {
   // Social accounts live on the team workspace's identity (NAIVE_API_KEY_SOCIAL + NAIVE_SOCIAL_IDENTITY_ID);
   // fall back to the main key's identity if those aren't set.
   const social = ctx.config.NAIVE_API_KEY_SOCIAL && ctx.config.NAIVE_SOCIAL_IDENTITY_ID

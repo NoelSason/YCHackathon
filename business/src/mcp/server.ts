@@ -154,8 +154,8 @@ export function buildMcpServer(ctx: ToolContext): McpServer {
     "post_update",
     {
       description:
-        "Marketing: publish a short 'for hire' post on Level AI's connected LinkedIn, X, Threads, Bluesky, and Reddit accounts. angle 'levels' offers puzzle levels for studios; 'playtest' offers an iPhone playtest of an app. Posts are labeled AI-generated, use only our own numbers, and are capped per network per day.",
-      inputSchema: { angle: z.enum(["levels", "playtest"]) },
+        "Marketing: publish a short 'for hire' post on Level AI's connected LinkedIn, X, Threads, Bluesky, and Reddit accounts. angle 'research' shares our live market research (reviews read, what players say about levels) with a free audit link; 'levels' offers puzzle levels for studios; 'playtest' offers an iPhone playtest of an app. Prefer 'research' when there's new research since the last post. Posts are labeled AI-generated, use only our own numbers, and are capped per network per day.",
+      inputSchema: { angle: z.enum(["research", "levels", "playtest"]) },
     },
     async (args) => json(await toolPostUpdate(ctx, args)),
   );

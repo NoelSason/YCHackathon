@@ -24,7 +24,10 @@ const EnvSchema = z.object({
   /** Public website shown in posts. */
   SITE_URL: z.string().default("https://levelai.vercel.app"),
   /** At most this many posts per network per day. */
-  SOCIAL_DAILY_CAP: z.coerce.number().int().positive().default(2),
+  /** Post on the connected social accounts on a schedule (src/marketing/loop.ts). */
+  SOCIAL_LOOP: z.enum(["0", "1"]).default("1"),
+  SOCIAL_LOOP_MINUTES: z.coerce.number().int().positive().default(120),
+  SOCIAL_DAILY_CAP: z.coerce.number().int().positive().default(4),
 
   // Monid (CLI reads its own configured key; this is only checked for presence)
   MONID_API_KEY: z.string().optional(),

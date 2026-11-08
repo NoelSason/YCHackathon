@@ -10,7 +10,7 @@ describe("marketing posts", () => {
       await store.upsertLead({ company: email, appId: null, contactName: null, email, source: "research", stage: "emailed", reason: null, sampleUrl: null, crmContactId: null });
     }
     const stats = await gatherStats(store);
-    expect(stats).toEqual({ studiosResearched: 2, studiosEmailed: 2, playtestsDelivered: 0 });
+    expect(stats).toMatchObject({ studiosResearched: 2, studiosEmailed: 2, playtestsDelivered: 0, reviewsRead: 0 });
     const levels = composePost("levels", stats, { site: "https://levelai.vercel.app", playtest: null });
     expect(levels.content).toContain("newest reviews of 2 puzzle games");
     expect(levels.content).toContain("https://levelai.vercel.app");
@@ -38,5 +38,39 @@ describe("marketing posts", () => {
     const second = await publish({ naive, identityId: "idn_1", store, post: { ...post, platforms: [...post.platforms] }, dailyCap: 1 });
     expect(second.posted).toEqual([]);
     expect(second.skipped.map((s) => s.reason)).toEqual(["daily cap of 1 reached", "daily cap of 1 reached"]);
+  });
+});
+
+describe("research posts", () => {
+  it("shares real research totals as percentages, and posts only where an account is connected", async () => {
+    const store = new MemoryStore();
+    await store.addResearchRun({ at: "2026-11-07T00:00:00Z", chart: "top free puzzle", gamesRead: 30, reviewsRead: 4000, tooHard: 30, tooEasy: 15, wantsMoreLevels: 5, repetitive: 0, gamesWithEvidence: 2, topGame: "A", topReason: "r" });
+    const stats = await gatherStats(store);
+    const post = composePost("research", stats, { site: "https://levelai.vercel.app/", playtest: null });
+    expect(post.content).toContain("read 4,000 player reviews of 30 top mobile puzzle and casual games");
+    expect(post.content).toContain("When players complain about the levels, 60% say a level is too hard, 30% say it's too easy, 10% want more levels");
+    expect(post.content).not.toContain("repetitive");
+    const small = composePost("research", { ...stats, tooHard: 4, tooEasy: 8, wantsMoreLevels: 0 }, { site: "https://levelai.vercel.app", playtest: null });
+    expect(small.content).toContain("12 reviews complain about the levels: 8 say it's too easy, 4 say a level is too hard.");
+    expect(post.content.endsWith("https://levelai.vercel.app/join")).toBe(true);
+    const calls: string[][] = [];
+    const naive = { social: {
+      accounts: async () => ({ data: [{ platform: "x" }] }),
+      createPost: async (_id: string, body: { platforms: string[] }) => { calls.push(body.platforms); return { id: "p", status: "posted" }; },
+    } } as unknown as NaiveClient;
+    const r = await publish({ naive, identityId: "idn", store, post, dailyCap: 4 });
+    expect(r.posted).toEqual(["x"]);
+    expect(calls).toEqual([["x"]]);
+    expect(r.skipped.every((x) => x.reason === "no account connected")).toBe(true);
+  });
+});
+
+describe("social loop", () => {
+  it("rotates angles and skips research with no new numbers", async () => {
+    const { pickAngle } = await import("../src/marketing/loop.js");
+    expect(pickAngle({ turn: 0, lastResearchReviews: 0 }, 3150, true)).toBe("research");
+    expect(pickAngle({ turn: 0, lastResearchReviews: 3150 }, 3150, true)).toBe("levels");
+    expect(pickAngle({ turn: 3, lastResearchReviews: 0 }, 100, true)).toBe("playtest");
+    expect(pickAngle({ turn: 3, lastResearchReviews: 0 }, 100, false)).toBe("levels");
   });
 });

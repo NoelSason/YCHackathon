@@ -20,6 +20,12 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 6:14 PM PT · Noel · Claude Code · main
+- **What:** (1) Social is live: the first post went out on X (@uselevelai) at 6:11 PM, with the live research numbers (3,150 reviews, 12 level complaints: 8 too easy, 4 too hard) and the free audit link. (2) Automatic posting from our server every 2 h (`SOCIAL_LOOP=1`, `SOCIAL_LOOP_MINUTES=120`, on by default when the social key is set). It rotates research → levels → research → playtest, posts research only when there are new numbers (networks reject duplicates), retries when the service is "at capacity", and posts only to connected accounts. Cap is now 4 per network per day. Research posts show counts until there are 50+ complaints, then percentages. The levels post no longer says "hundreds of times" (the solver runs 50). The Marketing agent's `post_update` gains a 'research' angle. (3) Console text scale: full size in full screen only; in a window it's 84%, and the `-` and `=` keys adjust it (remembered per viewer).
+- **Why:** Noel: automate social now; the console looked zoomed in on a laptop.
+- **Files:** `business/src/marketing/{posts.ts,loop.ts}`, `business/src/{server.ts,config.ts,mcp/server.ts,mcp/tools.ts}`, `business/test/marketing.test.ts`, `business/.env.example`, `demo/public/index.html`
+- **State:** works; 142 business tests and 17 demo tests pass, server restarted.
+- **Next / heads-up:** Only X is connected. Connect more through the portal (ask Claude for a fresh link).
 ### 2026-11-07 18:02 PT · Pinara (Claude Code) · branch `main`
 
 **What:**

@@ -4,6 +4,7 @@ import { buildContext, createHandler, MAX_BODY_BYTES } from "./app.js";
 import { agentMailLister, pollOnce } from "./outreach/poll.js";
 import { startSession } from "./naive.js";
 import { runOutreachCycle } from "./outreach/autopilot.js";
+import { startSocialLoop } from "./marketing/loop.js";
 import { startPlaytestLoop } from "./mobile/loop.js";
 
 /**
@@ -53,6 +54,10 @@ if (config.OUTREACH_AUTOPILOT === "1" && config.OUTREACH_SEND === "1") {
 }
 
 // Playtest loop: between paid orders, the phone playtests our newest level or studies a free web puzzle game.
+if (config.SOCIAL_LOOP === "1" && config.NAIVE_API_KEY_SOCIAL && config.NAIVE_SOCIAL_IDENTITY_ID) {
+  startSocialLoop(ctx, config.SOCIAL_LOOP_MINUTES);
+}
+
 if (config.PLAYTEST_LOOP === "1" && ctx.mobilerun && config.MOBILERUN_DEVICE_ID) {
   startPlaytestLoop(ctx, config.PLAYTEST_LOOP_MINUTES);
 }

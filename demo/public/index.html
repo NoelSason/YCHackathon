@@ -35,8 +35,11 @@
     --phone-w: 21rem;
     --team-w: 25.5rem;
     color-scheme: light;
-    /* One unit drives everything, so 1920x1080 and 1440x900 both fill the screen without scrolling. */
-    font-size: clamp(12px, min(1.02vw, 1.78vh), 24px);
+    /* One unit drives everything, so 1920x1080 and 1440x900 both fill the screen without scrolling.
+       --scale is 1 in full screen (projector) and smaller in a normal window, so a laptop browser with
+       its toolbars doesn't look zoomed in. The - and = keys adjust it; the choice is remembered. */
+    --scale: 0.84;
+    font-size: clamp(10px, calc(min(1.02vw, 1.78vh) * var(--scale)), 24px);
   }
   *, *::before, *::after { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -598,6 +601,7 @@
     <h2>Presenter keys</h2>
     <dl>
       <dt><kbd>F</kbd></dt><dd>Full screen</dd>
+      <dt><kbd>-</kbd> <kbd>=</kbd></dt><dd>Smaller or bigger text (full screen always uses full size)</dd>
       <dt><kbd>O</kbd></dt><dd>Switch between the company and the outreach board</dd>
       <dt><kbd>Q</kbd></dt><dd>Show the "Become a customer" QR code full screen</dd>
       <dt><kbd>P</kbd></dt><dd>Spotlight the phone</dd>
@@ -1181,12 +1185,25 @@ function toggle(id, force) {
   if (id === "phone-big" && on) { $("phone-card").classList.remove("spot"); $("dim").classList.remove("on"); fit($("pb-title")); }
 }
 function closeAll() { for (const o of overlays) $(o).classList.remove("show"); document.querySelector(".brand").classList.remove("closes"); }
+// Text size: full size in full screen; in a window, a smaller default the viewer can change.
+const SCALE_KEY = "levelai-console-scale";
+function savedScale() { try { const v = Number(localStorage.getItem(SCALE_KEY)); return v >= 0.6 && v <= 1.2 ? v : 0.84; } catch { return 0.84; } }
+function applyScale() { document.documentElement.style.setProperty("--scale", String(document.fullscreenElement ? 1 : savedScale())); }
+function nudgeScale(d) {
+  const v = Math.min(1.2, Math.max(0.6, Math.round((savedScale() + d) * 100) / 100));
+  try { localStorage.setItem(SCALE_KEY, String(v)); } catch { /* per-viewer convenience only */ }
+  applyScale();
+}
+document.addEventListener("fullscreenchange", applyScale);
+applyScale();
 function handleKey(key) {
   const k = key.length === 1 ? key.toLowerCase() : key;
   // While a drawer is open, keys belong to it: only Esc does anything (closes it).
   if (drawerOpen()) { if (k === "Escape") closeDrawer(); return; }
   if (k === "f") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
   else if (k === "d") $("health").classList.toggle("show");
+  else if (k === "-" || k === "_") nudgeScale(-0.06);
+  else if (k === "=" || k === "+") nudgeScale(0.06);
   else if (k === "o") toggle("outreach-view");
   else if (k === "q") { if (state?.joinUrl || state?.playUrl) toggle("qr-big"); }
   else if (k === "p") toggle("phone-big");
