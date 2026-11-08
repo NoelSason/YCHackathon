@@ -113,6 +113,7 @@
 <li><a href="#formats">Level JSON by game</a></li>
 <li><a href="#webhooks">Webhooks</a></li>
 <li><a href="#mcp">Connect your coding agent</a></li>
+<li><a href="#byog">Bring your own generator</a></li>
 <li><a href="#errors">Rate limits and errors</a></li>
 <li><a href="#how-made">How levels are made and tested</a></li>
 <li><a href="#limits-today">What's not here yet</a></li>
@@ -572,8 +573,129 @@ bearer_token_env_var = "LEVELAI_KEY"</code></pre>
 }</code></pre>
 </div>
 <h3 id="mcp-tools">Tools</h3>
-<div class="docs-table" tabindex="0" role="region" aria-label="Tool table"><table><thead><tr><th scope="col">Tool</th><th scope="col">Input</th><th scope="col">What it does</th></tr></thead><tbody><tr><td><code class="inline-code">list_my_levels</code></td><td>none</td><td>Same as <code class="inline-code">GET /api/studio/levels</code>: the levels we've sent your studio, with a note on what's included.</td></tr><tr><td><code class="inline-code">request_free_levels</code></td><td><code class="inline-code">gameName</code>, optional <code class="inline-code">storeUrl</code></td><td>Asks for a free sample set. If you give a store link, we read your players' reviews first and email you what we found. Returns a <code class="inline-code">requestId</code>.</td></tr><tr><td><code class="inline-code">audit_reviews</code></td><td><code class="inline-code">storeUrl</code>, optional <code class="inline-code">gameName</code></td><td>Reads your game's newest Google Play or App Store reviews and reports where players say it's too easy, too hard, repetitive, or out of levels, with quotes.</td></tr><tr><td><code class="inline-code">request_playtest</code></td><td><code class="inline-code">appUrl</code>, optional <code class="inline-code">focus</code></td><td>Plays your app on a real iPhone like a first-time player and emails you a report. Returns a <code class="inline-code">requestId</code>, and a payment link when the playtest is paid.</td></tr><tr><td><code class="inline-code">get_status</code></td><td><code class="inline-code">requestId</code></td><td>Each step of a request so far, and whether it's done.</td></tr></tbody></table></div>
+<div class="docs-table" tabindex="0" role="region" aria-label="Tool table"><table><thead><tr><th scope="col">Tool</th><th scope="col">Input</th><th scope="col">What it does</th></tr></thead><tbody><tr><td><code class="inline-code">list_my_levels</code></td><td>none</td><td>Same as <code class="inline-code">GET /api/studio/levels</code>: the levels we've sent your studio, with a note on what's included.</td></tr><tr><td><code class="inline-code">request_free_levels</code></td><td><code class="inline-code">gameName</code>, optional <code class="inline-code">storeUrl</code></td><td>Asks for a free sample set. If you give a store link, we read your players' reviews first and email you what we found. Returns a <code class="inline-code">requestId</code>.</td></tr><tr><td><code class="inline-code">audit_reviews</code></td><td><code class="inline-code">storeUrl</code>, optional <code class="inline-code">gameName</code></td><td>Reads your game's newest Google Play or App Store reviews and reports where players say it's too easy, too hard, repetitive, or out of levels, with quotes.</td></tr><tr><td><code class="inline-code">request_playtest</code></td><td><code class="inline-code">appUrl</code>, optional <code class="inline-code">focus</code></td><td>Plays your app on a real iPhone like a first-time player and emails you a report. Returns a <code class="inline-code">requestId</code>, and a payment link when the playtest is paid.</td></tr><tr><td><code class="inline-code">get_status</code></td><td><code class="inline-code">requestId</code></td><td>Each step of a request so far, and whether it's done.</td></tr><tr><td><code class="inline-code">register_generator</code></td><td><code class="inline-code">name</code>, <code class="inline-code">genre</code>, <code class="inline-code">base_url</code>, optional <code class="inline-code">format</code></td><td>Registers your own level generator and returns its signing secret once. See <a class="text-link" href="#byog">Bring your own generator</a>.</td></tr><tr><td><code class="inline-code">test_generator</code></td><td><code class="inline-code">generator_id</code></td><td>Calls your generator once (generate, validate, evaluate) and reports what we saw.</td></tr><tr><td><code class="inline-code">list_generators</code></td><td>none</td><td>Your registered generators and their last test result.</td></tr></tbody></table></div>
 <p>Then ask your agent something like "List my Level AI levels" or "Get a Level AI playtest of my app."</p>
+</section>
+<section class="docs-sec" aria-labelledby="byog">
+<h2 id="byog">Bring your own generator</h2>
+<p>If your game already has a level generator, connect it, and we build your level packs with it. Your generator makes each level in your own format. Your own bot or solver plays it, since only you can run your game. Our agents tune each level to its target difficulty and deliver the pack.</p>
+<p>How a pack works with your generator:</p>
+<ol><li>For each level in the pack, we ask your generator for a level at a difficulty setting from 0 (easiest) to 1 (hardest).</li><li>We send that level back to your <code class="inline-code">evaluate</code> endpoint, which plays it 100 times with your bot and tells us how many games it won.</li><li>If the win rate is within 5 points of that level's target, or within 8 points with the target inside the 95% interval of the measurement, we keep it. Otherwise we move the difficulty setting toward the target and ask for a new level. Each level gets up to 6 tries.</li><li>We save the levels, and email you the pack with each level's target and measured win rate, and the JSON in your format.</li></ol>
+<h3 id="byog-protocol">The protocol</h3>
+<p>Your generator is an HTTPS endpoint with a base URL, for example <code class="inline-code">https://levels.yourstudio.com/levelai</code>. It answers three operations. Each one is a <code class="inline-code">POST</code> with a JSON body and a JSON answer.</p>
+<div class="docs-table" tabindex="0" role="region" aria-label="Operation table"><table><thead><tr><th scope="col">Operation</th><th scope="col">Request body</th><th scope="col">Answer</th><th scope="col">Timeout</th></tr></thead><tbody><tr><td><code class="inline-code">POST {base}/generate</code></td><td><code class="inline-code">seed</code> (integer), <code class="inline-code">difficulty</code> (0–1), optional <code class="inline-code">params</code> (object), optional <code class="inline-code">context</code></td><td><code class="inline-code">level</code> (your level JSON, an object), optional <code class="inline-code">meta</code> (object)</td><td>20 s</td></tr><tr><td><code class="inline-code">POST {base}/evaluate</code></td><td><code class="inline-code">level</code> (what your <code class="inline-code">generate</code> returned), <code class="inline-code">runs</code> (integer), <code class="inline-code">seed</code> (integer)</td><td><code class="inline-code">wins</code>, <code class="inline-code">runs</code>, optional <code class="inline-code">solvable</code> (boolean), optional <code class="inline-code">min_moves</code>, optional <code class="inline-code">bot</code> (your bot's name)</td><td>90 s</td></tr><tr><td><code class="inline-code">POST {base}/validate</code> (optional)</td><td><code class="inline-code">level</code></td><td><code class="inline-code">ok</code> (boolean), optional <code class="inline-code">errors</code> (strings)</td><td>10 s</td></tr></tbody></table></div>
+<ul><li>**<code class="inline-code">difficulty</code>** is the only setting we tune. Make higher values harder. It doesn't need to be linear.</li><li>**<code class="inline-code">seed</code>** is ours. The same seed and difficulty should give the same level, so a level can be remade.</li><li>**<code class="inline-code">context</code>** says where the level goes: <code class="inline-code">{ &quot;pack_level&quot;: 3, &quot;pack_size&quot;: 20, &quot;target_win_rate&quot;: 0.7 }</code>. It's for your information. You can ignore it.</li><li>**<code class="inline-code">evaluate</code>** should play the level as a player would, <code class="inline-code">runs</code> times, seeding your bot from <code class="inline-code">seed</code>. Return <code class="inline-code">solvable: false</code> if your own check says the level can't be won; we then ask for another one.</li><li>**<code class="inline-code">validate</code>** is optional. Answer 404 if you don't offer it. If you do, we call it before <code class="inline-code">evaluate</code>, and skip a level it rejects.</li><li>Answer with HTTP 200 and JSON. We retry a timeout, a network error, a 429, or a 5xx up to 2 more times. We don't retry other 4xx answers.</li></ul>
+<p>If your endpoint fails 3 calls in a row, we pause calls to it for 2 minutes. A pack then stops where it is: you get the levels that passed, marked as short, and a person on our team follows up. We never fill the gap with levels from our own games, since they wouldn't be in your format.</p>
+<h3 id="byog-signature">Verify our signature</h3>
+<p>Every request carries an <code class="inline-code">X-LevelAI-Signature</code> header: <code class="inline-code">t=&lt;unix seconds&gt;,v1=&lt;signature&gt;</code>. The signature is the hex HMAC-SHA256 of <code class="inline-code">&lt;t&gt;.&lt;raw body&gt;</code>, keyed with the signing secret you got when you registered. Check it on the raw body before you parse the JSON, and refuse requests older than 5 minutes. Requests also carry <code class="inline-code">X-LevelAI-Generator</code> (your generator's id) and <code class="inline-code">X-LevelAI-Request</code> (a unique id for the call).</p>
+<div class="code">
+<div class="code-bar"><span id="c30-label">Node.js</span><button class="copy-btn" type="button" data-copy="c30" aria-describedby="c30-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c30-label"><code id="c30">import { createHmac, timingSafeEqual } from "node:crypto";
+
+export function verifyLevelAiSignature(secret, rawBody, header) {
+  const parts = Object.fromEntries((header ?? "").split(",").map((p) =&gt; p.trim().split("=", 2)));
+  const t = Number(parts.t);
+  if (!Number.isInteger(t) || !parts.v1 || Math.abs(Date.now() / 1000 - t) &gt; 300) return false;
+  const expected = Buffer.from(createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex"));
+  const given = Buffer.from(String(parts.v1));
+  return given.length === expected.length &amp;&amp; timingSafeEqual(given, expected);
+}
+
+// In your handler: read the body as text first.
+// const raw = await request.text();
+// if (!verifyLevelAiSignature(process.env.LEVELAI_SIGNING_SECRET, raw, request.headers.get("x-levelai-signature"))) {
+//   return new Response(JSON.stringify({ error: "bad signature" }), { status: 401 });
+// }</code></pre>
+</div>
+<h3 id="byog-generate">Example: generate</h3>
+<div class="code">
+<div class="code-bar"><span id="c31-label">Request (the signature header is left out)</span><button class="copy-btn" type="button" data-copy="c31" aria-describedby="c31-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c31-label"><code id="c31">{
+  "seed": 1234,
+  "difficulty": 0.1,
+  "context": { "pack_level": 1, "pack_size": 5, "target_win_rate": 0.85 }
+}</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c32-label">Response 200 (from our example generator, a parking puzzle)</span><button class="copy-btn" type="button" data-copy="c32" aria-describedby="c32-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c32-label"><code id="c32">{
+  "level": {
+    "title": "Tidal Alley",
+    "size": 6,
+    "vehicles": [
+      { "id": "loader", "x": 4, "y": 3, "length": 3, "axis": "v", "exit": "down", "color": "peach" },
+      { "id": "coupe", "x": 2, "y": 1, "length": 2, "axis": "v", "exit": "down", "color": "coral" },
+      { "id": "truck", "x": 3, "y": 1, "length": 3, "axis": "v", "exit": "up", "color": "sunshine" }
+    ],
+    "move_limit": 37
+  },
+  "meta": { "notch": 2, "min_moves": 21 }
+}</code></pre>
+</div>
+<p>The response is shortened: the real level has 9 vehicles, and <code class="inline-code">meta</code> has more fields.</p>
+<h3 id="byog-evaluate">Example: evaluate</h3>
+<div class="code">
+<div class="code-bar"><span id="c33-label">Request</span><button class="copy-btn" type="button" data-copy="c33" aria-describedby="c33-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c33-label"><code id="c33">{ "level": { "title": "Tidal Alley", "size": 6, "vehicles": ["…"], "move_limit": 37 }, "runs": 100, "seed": 1234 }</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c34-label">Response 200 (from our example generator, for the level above)</span><button class="copy-btn" type="button" data-copy="c34" aria-describedby="c34-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c34-label"><code id="c34">{ "wins": 93, "runs": 100, "solvable": true, "min_moves": 21, "bot": "casual-player" }</code></pre>
+</div>
+<h3 id="byog-register">Register your generator</h3>
+<p>Send your generator's name, its genre, and its base URL with your developer key. The genre is one of <code class="inline-code">match3</code>, <code class="inline-code">watersort</code>, <code class="inline-code">racer</code>, or <code class="inline-code">lotescape</code> (or <code class="inline-code">match-3</code>, <code class="inline-code">sort</code>, <code class="inline-code">lane-racer</code>, <code class="inline-code">parking</code>). Set <code class="inline-code">format</code> to <code class="inline-code">levelai</code> only if your level JSON uses our format for that genre, so we can link playable previews. Otherwise leave it out.</p>
+<div class="code">
+<div class="code-bar"><span id="c35-label">Request</span><button class="copy-btn" type="button" data-copy="c35" aria-describedby="c35-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c35-label"><code id="c35">curl -X POST https://levelai.vercel.app/api/studio/generators \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Our level generator", "genre": "parking", "base_url": "https://levels.yourstudio.com/levelai"}'</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c36-label">Response 201</span><button class="copy-btn" type="button" data-copy="c36" aria-describedby="c36-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c36-label"><code id="c36">{
+  "ok": true,
+  "generator": {
+    "id": "9fbe79ac-23f1-470b-af8d-ca05fbce724e",
+    "name": "Our level generator",
+    "genre": "lotescape",
+    "format": "custom",
+    "base_url": "https://levels.yourstudio.com/levelai",
+    "status": "active",
+    "secret_hint": "…28b4"
+  },
+  "signing_secret": "lvlgen_…",
+  "note": "Save signing_secret now; it isn't shown again. …",
+  "next": "POST /api/studio/generators/9fbe79ac-23f1-470b-af8d-ca05fbce724e/test"
+}</code></pre>
+</div>
+<ul><li>**Save <code class="inline-code">signing_secret</code> right away.** We show it only once. We keep it encrypted and use it only to sign requests to you.</li><li>The base URL must use <code class="inline-code">https</code> and a public host name.</li><li>Registering again for the same genre replaces your generator and gives you a new secret. Update your endpoint before your next pack.</li><li><code class="inline-code">GET /api/studio/generators</code> lists your generators and their last test result, never the secret.</li></ul>
+<h3 id="byog-test">Test it</h3>
+<div class="code">
+<div class="code-bar"><span id="c37-label">Request</span><button class="copy-btn" type="button" data-copy="c37" aria-describedby="c37-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c37-label"><code id="c37">curl -X POST https://levelai.vercel.app/api/studio/generators/GENERATOR_ID/test \
+  -H "Authorization: Bearer YOUR_KEY"</code></pre>
+</div>
+<p>We call <code class="inline-code">generate</code> once at difficulty 0.5, <code class="inline-code">validate</code> if you offer it, and <code class="inline-code">evaluate</code> with 50 plays, and return each request, each answer, and the timings. Response 200 (live, Nov 7, 2026, 9:41 PM PT, from our example generator; the level is shortened):</p>
+<div class="code">
+<div class="code-bar"><span id="c38-label">Response 200 (live, Nov 7, 2026, 9:41 PM PT)</span><button class="copy-btn" type="button" data-copy="c38" aria-describedby="c38-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c38-label"><code id="c38">{
+  "ok": true,
+  "steps": [
+    { "op": "generate", "ok": true, "ms": 355, "sent": { "seed": 1529370217, "difficulty": 0.5 }, "received": { "level": { "…": "…" }, "meta": { "notch": 5, "min_moves": 35, "move_limit": 46 } } },
+    { "op": "validate", "ok": true, "ms": 215, "received": { "ok": true, "errors": [] } },
+    { "op": "evaluate", "ok": true, "ms": 988, "sent": { "runs": 50, "seed": 1529370217 }, "received": { "wins": 19, "runs": 50, "solvable": true, "min_moves": 35, "bot": "casual-player" } }
+  ],
+  "measured": { "win_rate": 0.38, "summary": "casual-player won 19/50 (38%) at difficulty 0.5" },
+  "next": "Your generator is ready. Level pack orders from your studio for this genre are now built with it."
+}</code></pre>
+</div>
+<p>When something fails, <code class="inline-code">ok</code> is <code class="inline-code">false</code> and <code class="inline-code">error</code> says what we saw, for example <code class="inline-code">evaluate answered HTTP 401: {&quot;error&quot;:&quot;bad signature&quot;}</code> or <code class="inline-code">generate timed out after 20 s</code>.</p>
+<p>From your coding agent, the studio connector has the same three actions: <code class="inline-code">register_generator</code>, <code class="inline-code">test_generator</code>, and <code class="inline-code">list_generators</code>.</p>
+<h3 id="byog-use">How we use it</h3>
+<p>Once your generator passes its test, every level pack your studio orders in that genre is built with it. You get one email when the pack is ready. It says which levels came from your generator, the win rate your bot measured for each, the difficulty setting that got it there, and how many tries each level took. The pack's JSON link returns your levels exactly as your generator made them.</p>
+<h3 id="byog-example">Example generator</h3>
+<p>Our example generator, at <a class="text-link" href="https://levelai-sample-generator.vercel.app">https://levelai-sample-generator.vercel.app</a>, stands in for a studio. It makes parking puzzles, and its <code class="inline-code">evaluate</code> plays each one with a casual test player that makes the best move most of the time and a random move 30% of the time. It refuses unsigned requests. Its code is in <code class="inline-code">sample-generator/</code> in our repository.</p>
 </section>
 <section class="docs-sec" aria-labelledby="errors">
 <h2 id="errors">Rate limits and errors</h2>
@@ -599,7 +721,7 @@ bearer_token_env_var = "LEVELAI_KEY"</code></pre>
 </section>
 <section class="docs-sec" aria-labelledby="limits-today">
 <h2 id="limits-today">What's not here yet</h2>
-<ul><li><strong>Levels for your own game.</strong> Our agents make levels for our own games. Making levels in your game's format, linked to your account, isn't built yet. <code class="inline-code">/api/studio/levels</code> shows only samples we've sent you.</li><li><strong>Webhooks.</strong> Poll <code class="inline-code">/api/levels</code> with <code class="inline-code">since</code> instead.</li><li><strong>Writes.</strong> The API is read-only. You can't upload levels or change a target.</li><li><strong>Real-player win rates.</strong> The API returns the measured bot win rate, not live player results.</li></ul>
+<ul><li><strong>Levels for your own game without a generator.</strong> Without your own generator, our agents make levels in our own games. To get levels in your game's own format, <a class="text-link" href="#byog">bring your own generator</a>. <code class="inline-code">/api/studio/levels</code> shows only samples we've sent you.</li><li><strong>Webhooks.</strong> Poll <code class="inline-code">/api/levels</code> with <code class="inline-code">since</code> instead.</li><li><strong>Writes.</strong> The API is read-only. You can't upload levels or change a target.</li><li><strong>Real-player win rates.</strong> The API returns the measured bot win rate, not live player results.</li></ul>
 </section>
 </div>
   </div>

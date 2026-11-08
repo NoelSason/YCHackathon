@@ -46,7 +46,7 @@ export const SECOND_HALF_DAYS = 14;
 const MAX_MINUTES = Number(process.env.PACK_MAX_MINUTES ?? 40);
 
 export const GENRES: Record<PackGameId, { label: string; game: string; howToPlay: string }> = {
-  match3: { label: "match-3", game: "Gem Match", howToPlay: "swap two neighboring gems to make a line of three or more of the same color. The goal and the moves left are shown on the screen." },
+  match3: { label: "match-3", game: "Gem Garden", howToPlay: "swap two neighboring gems to make a line of three or more of the same color. The goal and the moves left are shown on the screen." },
   watersort: { label: "water-sort", game: "Splash Sort", howToPlay: "tap a tube, then tap another tube to pour the top color into it. The level is won when every tube holds one color." },
   racer: { label: "lane-racer", game: "Turbo Lanes", howToPlay: "tap the left or right arrow buttons (or swipe) to change lanes, dodge cars and cones, and reach the finish before the timer runs out." },
   lotescape: { label: "parking-puzzle", game: "Lot Escape", howToPlay: "drag a car along its lane (or tap it and use the arrows) to drive every car out through its marked exit within the move limit." },

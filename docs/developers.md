@@ -618,8 +618,182 @@ Generic MCP config:
 | `audit_reviews` | `storeUrl`, optional `gameName` | Reads your game's newest Google Play or App Store reviews and reports where players say it's too easy, too hard, repetitive, or out of levels, with quotes. |
 | `request_playtest` | `appUrl`, optional `focus` | Plays your app on a real iPhone like a first-time player and emails you a report. Returns a `requestId`, and a payment link when the playtest is paid. |
 | `get_status` | `requestId` | Each step of a request so far, and whether it's done. |
+| `register_generator` | `name`, `genre`, `base_url`, optional `format` | Registers your own level generator and returns its signing secret once. See [Bring your own generator](#bring-your-own-generator). |
+| `test_generator` | `generator_id` | Calls your generator once (generate, validate, evaluate) and reports what we saw. |
+| `list_generators` | none | Your registered generators and their last test result. |
 
 Then ask your agent something like "List my Level AI levels" or "Get a Level AI playtest of my app."
+
+## Bring your own generator
+
+If your game already has a level generator, connect it, and we build your level packs with it. Your generator makes each level in your own format. Your own bot or solver plays it, since only you can run your game. Our agents tune each level to its target difficulty and deliver the pack.
+
+How a pack works with your generator:
+
+1. For each level in the pack, we ask your generator for a level at a difficulty setting from 0 (easiest) to 1 (hardest).
+2. We send that level back to your `evaluate` endpoint, which plays it 100 times with your bot and tells us how many games it won.
+3. If the win rate is within 5 points of that level's target, or within 8 points with the target inside the 95% interval of the measurement, we keep it. Otherwise we move the difficulty setting toward the target and ask for a new level. Each level gets up to 6 tries.
+4. We save the levels, and email you the pack with each level's target and measured win rate, and the JSON in your format.
+
+### The protocol
+
+Your generator is an HTTPS endpoint with a base URL, for example `https://levels.yourstudio.com/levelai`. It answers three operations. Each one is a `POST` with a JSON body and a JSON answer.
+
+| Operation | Request body | Answer | Timeout |
+|---|---|---|---|
+| `POST {base}/generate` | `seed` (integer), `difficulty` (0–1), optional `params` (object), optional `context` | `level` (your level JSON, an object), optional `meta` (object) | 20 s |
+| `POST {base}/evaluate` | `level` (what your `generate` returned), `runs` (integer), `seed` (integer) | `wins`, `runs`, optional `solvable` (boolean), optional `min_moves`, optional `bot` (your bot's name) | 90 s |
+| `POST {base}/validate` (optional) | `level` | `ok` (boolean), optional `errors` (strings) | 10 s |
+
+- **`difficulty`** is the only setting we tune. Make higher values harder. It doesn't need to be linear.
+- **`seed`** is ours. The same seed and difficulty should give the same level, so a level can be remade.
+- **`context`** says where the level goes: `{ "pack_level": 3, "pack_size": 20, "target_win_rate": 0.7 }`. It's for your information. You can ignore it.
+- **`evaluate`** should play the level as a player would, `runs` times, seeding your bot from `seed`. Return `solvable: false` if your own check says the level can't be won; we then ask for another one.
+- **`validate`** is optional. Answer 404 if you don't offer it. If you do, we call it before `evaluate`, and skip a level it rejects.
+- Answer with HTTP 200 and JSON. We retry a timeout, a network error, a 429, or a 5xx up to 2 more times. We don't retry other 4xx answers.
+
+If your endpoint fails 3 calls in a row, we pause calls to it for 2 minutes. A pack then stops where it is: you get the levels that passed, marked as short, and a person on our team follows up. We never fill the gap with levels from our own games, since they wouldn't be in your format.
+
+### Verify our signature
+
+Every request carries an `X-LevelAI-Signature` header: `t=<unix seconds>,v1=<signature>`. The signature is the hex HMAC-SHA256 of `<t>.<raw body>`, keyed with the signing secret you got when you registered. Check it on the raw body before you parse the JSON, and refuse requests older than 5 minutes. Requests also carry `X-LevelAI-Generator` (your generator's id) and `X-LevelAI-Request` (a unique id for the call).
+
+Node.js:
+
+```js
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export function verifyLevelAiSignature(secret, rawBody, header) {
+  const parts = Object.fromEntries((header ?? "").split(",").map((p) => p.trim().split("=", 2)));
+  const t = Number(parts.t);
+  if (!Number.isInteger(t) || !parts.v1 || Math.abs(Date.now() / 1000 - t) > 300) return false;
+  const expected = Buffer.from(createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex"));
+  const given = Buffer.from(String(parts.v1));
+  return given.length === expected.length && timingSafeEqual(given, expected);
+}
+
+// In your handler: read the body as text first.
+// const raw = await request.text();
+// if (!verifyLevelAiSignature(process.env.LEVELAI_SIGNING_SECRET, raw, request.headers.get("x-levelai-signature"))) {
+//   return new Response(JSON.stringify({ error: "bad signature" }), { status: 401 });
+// }
+```
+
+### Example: generate
+
+Request (the signature header is left out):
+
+```json
+{
+  "seed": 1234,
+  "difficulty": 0.1,
+  "context": { "pack_level": 1, "pack_size": 5, "target_win_rate": 0.85 }
+}
+```
+
+Response 200 (from our example generator, a parking puzzle):
+
+```json
+{
+  "level": {
+    "title": "Tidal Alley",
+    "size": 6,
+    "vehicles": [
+      { "id": "loader", "x": 4, "y": 3, "length": 3, "axis": "v", "exit": "down", "color": "peach" },
+      { "id": "coupe", "x": 2, "y": 1, "length": 2, "axis": "v", "exit": "down", "color": "coral" },
+      { "id": "truck", "x": 3, "y": 1, "length": 3, "axis": "v", "exit": "up", "color": "sunshine" }
+    ],
+    "move_limit": 37
+  },
+  "meta": { "notch": 2, "min_moves": 21 }
+}
+```
+
+The response is shortened: the real level has 9 vehicles, and `meta` has more fields.
+
+### Example: evaluate
+
+Request:
+
+```json
+{ "level": { "title": "Tidal Alley", "size": 6, "vehicles": ["…"], "move_limit": 37 }, "runs": 100, "seed": 1234 }
+```
+
+Response 200 (from our example generator, for the level above):
+
+```json
+{ "wins": 93, "runs": 100, "solvable": true, "min_moves": 21, "bot": "casual-player" }
+```
+
+### Register your generator
+
+Send your generator's name, its genre, and its base URL with your developer key. The genre is one of `match3`, `watersort`, `racer`, or `lotescape` (or `match-3`, `sort`, `lane-racer`, `parking`). Set `format` to `levelai` only if your level JSON uses our format for that genre, so we can link playable previews. Otherwise leave it out.
+
+```bash
+curl -X POST https://levelai.vercel.app/api/studio/generators \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Our level generator", "genre": "parking", "base_url": "https://levels.yourstudio.com/levelai"}'
+```
+
+Response 201:
+
+```json
+{
+  "ok": true,
+  "generator": {
+    "id": "9fbe79ac-23f1-470b-af8d-ca05fbce724e",
+    "name": "Our level generator",
+    "genre": "lotescape",
+    "format": "custom",
+    "base_url": "https://levels.yourstudio.com/levelai",
+    "status": "active",
+    "secret_hint": "…28b4"
+  },
+  "signing_secret": "lvlgen_…",
+  "note": "Save signing_secret now; it isn't shown again. …",
+  "next": "POST /api/studio/generators/9fbe79ac-23f1-470b-af8d-ca05fbce724e/test"
+}
+```
+
+- **Save `signing_secret` right away.** We show it only once. We keep it encrypted and use it only to sign requests to you.
+- The base URL must use `https` and a public host name.
+- Registering again for the same genre replaces your generator and gives you a new secret. Update your endpoint before your next pack.
+- `GET /api/studio/generators` lists your generators and their last test result, never the secret.
+
+### Test it
+
+```bash
+curl -X POST https://levelai.vercel.app/api/studio/generators/GENERATOR_ID/test \
+  -H "Authorization: Bearer YOUR_KEY"
+```
+
+We call `generate` once at difficulty 0.5, `validate` if you offer it, and `evaluate` with 50 plays, and return each request, each answer, and the timings. Response 200 (live, Nov 7, 2026, 9:41 PM PT, from our example generator; the level is shortened):
+
+```json
+{
+  "ok": true,
+  "steps": [
+    { "op": "generate", "ok": true, "ms": 355, "sent": { "seed": 1529370217, "difficulty": 0.5 }, "received": { "level": { "…": "…" }, "meta": { "notch": 5, "min_moves": 35, "move_limit": 46 } } },
+    { "op": "validate", "ok": true, "ms": 215, "received": { "ok": true, "errors": [] } },
+    { "op": "evaluate", "ok": true, "ms": 988, "sent": { "runs": 50, "seed": 1529370217 }, "received": { "wins": 19, "runs": 50, "solvable": true, "min_moves": 35, "bot": "casual-player" } }
+  ],
+  "measured": { "win_rate": 0.38, "summary": "casual-player won 19/50 (38%) at difficulty 0.5" },
+  "next": "Your generator is ready. Level pack orders from your studio for this genre are now built with it."
+}
+```
+
+When something fails, `ok` is `false` and `error` says what we saw, for example `evaluate answered HTTP 401: {"error":"bad signature"}` or `generate timed out after 20 s`.
+
+From your coding agent, the studio connector has the same three actions: `register_generator`, `test_generator`, and `list_generators`.
+
+### How we use it
+
+Once your generator passes its test, every level pack your studio orders in that genre is built with it. You get one email when the pack is ready. It says which levels came from your generator, the win rate your bot measured for each, the difficulty setting that got it there, and how many tries each level took. The pack's JSON link returns your levels exactly as your generator made them.
+
+### Example generator
+
+Our example generator, at https://levelai-sample-generator.vercel.app, stands in for a studio. It makes parking puzzles, and its `evaluate` plays each one with a casual test player that makes the best move most of the time and a random move 30% of the time. It refuses unsigned requests. Its code is in `sample-generator/` in our repository.
 
 ## Rate limits and errors
 
@@ -668,7 +842,7 @@ What the numbers mean, honestly:
 
 ## What's not here yet
 
-- **Levels for your own game.** Our agents make levels for our own games, including the ones in a pack you order. Making levels in your game's own format, linked to your account, isn't built yet. `/api/studio/levels` shows only samples we've sent you. Levels made for a customer's pack open by id but aren't in the public lists.
+- **Levels for your own game without a generator.** Without your own generator, our agents make levels in our own games, including the ones in a pack you order. To get levels in your game's own format, [bring your own generator](#bring-your-own-generator). `/api/studio/levels` shows only samples we've sent you. Levels made for a customer's pack open by id but aren't in the public lists.
 - **Webhooks.** Poll `/api/levels` with `since` instead.
 - **Writes.** The API is read-only. You can't upload levels or change a target.
 - **Real-player win rates.** The API returns the measured bot win rate, not live player results.

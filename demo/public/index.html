@@ -713,7 +713,7 @@ const dropIds = (t) => String(t ?? "").replace(new RegExp(`\\s*\\((?:phone )?tas
 
 // Programs log tool names ("save_level", "production.level_accepted"). Say what happened instead,
 // using only numbers that are in the row itself.
-const GAMES = { watersort: "Splash Sort", racer: "Turbo Lanes", match3: "Gem Match", lotescape: "Lot Escape", platformer: "Platformer" };
+const GAMES = { watersort: "Splash Sort", racer: "Turbo Lanes", match3: "Gem Garden", lotescape: "Lot Escape", platformer: "Platformer" };
 const pctOf = (x) => `${Math.round(Number(x) * 100)}%`;
 const keyOf = (name) => String(name || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
 function describe(e) {
@@ -789,6 +789,9 @@ function fit(el) {
 }
 const refit = () => ["actions", "decisions", "stepins", "spend", "pb-title", "rs-reviews"].forEach((id) => { if ($(id)) fit($(id)); });
 addEventListener("resize", refit);
+// The QR images and fonts change the stat columns' width after the first render.
+for (const id of ["qr", "join-qr"]) $(id).addEventListener("load", refit);
+setTimeout(refit, 1500);
 document.fonts?.ready.then(refit);
 
 // ---- Stats and hero --------------------------------------------------------------------------
@@ -815,7 +818,7 @@ function renderStats(s) {
   renderSpend();
   const lc = s.levelsCompiled ?? 0;
   $("compiled-sub").hidden = !lc;
-  $("compiled-sub").textContent = `+${lc.toLocaleString()} levels built by the level compiler`;
+  $("compiled-sub").textContent = `+${lc.toLocaleString()} levels compiled`;
   $("compiled-sub").title = "A deterministic program that builds levels and verifies each with 200+ bot plays. Counted on its own, not as agent actions.";
   // Held tool calls a policy program approved: shown beside the step-ins, never hidden or counted as people.
   const ap = s.autoApprovals ?? 0;

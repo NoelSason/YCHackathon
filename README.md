@@ -46,7 +46,7 @@ The question behind the hackathon was how much of a company agents can run witho
 |---|---|
 | [levelai.vercel.app](https://levelai.vercel.app) | The company's site, with live counts and "What players are saying right now," refreshed from the agents' market research |
 | [levelai.vercel.app/play](https://levelai.vercel.app/play) | The web player for published levels, each labeled with its target and measured win rate |
-| [levelai.vercel.app/games](https://levelai.vercel.app/games) | Splash Sort, Turbo Lanes, Lot Escape, and Gem Match in the browser |
+| [levelai.vercel.app/games](https://levelai.vercel.app/games) | Splash Sort, Turbo Lanes, Lot Escape, and Gem Garden in the browser |
 | [levelai.vercel.app/pricing](https://levelai.vercel.app/pricing) | $5 iPhone playtest, $49 level pack, $199/month subscription, with live checkout |
 | [levelai.vercel.app/developers](https://levelai.vercel.app/developers) | The level API and the level JSON formats |
 | [levelai.vercel.app/playtest](https://levelai.vercel.app/playtest) | Order a playtest of your app on a real cloud iPhone ($5), and watch it live at `/watch` |

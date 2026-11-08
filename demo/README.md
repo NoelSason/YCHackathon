@@ -9,7 +9,12 @@ activity log. Owner: Noel.
 ./demo.sh --rehearsal      # an invented 3-minute story for practicing, under a big "REHEARSAL DATA" banner (--sample still works)
 ./demo.sh --check          # check the stage's setup and exit 0 when it's ready
 npm --prefix demo run snapshot   # save the current log to demo/data/run-<time>.jsonl for --replay
+demo/snapshot-schedule.sh        # take snapshots at 08:00 and 10:30 PT (or the times you pass), then exit
 ```
+
+Scheduled snapshots: start `(nohup demo/snapshot-schedule.sh > "${TMPDIR:-/tmp}/levelai-snapshots.log" 2>&1 &)`
+once. It sleeps until each time (a time already past today means tomorrow), runs the snapshot with
+up to 3 tries, and logs to that file. It was started on Sat Nov 7 at 8:14 PM for Sun 08:00 and 10:30.
 
 Keys on the stage (press **?** to see them on screen):
 
@@ -68,14 +73,18 @@ moment.
 | Panel | Where the number comes from |
 |---|---|
 | Running on its own for | Time since the newest human step-in in the log (or since the first logged action if there are none) |
-| Agent actions, Decisions, Human step-ins, Spent | Counted from the log rows: `human` rows are step-ins; rows with `saw`/`chose` are decisions; `cost_usd` is summed |
+| Agent actions | Log rows from agents. Not counted: the level compiler's rows (one per accepted level; shown below the number as "+N levels compiled") and the auto-approver's (shown under step-ins). Both are programs that can log dozens of rows a minute |
+| Decisions | Decision records (`saw`/`chose`). The CEO's copy of each decision in `activity_log` (action `decision`) is hidden as a duplicate |
+| Human step-ins | `interventions` rows and `human` rows. Below the number: "+N auto-approved by policy", the `platform.auto_approve` rows (held tool calls our policy program approved; not people). The step-ins drawer links to them |
+| Spent | Naïve agent credits since Nov 7 (read every minute from Naïve's credits API with `NAIVE_API_KEY_SOCIAL`, which has `billing:read`; read-only, server-side) plus the data and tool costs logged as `cost_usd`. If Naïve can't be read, the tile is labeled "Data and tool spend" and shows only the logged costs |
 | Running on its own for | Also shows the agent actions logged since that step-in, and a 6x6 board of the last 36 actions, one tile per action in the agent's color (a striped tile is a human step-in) |
-| The team | Each agent's count and latest action, latest first. A card lights up while its agent acted in the last 45 s. |
+| The team | Each agent's count and latest action in words ("Retuned a level: 53% won, target 35%"), latest first. A card lights up while its agent acted in the last 45 s. The platform's rows show as three: the Solver (`solver_run.*`), the Compiler (`production.*`), the Approver (`auto_approve`), plus Platform for its bookkeeping |
+| Feed grouping | A run of the Compiler's or the Approver's rows shows as one line ("Accepted 90 levels…", "Approved 27 held calls…"); click it for the newest rows. Rows from the team's own tests ("Level AI …") carry a grey "Team test" pill |
 | What the agents are doing | The log, newest first. Decisions show Saw / Why / Expected / Result. Step-ins are amber. |
-| Phone playtest | A screenshot of the Mobilerun phone about once a second, fetched by the server |
+| Phone playtest | A screenshot of the Mobilerun phone about once a second, fetched by the server. Above it, "Now testing / Last tested" names the game and what it is (web game, App Store game, one of our levels), or "Now posting on X" while the Marketing agent posts from Safari. In a replay the phone is still live, so the header says so and the caption is hidden |
 | Become a customer | A QR code for `DEMO_JOIN_URL`: the signup page. Someone enters their game, and the agents audit its reviews and email them live. |
-| Play it yourself | A QR code for `DEMO_PLAY_URL` |
-| Studios | `studios` counts by stage, plus paid `payments` (real earnings and test payments shown separately; test is always labeled "not real") |
+| Play it yourself | A QR code for `DEMO_PLAY_URL`, or https://levelai.vercel.app/games when it isn't set |
+| Studios | `studios` counts by stage, plus paid `payments`: "Earned (live payments)" counts live-mode payments only; test payments show separately, labeled "not real". The team's own studios (`source = 'internal_test'` or named "Level AI …") are left out everywhere |
 | Market research (under the team) | `biz_market_research`: every store-chart pass the Research agent logged, totalled (reviews read, and how many reviews say the levels are too hard, too easy, need more levels, or repetitive). Click it for each pass with its strongest example. Rehearsal shows invented passes; a replay says research isn't part of it |
 | Outreach board (O, or `/outreach`) | Every studio with the evidence sentence, the player quote, the email subject and time, reply status, and stage, refreshed every 5 s, with totals on top |
 
@@ -97,6 +106,13 @@ Nothing is typed in. Without a log the stage says so and shows the setup details
 The defaults read the shared tables in `platform/db/schema.sql`. Tables that don't exist yet are skipped. The reader accepts
 `at`/`ts`/`time`/`created_at`, `agent`, `action` or the decision-record fields, `human`, `cost_usd`, and
 details nested in a `payload` or `data` JSON column.
+
+## Through the public console
+
+The Vercel rewrite buffers the live stream (checked Nov 7: nothing arrives in 45 s), so the page
+falls back to polling `/api/state` every 4 s after 6 s without a stream message. It's about 130 KB per
+poll. Locally (`http://localhost:4545`) the stream works. After a dropped stream reconnects, the page
+re-reads the state, so rows from the gap still show.
 
 ## Before judging
 

@@ -62,6 +62,45 @@ Fill in each [N] from the console right before recording. If no real payment has
 | 2:10–2:40 | /pricing, then the step-in list. | "Live payments. And here's every human step-in." Read them honestly. |
 | 2:40–3:00 | Numbers. | Studios found, emailed, reviews read, levels accepted, spend. "We set the goal and the budget; the agents run it." |
 
+## Bring your own generator (optional 40-second segment)
+
+A studio connects its own level generator, and our agents build a pack with it: their generator makes each
+level, their bot measures it, our loop tunes it. The stand-in studio endpoint is our labeled "Example
+generator (Level AI sample)" at https://levelai-sample-generator.vercel.app (code in `sample-generator/`).
+It's registered to the team studio for `noel_sason@berkeley.edu` (generator
+`9fbe79ac-23f1-470b-af8d-ca05fbce724e`, genre parking). Its secret is set on that Vercel project.
+`LEVELAI_DEMO_STUDIO_KEY` and `BUSINESS_MCP_TOKEN` are in `.env`. Run `set -a; . ./.env; set +a` first.
+
+1. **Register (show, don't rerun).** Rerunning it rotates the secret and breaks the sample until its
+   `LEVELAI_SIGNING_SECRET` is updated on Vercel. Show the command:
+   ```bash
+   curl -X POST https://levelai.vercel.app/api/studio/generators -H "Authorization: Bearer $LEVELAI_DEMO_STUDIO_KEY" \
+     -H "content-type: application/json" \
+     -d '{"name":"Example generator (Level AI sample)","genre":"parking","base_url":"https://levelai-sample-generator.vercel.app","format":"levelai"}'
+   ```
+2. **Test it live (about 2 s).** Shows generate, validate, and evaluate, with timings and the measured win rate:
+   ```bash
+   curl -X POST https://levelai.vercel.app/api/studio/generators/9fbe79ac-23f1-470b-af8d-ca05fbce724e/test \
+     -H "Authorization: Bearer $LEVELAI_DEMO_STUDIO_KEY"
+   ```
+3. **Run a pack through it.** `levels` is 1 to 20; 5 takes about a minute once the queue is free. Packs run one at a
+   time, so check that no other pack is `working` first, or this one waits behind it.
+   ```bash
+   curl -X POST "$(grep '^  Tunnel:' /tmp/levelai-live.log | tail -1 | awk '{print $2}')/orders/demo-run" \
+     -H "Authorization: Bearer $BUSINESS_MCP_TOKEN" -H "content-type: application/json" \
+     -d '{"email":"noel_sason@berkeley.edu","generator_id":"9fbe79ac-23f1-470b-af8d-ca05fbce724e","levels":5,"company":"Level AI Test Agency"}'
+   ```
+4. **The console shows**, from agent `level-delivery`: "building <studio>'s level pack with their own generator
+   …", then per level "asked <studio>'s generator for level 3 at difficulty 0.41", "<studio>'s level 3 measured 38% vs 55%
+   target: too hard; difficulty 0.41 → 0.24", "<studio>'s level 3 measured 57% vs 55% target: accepted", then the
+   pack summary and "delivered level pack to <studio>".
+5. **The email** (to noel_sason@berkeley.edu, subject "[Test order] Your level pack is ready: 5 parking-puzzle levels
+   from your generator") says the levels were made by YOUR generator, measured by YOUR bot (casual-player), and tuned
+   by our agents, with a table of target, measured (wins/100), difficulty setting, and tries per level, a play link,
+   and the JSON link.
+
+If the sample endpoint is down, the pack pauses and logs "step-in needed"; say so, and show the earlier run.
+
 ## Honest answers to likely questions
 
 - **"Where did humans step in?"** Read the console list. As of 8:15 PM it holds 6 rows: Abhinav's

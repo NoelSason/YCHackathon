@@ -452,3 +452,15 @@ describe("sign-offs", () => {
     expect(stripSignOff("Hi Noel,\n\nLevel AI builds in four genres.", "Level AI")).toBe("Hi Noel,\n\nLevel AI builds in four genres.");
   });
 });
+
+describe("agency names", () => {
+  it("drops legal suffixes in the greeting and keeps the subject free of possessives", async () => {
+    const { shortName } = await import("../src/agency/outreach.js");
+    expect(shortName("Whimsy Games Group LTD")).toBe("Whimsy Games Group");
+    expect(shortName("Pixel Genesys LLC")).toBe("Pixel Genesys");
+    expect(shortName("CMS Games, Inc.")).toBe("CMS Games");
+    const d = composeAgencyEmail({ company: "N-iX Games", about: null, services: ["Game Development"], sender, genres: ["match-3"] });
+    expect(d.subject).toBe("A free 5-level puzzle sample for one of your clients");
+    expect(d.body.startsWith("Hi N-iX Games team,")).toBe(true);
+  });
+});

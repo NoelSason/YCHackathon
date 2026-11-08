@@ -6,7 +6,7 @@ import { loadConfig } from "../src/config.js";
 import { PlatformStore, type Query } from "../src/store.js";
 import { createHandler } from "../src/app.js";
 import { hashKey, newKey } from "../src/studio/keys.js";
-import { getPackDelivery, runDueDeliveries, type RunOptions } from "../src/levels/deliver-pack.js";
+import { getPackDelivery } from "../src/levels/deliver-pack.js";
 import type { ToolContext } from "../src/mcp/tools.js";
 import { checkBaseUrl, decryptSecret, encryptSecret, SIGNATURE_HEADER, signatureFor, verifySignature } from "../src/generators/protocol.js";
 import { breakerState, BREAKER_FAILURES, generatorClient, GeneratorCallError, resetBreakers } from "../src/generators/client.js";
@@ -80,6 +80,16 @@ async function register(s: Awaited<ReturnType<typeof setup>>, extra: Record<stri
   const res = await s.handle(post("/studio/generators", { name: "Agency levels", genre: "parking-puzzle", base_url: "https://gen.agency.example/levelai/", ...extra }, s.key));
   const body = (await res.json()) as { ok: boolean; generator: { id: string; base_url: string; genre: string }; signing_secret: string; error?: string };
   return { res, body };
+}
+
+/** Waits for a delivery the demo run started to finish (it runs outside the shared queue). */
+async function finished(q: Query, id: string) {
+  for (let i = 0; i < 600; i++) {
+    const d = await getPackDelivery(q, id);
+    if (d && d.state !== "queued" && d.state !== "working") return d;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error("delivery didn't finish");
 }
 
 beforeEach(() => resetBreakers());
@@ -249,9 +259,7 @@ describe("a level pack built by the studio's generator", () => {
     const queued = (await res.json()) as { ok: boolean; deliveryId: string; levels: number };
     expect(res.status).toBe(202);
     expect(queued).toMatchObject({ ok: true, levels: 5 });
-    await runDueDeliveries(s.ctx);
-
-    const d = await getPackDelivery(s.q, queued.deliveryId);
+    const d = await finished(s.q, queued.deliveryId);
     expect(d).toMatchObject({ state: "delivered", levelsDelivered: 5, gameId: "lotescape", test: true });
     const levels = await s.q(`select level, created_by, measured_win_rate, target_win_rate, notes from levels`);
     expect(levels).toHaveLength(5);
@@ -298,8 +306,7 @@ describe("a level pack built by the studio's generator", () => {
       method: "POST", headers: { authorization: "Bearer tok_demo" }, body: JSON.stringify({ email: TEAM, generator_id: body.generator.id, levels: 4 }),
     }));
     const { deliveryId } = (await res.json()) as { deliveryId: string };
-    await runDueDeliveries(s.ctx, { backoffMs: 1 } as RunOptions);
-    const d = await getPackDelivery(s.q, deliveryId);
+    const d = await finished(s.q, deliveryId);
     expect(d?.state).toBe("partial");
     expect(d!.levelsDelivered).toBeGreaterThanOrEqual(1);
     expect(d!.levelsDelivered).toBeLessThan(4);
@@ -318,8 +325,7 @@ describe("a level pack built by the studio's generator", () => {
       method: "POST", headers: { authorization: "Bearer tok_demo" }, body: JSON.stringify({ email: TEAM, generator_id: body.generator.id, levels: 3 }),
     }));
     const { deliveryId } = (await res.json()) as { deliveryId: string };
-    await runDueDeliveries(s.ctx, { backoffMs: 1 } as RunOptions);
-    expect((await getPackDelivery(s.q, deliveryId))?.state).toBe("failed");
+    expect((await finished(s.q, deliveryId)).state).toBe("failed");
     expect(s.sent).toHaveLength(0);
     const step = (await s.ctx.store.listActivity(500)).find((a) => a.action === "step-in needed: level pack for Test Agency");
     expect(step?.why).toMatch(/their generator stopped answering/);

@@ -17,6 +17,7 @@ Naïve agents call. See `docs/master-plan.md` for where this fits.
 | Finance | Revenue (real and test mode kept apart), spend by source, margin, cost per level. A source it can't read is reported as missing, never as zero. | `src/finance/snapshot.ts` |
 | Lead form | The QR code at our table: a signup becomes a lead | `src/leads/intake.ts` |
 | Phone playtests | Turns a plan into a Mobilerun Agent task with a structured result per level | `src/mobile/` |
+| Agencies and the sales agent | Finds game-development agencies on Clutch and emails them a free-trial offer; a conversational sales agent answers replies (and prospects who write first) in the thread, from a facts sheet, and can start a free sample, send a checkout, or book a playtest | `src/agency/` |
 | MCP server | The 12 tools the agents call, gated per agent in Naïve | `src/mcp/` |
 | Agents | The business agents live in Abhinav's roster (`platform/naive/src/roster.ts`), which attaches this server's tools by name (`businessTools`). `src/agents/definitions.ts` is the earlier standalone version; `agents:apply` is disabled so it can't overwrite the roster. | `platform/naive/src/roster.ts` |
 | Server | One fetch handler for `/mcp`, `/webhooks/stripe`, `/webhooks/agentmail`, `/leads`, and `/health`. It runs on Node (`src/server.ts`) and as a Neon Function (`src/fn.ts`). | `src/app.ts` |
@@ -65,7 +66,7 @@ later) and starts the queue. The queue runs one delivery at a time:
    your pack on our iPhone: <result>", with the design note and a screenshot. This step runs from the
    in-memory phone queue, so a server restart before it starts skips it (the pack is already delivered).
 
-Every email uses our games' public names (Gem Match, Splash Sort, Turbo Lanes, Lot Escape), labels
+Every email uses our games' public names (Gem Garden, Splash Sort, Turbo Lanes, Lot Escape), labels
 test orders "[Test order]", and never puts the studied game's name, art, or levels into ours.
 
 Short of the full count within the caps (`PACK_MAX_MINUTES`, default 40; 6 candidates per slot), it
@@ -91,6 +92,72 @@ curl -X POST "$BUSINESS_BASE_URL/orders/demo-run" -H "authorization: Bearer $BUS
 Optional fields: `url` (a web game to study instead of an app), `company`, `name`, `difficulty`
 (`easy`, `medium`, `hard`). `genre` is `match3`, `watersort`, `racer`, or `lotescape` (or "sort",
 "parking"…). It answers 202 at once; follow the activity log.
+
+## Agency outreach and the sales agent
+
+Code in `src/agency/`. Two hooks: `registerAgency` in `app.ts` (the reply responder and `POST /agency/demo-start`)
+and, in `server.ts`, `agencyInbox` around the inbox lister plus `startAgencyLoop`.
+
+**Agency outreach** (`outreach.ts`, `discover.ts`). Every 30 minutes with `AGENCY_OUTREACH=1` (off by default) and
+`OUTREACH_SEND=1`: read Clutch's game development directory through Monid (`clutch /search_companies`, category
+`developers/gaming`, $0.01 a page, cached a day; `/get_company_profile`, $0.02), skip companies whose listing and
+site don't mention games, read the agency's own homepage for what they do and its `mailto:` links (free), fall back to
+Hunter generic addresses ($0.0245 per 10), and email only role addresses on their own domain (hello@, contact@, info@,
+business@, partnerships@, sales@, studio@…; never a person, never support@). The one line about what they do is
+written from their site by the model and dropped if it has a number or praise. The email offers a free 5-level sample
+for one of their clients' puzzle games or a free iPhone playtest, names our genres, and carries the postal address
+and the "stop" line; it passes the same guard as studio outreach. At most `AGENCY_DAILY_CAP` (default 10) a day,
+2 per pass. Agencies already in the CRM (same domain or address) and ones looked at before are skipped without paying
+again. Leads are stored with source `agency_research`.
+
+**Email provider limit.** AgentMail lets a new account email at most 10 distinct new recipients in its first 24 hours
+(25 in the first week). A refused first email pauses agency email until the time the provider names ("paused until
+Sun 3:04 PM PT" in the log), with no Monid spend while paused; the agencies already found are emailed first when it
+lifts. Replies to people who wrote to us first aren't limited.
+
+**The sales agent** (`converse.ts`, `facts.ts`). Replies that aren't a clear no, an out-of-office, or a money request
+(refunds and cancellations still go to a person first) go to the agent, including a yes from an agency, whose email
+made a specific offer. It answers only from the facts sheet in `facts.ts` (products, prices, what's real, what isn't,
+links), with gpt-5.4-mini structured output, and takes at most one action per message:
+
+- start the free 5-level sample (a 5-level `biz_pack_deliveries` row, the same pack worker; once per company);
+- send a checkout (`createOrder` for the pack or subscription, `createPlaytestOrder` for a paid playtest) once it has
+  the genre and a game link from their own message;
+- book the free trial playtest (once per company) for an App Store or web link.
+
+Rules around the model: hostile, legal, contract, NDA, refund, and invoice messages, and anything after 6 exchanges,
+go to a person with no model call ("step-in needed: reply from …"). The reply must pass the facts check (every number
+from the sheet or a link we made, links only to our site, no guarantees, no other customers) and the shared reply
+guard; one rewrite is allowed, then it hands off. One answer per inbound message (`biz_agency_turns`, keyed by
+message id), `CONVERSE_DAILY_CAP` (default 40) a day, `CONVERSE=0` turns it off, never after "stop". Replies thread
+on their message. Log line: "replied to <company>: sent the level-pack checkout".
+
+**Prospects who write first** (`prospect.ts`). A new message from someone we don't know about levels, games,
+playtests, or prices becomes a lead and goes to the agent. A TEAM_EMAILS address with "agency" in a new subject
+starts the test agency. Automatic mail and "Audit:" requests (the email-in audit path) are left alone.
+
+### The demo: the test agency
+
+The test agency is a teammate playing a game-development agency. Its lead is "Level AI Test Agency", stored as
+`internal_test`, so the console numbers leave it out and its rows say "(test agency)".
+
+Tonight (the provider limit blocks our first email until Sun 3:04 PM PT), the agency writes first:
+
+1. Optional reset: `curl -X POST "$BUSINESS_BASE_URL/agency/demo-start" -H "authorization: Bearer $BUSINESS_MCP_TOKEN"
+   -H 'content-type: application/json' -d '{"email":"noel_sason@berkeley.edu","direction":"inbound"}'`
+   (a fresh conversation: turn count and free trials start over).
+2. From noel_sason@berkeley.edu, email levelai@agentmail.to with the subject "Agency inquiry" and a question, e.g.
+   "We're a small agency; one client has a water-sort game that needs more levels. What can you do, and what does it
+   cost?" Don't put an App Store link in this first email: that goes to the email-in audit path.
+3. Within about a minute (the inbox poll runs every 60 s), the agent answers in the thread. Then reply as the
+   prospect: "Let's try the free sample: water sort, easy" → the sample starts, and 5 levels arrive in a separate email
+   (water sort builds in seconds; match-3 takes a few minutes). "Send the checkout for the full pack, medium, for
+   https://…" → a checkout link in the thread.
+4. On the console: "new prospect wrote in", "replied to Level AI Test Agency (test agency): …", the level-pack rows,
+   and "delivered level pack".
+
+After the limit lifts, `demo-start` without `direction` sends our agency email first, and Noel replies to it. If the
+first email is refused, `demo-start` falls back to the inbound mode and says so.
 
 ## Where the data goes
 

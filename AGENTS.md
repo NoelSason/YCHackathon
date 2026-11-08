@@ -227,6 +227,8 @@ After a pull, read the new entries at the top of `log.md` before you start work.
   `platform/naive/src/roster.ts` (`businessTools`). See `business/README.md`.
 - `demo/` and `demo.sh` (Noel): the demo stage. `./demo.sh` opens one live screen built from the
   activity log, with the phone view and the step-ins. See `demo/README.md`.
+- `sample-generator/` (Noel): "Example generator (Level AI sample)", a stand-in studio endpoint for the bring-your-own-generator
+  protocol (`business/src/generators/`), deployed as its own Vercel project. See docs/developers.md, "Bring your own generator".
 - `solver/` (Pinara): the Solver harness. It claims queued `solver_runs`, plays each level with the
   game's bots through the platform's adapter registry, and writes the results. See
   `solver/README.md`.

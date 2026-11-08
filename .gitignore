@@ -7,3 +7,5 @@ business/.scratch*
 .claude/scheduled_tasks.lock
 business/.dh/
 business/.q*-scratch.mjs
+business/.*-scratch.mjs
+business/.byog-*

@@ -133,7 +133,8 @@ export async function buildWithGenerator(client: GeneratorClient, args: {
         } else {
           seen.push({ d, rate });
           const nd = nextDifficulty(seen, d, rate, t);
-          await args.log(`${args.studio}'s level ${slot} measured ${pct(rate)} vs ${pct(t)} target: too ${rate > t ? "easy" : "hard"}; difficulty ${d.toFixed(2)} → ${nd.toFixed(2)}`, why, null);
+          const move = nd === d ? `already at difficulty ${d.toFixed(2)}, asking for another level` : `difficulty ${d.toFixed(2)} → ${nd.toFixed(2)}`;
+          await args.log(`${args.studio}'s level ${slot} measured ${pct(rate)} vs ${pct(t)} target: too ${rate > t ? "easy" : "hard"}; ${move}`, why, null);
           d = nd;
         }
       } catch (err) {

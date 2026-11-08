@@ -14,7 +14,7 @@ import { joinPage } from "./leads/join-page.js";
 import { playtestPage } from "./leads/playtest-page.js";
 import { createPlaytestOrder, enqueue, runPlaytestOrder } from "./leads/playtest-offer.js";
 import { afterOrderPaid, createOrder, queueLevelDelivery } from "./leads/orders.js";
-import { addPackDelivery, GENRES, packGameFor, packGameOpen, runDueDeliveries } from "./levels/deliver-pack.js";
+import { addPackDelivery, GENRES, packGameFor, packGameOpen, runPackDelivery } from "./levels/deliver-pack.js";
 import { PACK_GAME_IDS } from "./levels/pack-types.js";
 import { start as progressStart, status as progressStatus } from "./leads/progress.js";
 import { watchRoutes } from "./leads/watch.js";
@@ -317,8 +317,14 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
           paymentId: null, leadId: studio.id, plan: "level_pack", gameId: gen.genre, difficulty, levelsOwed: levels,
           studiedGame: null, gameUrl: null, bundleId: null, test: true, demo: true,
         });
-        void runDueDeliveries(ctx).catch(() => undefined);
-        return json(202, { ok: true, leadId: studio.id, deliveryId: d?.id ?? null, generator: gen.name, levels, status: "queued; watch the activity log" });
+        // Their generator does the work (no phone, no local CPU), so this pack doesn't wait behind the shared
+        // queue: claim this one row and run it now. The row's state guards against a second run.
+        if (d) {
+          void ctx.db(`update biz_pack_deliveries set state = 'working', started_at = now() where id = $1 and state = 'queued' returning id`, [d.id])
+            .then(async (r) => { if (r.length) await runPackDelivery(ctx, { ...d, state: "working" }); })
+            .catch(() => undefined);
+        }
+        return json(202, { ok: true, leadId: studio.id, deliveryId: d?.id ?? null, generator: gen.name, levels, status: "started; watch the activity log" });
       }
       const gameId = packGameFor(s("genre"));
       if (!gameId || !packGameOpen(gameId)) return json(400, { ok: false, error: `genre must be one of: ${PACK_GAME_IDS.filter(packGameOpen).join(", ")}` });

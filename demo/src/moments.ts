@@ -90,7 +90,7 @@ export function momentFor(e: StageEvent): Moment | null {
   if (/^couldn't post on x from the iphone$/i.test(a)) {
     return m("x_posted", "small", "X", "Couldn't post on X from the iPhone", { subject: "", app: "X (x.com)", surface: "x", detail: e.why });
   }
-  // Our own levels on the phone (mobile/loop.ts): "playtesting our Gem Match level Garden 0041 on the iPhone".
+  // Our own levels on the phone (mobile/loop.ts): "playtesting our Gem Garden level Garden 0041 on the iPhone".
   if ((x = a.match(/^playtesting our (.+?) level (.+?)(?: on the iPhone)?$/i))) {
     return m("playtest_started", "big", "Our level", `Now playtesting our ${x[1]} level ${x[2]}`, { subject: "", app: `${x[1]} · ${x[2]}`, market: false, surface: "own" });
   }

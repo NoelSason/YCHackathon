@@ -194,7 +194,7 @@ export async function pickWork(ctx: ToolContext, fetchImpl: typeof fetch = fetch
       const title = typeof l.level?.name === "string" && l.level.name.trim() ? l.level.name.trim().slice(0, 40) : l.level_id.slice(0, 8);
       return {
         kind: "own",
-        name: `our Gem Match level ${title}`,
+        name: `our Gem Garden level ${title}`,
         url: `${site}/play?level=${encodeURIComponent(l.level_id)}`,
         levelId: l.level_id,
         targetWinRate: typeof l.target_win_rate === "number" ? l.target_win_rate : null,

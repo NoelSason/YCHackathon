@@ -54,8 +54,15 @@ export interface AgencyEmailInput {
   genres: string[];
 }
 
+/** "Whimsy Games Group LTD" → "Whimsy Games Group", "Pixel Genesys LLC" → "Pixel Genesys": how a person would say it. */
+export function shortName(company: string): string {
+  const t = company.trim().replace(/,?\s+(llc|l\.l\.c\.|ltd\.?|limited|inc\.?|incorporated|gmbh|s\.?a\.?|corp\.?|corporation|co\.|pvt\.?\s+ltd\.?|private limited)$/i, "").trim();
+  return t || company.trim();
+}
+
 export function composeAgencyEmail(input: AgencyEmailInput): OutreachDraft {
-  const { company, about, services, sender } = input;
+  const { about, services, sender } = input;
+  const company = shortName(input.company);
   const what = about
     ? `From your site, it looks like your team ${about.replace(/[.\s]+$/, "")}.`
     : services.length
@@ -103,7 +110,7 @@ export function composeAgencyEmail(input: AgencyEmailInput): OutreachDraft {
     ].join(""),
   });
   return {
-    subject: `A free ${SAMPLE_LEVELS}-level puzzle sample for one of ${company}'s clients`,
+    subject: `A free ${SAMPLE_LEVELS}-level puzzle sample for one of your clients`,
     body,
     html,
     facts: [

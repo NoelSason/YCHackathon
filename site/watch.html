@@ -424,6 +424,7 @@
   }
 
   setInterval(function () {
+    if (!$('meta-elapsed-row')) return; // the not-found view replaced the page
     var ok = startedAt && !isNaN(startedAt);
     var end = state === 'testing' ? Date.now() : (finishedAt && !isNaN(finishedAt) ? finishedAt : null);
     var show = ok && end && (state === 'testing' || state === 'finished' || state === 'failed');

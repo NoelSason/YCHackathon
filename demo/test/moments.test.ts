@@ -130,12 +130,12 @@ test("the platform's three programs show as who they are, and auto-approvals are
 });
 
 test("our own levels and X posts on the phone read as what they are", () => {
-  const own = momentFor(row("playtest-lead", "playtesting our Gem Match level Garden 0041 on the iPhone"))!;
+  const own = momentFor(row("playtest-lead", "playtesting our Gem Garden level Garden 0041 on the iPhone"))!;
   assert.equal(own.kind, "playtest_started");
   assert.equal(own.surface, "own");
-  assert.equal(own.title, "Now playtesting our Gem Match level Garden 0041");
+  assert.equal(own.title, "Now playtesting our Gem Garden level Garden 0041");
   assert.ok(!own.title.includes("'s app"));
-  const ownDone = momentFor(row("playtest-lead", "playtested our Gem Match level Garden 0041: won in 8 moves"))!;
+  const ownDone = momentFor(row("playtest-lead", "playtested our Gem Garden level Garden 0041: won in 8 moves"))!;
   assert.equal(ownDone.kind, "playtest_done");
   assert.equal(ownDone.detail, "won in 8 moves");
   const ios = momentFor(row("playtest-lead", "playtesting Candy Crush Saga (iOS app, market study) on the iPhone"))!;

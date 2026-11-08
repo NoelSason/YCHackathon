@@ -461,7 +461,7 @@ var adapter = { game_id: "lotescape", name: "Lot Escape", schema, bots: [...BOTS
 // src/lot.ts
 var MAX_NOTCH = 8;
 var notchFor = (difficulty) => 1 + Math.round(clamp01(difficulty) * (MAX_NOTCH - 1));
-var slackFor = (difficulty, minMoves) => Math.max(1, Math.round(minMoves * (0.6 - 0.55 * clamp01(difficulty))));
+var slackFor = (difficulty, minMoves) => Math.max(1, Math.round(minMoves * (0.85 - 0.8 * clamp01(difficulty))));
 function clamp01(x) {
   return Number.isFinite(x) ? Math.min(1, Math.max(0, x)) : 0.5;
 }

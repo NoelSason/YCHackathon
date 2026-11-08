@@ -10,7 +10,7 @@ import { validateLevel } from "../../games/lotescape/adapter/index.js";
 export const MAX_NOTCH = 8;
 export const notchFor = (difficulty: number): number => 1 + Math.round(clamp01(difficulty) * (MAX_NOTCH - 1));
 /** Spare moves on top of the fewest possible: generous at 0, tight at 1. */
-export const slackFor = (difficulty: number, minMoves: number): number => Math.max(1, Math.round(minMoves * (0.6 - 0.55 * clamp01(difficulty))));
+export const slackFor = (difficulty: number, minMoves: number): number => Math.max(1, Math.round(minMoves * (0.85 - 0.8 * clamp01(difficulty))));
 
 function clamp01(x: number): number { return Number.isFinite(x) ? Math.min(1, Math.max(0, x)) : 0.5; }
 
