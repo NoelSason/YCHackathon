@@ -19,7 +19,14 @@ const feed = new LiveFeed(env.DATABASE_URL, [
   ...parseTables(env.DEMO_STEPIN_TABLES ?? DEFAULT_STEPINS, true),
 ]);
 
+// The first read takes the oldest 20,000 rows and each later read up to 5,000 more, so keep reading
+// until a read brings nothing new.
 const events = await feed.tick();
+for (let i = 0; i < 100; i++) {
+  const more = await feed.tick();
+  if (more.length === 0) break;
+  events.push(...more);
+}
 for (const h of feed.health()) console.log(`${h.ok ? "✓" : "✗"} ${h.name}: ${h.detail}`);
 if (events.length === 0) {
   console.error("No events to save.");

@@ -183,6 +183,8 @@
   .stat .k { font: 700 0.95rem/1.15 var(--body); color: var(--on-ink-2); }
   .stat .v { grid-column: 1 / -1; font: 800 3rem/1 var(--display); letter-spacing: -0.04em; margin-top: 0.35rem; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
   .stat.human .v { color: #ffb0a8; }
+  .stat .sub { grid-column: 1 / -1; margin-top: 0.3rem; font: 700 0.76rem/1.2 var(--body); color: var(--on-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item.group .more { flex-direction: column; gap: 0.15rem; }
   .stat.clickable:hover { box-shadow: 0 0.5rem 0 var(--ink-deep); background: var(--ink-2); }
   .stat.clickable:active { box-shadow: 0 0.1rem 0 var(--ink-deep); }
   .stage-n.clickable { border-radius: 0.6rem; padding: 0.25rem 0.35rem; margin: -0.25rem -0.35rem; }
@@ -209,7 +211,7 @@
     border: 2px solid transparent; transition: border-color .4s, background-color .4s;
   }
   .agent .tile { width: 2rem; height: 2rem; grid-row: span 2; align-self: center; }
-  .agent .name { font: 700 0.8rem/1.15 var(--display); letter-spacing: -0.02em; align-self: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .agent .name { font: 700 0.74rem/1.15 var(--display); letter-spacing: -0.035em; align-self: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .agent .count { font: 800 1.05rem/1 var(--display); align-self: center; font-variant-numeric: tabular-nums; }
   .agent .last { grid-column: 2 / -1; font-size: 0.86rem; line-height: 1.25; color: var(--on-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .agent .ago { color: var(--on-ink-3); font-weight: 700; }
@@ -509,15 +511,15 @@
           </div>
           <div class="board-wrap" aria-hidden="true">
             <div class="board" id="board"></div>
-            <div class="board-cap">Last 36 actions, by agent</div>
+            <div class="board-cap">Latest actions, by agent</div>
           </div>
         </section>
 
         <section class="stats" aria-label="Totals from the log">
-          <div class="stat clickable" role="button" tabindex="0" data-rows="actions" title="See every agent action"><span class="tile" data-s="circle" style="--c:var(--cobalt);--cd:var(--cobalt-d)"></span><span class="k">Agent actions</span><div class="v" id="actions">0</div></div>
+          <div class="stat clickable" role="button" tabindex="0" data-rows="actions" title="See every agent action"><span class="tile" data-s="circle" style="--c:var(--cobalt);--cd:var(--cobalt-d)"></span><span class="k">Agent actions</span><div class="v" id="actions">0</div><div class="sub" id="compiled-sub" hidden></div></div>
           <div class="stat clickable" role="button" tabindex="0" data-rows="decisions" title="See every decision"><span class="tile" data-s="star" style="--c:var(--grape);--cd:var(--grape-d)"></span><span class="k">Decisions</span><div class="v" id="decisions">0</div></div>
-          <div class="stat human clickable" role="button" tabindex="0" data-rows="stepins" title="See every human step-in"><span class="tile" data-s="block"></span><span class="k">Human step-ins</span><div class="v" id="stepins">0</div></div>
-          <div class="stat clickable" role="button" tabindex="0" data-rows="spend" title="See what was spent"><span class="tile" data-s="square" style="--c:var(--mint);--cd:var(--mint-d)"></span><span class="k">Spent</span><div class="v" id="spend">$0</div></div>
+          <div class="stat human clickable" role="button" tabindex="0" data-rows="stepins" title="See every human step-in"><span class="tile" data-s="block"></span><span class="k">Human step-ins</span><div class="v" id="stepins">0</div><div class="sub" id="approvals-sub" hidden></div></div>
+          <div class="stat clickable" role="button" tabindex="0" data-rows="spend" title="See what was spent"><span class="tile" data-s="square" style="--c:var(--mint);--cd:var(--mint-d)"></span><span class="k" id="spend-k">Spent</span><div class="v" id="spend">$0</div><div class="sub" id="spend-sub" hidden></div></div>
         </section>
 
         <section class="qr-card" id="qr-card" hidden>
@@ -553,7 +555,7 @@
     </div>
 
     <section class="card phone-card clickable" id="phone-card" aria-label="Phone playtest" role="button" tabindex="0" title="Enlarge the phone">
-      <div class="card-h"><span class="livetag" id="phone-live">Live</span> Real iPhone</div>
+      <div class="card-h"><span class="livetag" id="phone-live">Live</span> <span id="phone-title">Real iPhone</span></div>
       <div class="testing" id="testing" hidden><span class="k" id="nt-k">Now testing</span><span class="nt-name" id="nt-app"></span><small id="nt-who"></small></div>
       <div class="phone-wrap"><div class="phone" id="phone"><div class="off">Phone not connected</div></div></div>
     </section>
@@ -661,6 +663,11 @@ const ROSTER = {
   playtest_lead: ["Playtester", "Plays apps on a real iPhone", "mint", "circle"],
   billing: ["Billing", "Takes payments", "mint", "square"],
   finance: ["Finance", "Watches spend", "mint", "triangle"],
+  marketing: ["Marketing", "Posts on X from the iPhone", "sun", "triangle"],
+  compiler: ["Compiler", "Builds levels, verifies each with 200+ bot plays", "grape", "diamond"],
+  approver: ["Approver", "Approves held calls to our own servers, by policy", "cobalt", "triangle"],
+  level_delivery: ["Delivery", "Builds and emails level packs", "mint", "star"],
+  platform_ops: ["Platform", "Publishes packs, checks decisions", "cobalt", "diamond"],
 };
 const EXTRA = [["grape", "circle"], ["cobalt", "diamond"], ["sun", "square"], ["tomato", "star"], ["mint", "star"], ["grape", "diamond"]];
 const meta = new Map();
@@ -698,7 +705,47 @@ function show(t) {
   return /^[\w-]+\.[a-z]{2,}/i.test(s) || /^\S*[@…]/.test(s) ? s : s.charAt(0).toUpperCase() + s.slice(1);
 }
 // Plumbing results (message and lead ids) say nothing to the room.
-const plumbing = (r) => !r || /^message\s*</i.test(r) || /^message\s+\S+$/i.test(r) || /^lead\s+[0-9a-f-]{8,}$/i.test(r) || /^no lead attached$/i.test(r);
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const plumbing = (r) => !r || /^message\s*</i.test(r) || /^message\s+\S+$/i.test(r) || /^lead\s+[0-9a-f-]{8,}$/i.test(r) || /^no lead attached$/i.test(r)
+  || new RegExp(`^(run|delivery|payment|task|level)\\s+${UUID}$`, "i").test(String(r).trim()) || /^\[\w+\]\s+(failed|posted|scheduled|processing)\b/i.test(r);
+// Ids in parentheses ("(task 1dd4…)", "(phone task …)") are for the team, not the room.
+const dropIds = (t) => String(t ?? "").replace(new RegExp(`\\s*\\((?:phone )?task ${UUID}\\)`, "gi"), "");
+
+// Programs log tool names ("save_level", "production.level_accepted"). Say what happened instead,
+// using only numbers that are in the row itself.
+const GAMES = { watersort: "Splash Sort", racer: "Turbo Lanes", match3: "Gem Match", lotescape: "Lot Escape", platformer: "Platformer" };
+const pctOf = (x) => `${Math.round(Number(x) * 100)}%`;
+const keyOf = (name) => String(name || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+function describe(e) {
+  const a = String(e.action || ""), w = String(e.why || ""), r = String(e.result || "");
+  let x;
+  if (e.agent === "compiler" && a === "production.level_accepted") {
+    const g = w.match(/(\w+) position (\d+), target ([\d.]+)/), m = r.match(/measured ([\d.]+)/), n = w.match(/(\d+) independent/);
+    return g ? `Accepted ${GAMES[g[1]] || g[1]} level ${g[2]}${m ? `: ${pctOf(m[1])} won (target ${pctOf(g[3])})` : ""}${n ? `, ${n[1]} bot plays` : ""}` : "Accepted a level";
+  }
+  if (e.agent === "approver") {
+    const t = w.match(/held (\S+?) with/), who = r.match(/approved for ([\w-]+)/);
+    return `Approved a held ${t ? t[1] : "tool"} call${who ? ` for the ${info(keyOf(who[1])).name}` : ""}, by policy`;
+  }
+  if (e.agent === "tuner" && (x = w.match(/= (\d+)% .*?target (\d+)%, round (\d+)/))) {
+    if (a === "save_level") return `Retuned a level: ${x[1]}% won, target ${x[2]}% (round ${x[3]})`;
+    if (a === "reject_level") return `Rejected a level: couldn't reach ${x[2]}% in ${x[3]} rounds`;
+    if (a === "accept_level") return `Accepted a level at ${x[1]}% (target ${x[2]}%)`;
+  }
+  if (a === "save_level") return e.agent === "designer" ? "Designed a new level" : "Saved a level";
+  if (a === "reject_level") return "Rejected a level";
+  if (a === "accept_level") return "Accepted a level";
+  if (a === "solver_run.done") return (x = r.match(/(\d+)% \((\d+)\/(\d+)\)/)) ? `Played a level ${x[3]} times: ${x[1]}% won` : "Finished a solver run";
+  if (a === "solve_level.queued") return "Queued a level for the solver";
+  if (a === "check_decision") return "Checked a decision against what happened";
+  if (a === "publish_pack") return "Published a level pack";
+  if (a === "look") return "Reviewed the company's numbers";
+  if (a === "review_studio_state") return "Reviewed the studio's state";
+  if (e.agent === "marketing") return a.replace(/\bon x\b/gi, "on X").replace(/^posting on X/i, "Posting on X");
+  return a;
+}
+// The team's own test orders and checks (they never count as customers or earnings).
+const isTeamTest = (e) => !e.human && (/\bLevel AI\b|\(demo run\)/.test(String(e.action || "")) || /\bteam test\b/i.test(String(e.result || "")));
 
 const STAGES = [["found", "Found", "cobalt"], ["sample_made", "Sampled", "grape"], ["emailed", "Emailed", "tomato"], ["replied", "Replied", "sun"], ["pilot_offered", "Offered", "grape"], ["pilot_paid", "Paid", "mint"], ["delivered", "Delivered", "mint"]];
 
@@ -745,11 +792,36 @@ addEventListener("resize", refit);
 document.fonts?.ready.then(refit);
 
 // ---- Stats and hero --------------------------------------------------------------------------
+// Spent: what the Naïve agents used (read from Naïve's credits API by the server) plus the data and
+// tool costs the agents logged. Without a Naïve reading, the tile says it's only the logged costs.
+function renderSpend() {
+  const logged = state?.stats?.spendUsd ?? 0, naive = state?.naiveSpend;
+  if (naive) {
+    bump($("spend"), "$" + (naive.usd + logged).toFixed(2));
+    $("spend-k").textContent = "Spent";
+    $("spend-sub").hidden = false;
+    $("spend-sub").textContent = `Naïve agents $${naive.usd.toFixed(2)} · data $${logged.toFixed(2)}`;
+    $("spend-sub").title = `Naïve credits used since ${naive.since || "Nov 7"} (model, phone, email), checked ${hm(naive.checkedAt)}, plus data and tool costs logged in the activity log.`;
+  } else {
+    bump($("spend"), "$" + logged.toFixed(2));
+    $("spend-k").textContent = "Data and tool spend";
+    $("spend-sub").hidden = true;
+  }
+}
 function renderStats(s) {
   bump($("actions"), s.agentActions.toLocaleString());
   bump($("decisions"), s.decisions.toLocaleString());
   bump($("stepins"), s.stepIns.toLocaleString());
-  bump($("spend"), "$" + s.spendUsd.toFixed(2));
+  renderSpend();
+  const lc = s.levelsCompiled ?? 0;
+  $("compiled-sub").hidden = !lc;
+  $("compiled-sub").textContent = `+${lc.toLocaleString()} levels built by the level compiler`;
+  $("compiled-sub").title = "A deterministic program that builds levels and verifies each with 200+ bot plays. Counted on its own, not as agent actions.";
+  // Held tool calls a policy program approved: shown beside the step-ins, never hidden or counted as people.
+  const ap = s.autoApprovals ?? 0;
+  $("approvals-sub").hidden = !ap;
+  $("approvals-sub").textContent = `+${ap.toLocaleString()} auto-approved by policy`;
+  $("approvals-sub").title = `${ap.toLocaleString()} held tool calls a policy program approved (not people). Click for both lists.`;
   const n = s.actionsSinceStepIn ?? 0;
   const acts = `<b>${n.toLocaleString()}</b> agent action${n === 1 ? "" : "s"}`;
   $("own-s").innerHTML = !s.unattendedSince ? "" : s.lastStepInAt
@@ -800,13 +872,19 @@ function renderAgents(perAgent) {
     el.classList.toggle("working", age < 45_000);
     el.classList.toggle("selected", filterAgent === a.agent);
     el.querySelector(".count").textContent = a.count.toLocaleString();
-    // "Just now" while the agent is working; otherwise its role, or its latest action.
+    // "Just now" while the agent is working; otherwise its latest action, in words, and how long ago.
+    const lastEv = lastEventOf(a.agent);
+    const lastText = show(describe(lastEv || { agent: a.agent, action: a.lastAction || "" }));
     el.querySelector(".last").innerHTML = age < 45_000
-      ? `<span class="ago">Just now</span> ${esc(show(a.lastAction))}`
-      : `${esc(show(a.lastAction) || m.role)} <span class="ago">${esc(ago(age))}</span>`;
+      ? `<span class="ago">Just now</span> ${esc(lastText)}`
+      : `${esc(lastText || m.role)} <span class="ago">${esc(ago(age))}</span>`;
     el.title = `${m.role}${m.role ? ". " : ""}Click to show only ${m.name} in the feed.`;
   });
   $("team-n").textContent = `${state?.stats?.perAgent?.length ?? perAgent.length} agents, latest first`;
+}
+function lastEventOf(agent) {
+  for (let i = allEvents.length - 1; i >= 0; i--) if (!allEvents[i].human && allEvents[i].agent === agent) return allEvents[i];
+  return null;
 }
 function popAgent(agent) {
   const el = cards.get(agent);
@@ -821,48 +899,102 @@ function itemHtml(e, isNew, open = false) {
   let tag = "";
   if (e.kind === "decision") tag = `<span class="pill" style="--c:var(--grape);--cd:var(--grape-d)">Decision</span>`;
   else if (e.kind === "step_in") tag = `<span class="pill" style="--c:var(--tomato);--cd:var(--tomato-d)">Human step-in</span>`;
+  else if (isTeamTest(e)) tag = `<span class="pill" style="--c:var(--ink-3);--cd:var(--ink-deep)" title="The team testing its own system; not a customer">Team test</span>`;
   else if (e.moment && e.moment.tier === "big") tag = `<span class="pill${m.light ? " dark" : ""}" style="${vars(m)}">${esc(e.moment.label)}</span>`;
-  let body = `<div class="what">${esc(show(e.action))}</div>`;
+  let body = `<div class="what">${esc(show(describe(e)))}</div>`;
   if (e.kind === "decision") {
     const rows = [["Saw", e.saw], ["Why", e.why], ["Expected", e.expected], ["Result", e.result]].filter(([, v]) => v);
     if (rows.length) body += `<div class="dl">${rows.map(([k, v]) => `<b>${k}</b><span>${esc(show(v))}</span>`).join("")}</div>`;
   } else {
-    if (e.why && !plumbing(e.why)) body += `<div class="why">${esc(show(e.why))}</div>`;
-    if (e.result && !plumbing(e.result)) body += `<div class="res">${esc(show(e.result))}</div>`;
+    if (e.why && !plumbing(e.why)) body += `<div class="why">${esc(show(dropIds(e.why)))}</div>`;
+    if (e.result && !plumbing(e.result)) body += `<div class="res">${esc(show(dropIds(e.result)))}</div>`;
   }
   const when = pt(e.at, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" }) + " PT";
   const more = [`<span>${esc(when)}</span>`];
   if (e.costUsd) more.push(`<span>Cost $${e.costUsd < 0.1 ? e.costUsd.toFixed(3) : e.costUsd.toFixed(2)}</span>`);
   if (!e.human && !e.costUsd) more.push("<span>No cost logged</span>");
   const cls = [e.kind, isNew ? "new" : "", open ? "open" : "", e.moment && e.moment.tier === "big" && e.kind === "action" ? "moment" : ""].join(" ");
-  return `<li class="item ${cls}" style="${vars(m)}" title="Click for details">${tile(m)}<div>
+  return `<li class="item ${cls}" data-id="${esc(e.id)}" style="${vars(m)}" title="Click for details">${tile(m)}<div>
     <div class="meta"><span class="who">${esc(who)}</span>${tag}<time>${hms(e.at)}</time></div>${body}<div class="more">${more.join("")}</div></div></li>`;
 }
 
-// What the phone is testing: the newest "playtesting …" row with no finish after it.
+// What the phone is doing: the newest "playtesting …" or "posting on X" row with no finish after it.
 const playtests = [];
+const SURFACE = {
+  web: ["web game, market study", "A web puzzle game. A real iPhone plays it to study how the difficulty ramps."],
+  ios: ["App Store game, market study", "An App Store game. A real iPhone plays it to study how the genre leader ramps difficulty."],
+  own: ["one of our levels", "A level our agents made. A real iPhone plays it before players do."],
+  x: ["@uselevelai", "The Marketing agent posts on X from Safari on the phone."],
+};
 function trackPlaytests(list) {
   for (const e of list) {
     const k = e.moment?.kind;
-    if (k === "playtest_started") playtests.push({ at: e.at, app: e.moment.app || "", who: e.moment.subject || "", market: Boolean(e.moment.market), open: true });
-    else if ((k === "playtest_done" || k === "report_sent" || /^playtest failed/i.test(e.action || "")) && playtests.length) playtests[playtests.length - 1].open = false;
+    if (k === "playtest_started" || k === "x_posting") playtests.push({ at: e.at, app: e.moment.app || "", who: e.moment.subject || "", market: Boolean(e.moment.market), surface: e.moment.surface || (e.moment.market ? "web" : ""), open: true });
+    else if ((k === "playtest_done" || k === "report_sent" || k === "x_posted" || /^playtest failed/i.test(e.action || "")) && playtests.length) playtests[playtests.length - 1].open = false;
   }
+  if (playtests.length > 50) playtests.splice(0, playtests.length - 50);
   const last = playtests[playtests.length - 1];
   const box = $("testing");
-  if (!last) { box.hidden = true; return; }
+  // In a replay the phone image is live but the rows are recorded, so don't caption one with the other.
+  if (!last || state?.mode === "replay") { box.hidden = true; return; }
   box.hidden = false;
   box.classList.toggle("open", last.open);
-  $("nt-k").textContent = last.open ? "Now testing" : "Last tested";
+  const x = last.surface === "x";
+  const k = x ? (last.open ? "Now posting on X" : "Last posted on X") : last.open ? "Now testing" : "Last tested";
+  $("nt-k").textContent = k;
   const app = shortUrl(last.app) || `${last.who}'s app`;
   $("nt-app").textContent = app;
-  $("nt-who").textContent = `${last.who ? `for ${last.who}, ` : ""}${last.open ? "started" : "at"} ${hm(last.at)}`;
-  $("pb-k").textContent = last.open ? "Now testing" : "Last tested";
+  const kind = SURFACE[last.surface];
+  $("nt-who").textContent = `${kind ? `${kind[0]}, ` : last.who ? `for ${last.who}, ` : ""}${last.open ? "started" : "at"} ${hm(last.at)}`;
+  $("pb-k").textContent = k;
   $("pb-title").textContent = app;
   if ($("phone-big").classList.contains("show")) fit($("pb-title"));
-  $("pb-sub").textContent = last.market
-    ? "A web puzzle game. A real iPhone plays it to study how the difficulty ramps."
-    : `${last.who ? `For ${last.who}. ` : ""}A real iPhone, playing it from a written test plan.`;
+  $("pb-sub").textContent = kind ? kind[1] : `${last.who ? `For ${last.who}. ` : ""}A real iPhone, playing it from a written test plan.`;
 }
+
+// Runs of the two busy programs' rows show as one line each: the level compiler (it can accept dozens
+// of levels a minute) and the auto-approver (a CEO run can hold a dozen calls).
+const BULK = new Set(["compiler", "approver"]);
+const isBulk = (e) => !e.human && BULK.has(e.agent);
+const countBy = (list, keyFn) => { const c = new Map(); for (const e of list) { const k = keyFn(e); c.set(k, (c.get(k) || 0) + 1); } return [...c].sort((x, y) => y[1] - x[1]).map(([k, n]) => `${k} ${n.toLocaleString()}`).join(" · "); };
+function groupHtml(list, isNew, open) {
+  // list is newest first, all from one agent.
+  const agent = list[0].agent, m = info(agent);
+  const newest = list[0], oldest = list[list.length - 1];
+  const n = list.length.toLocaleString();
+  let pill, what, split;
+  if (agent === "compiler") {
+    let minPlays = Infinity;
+    for (const e of list) { const p = Number((String(e.why || "").match(/(\d+) independent/) || [])[1]); if (p) minPlays = Math.min(minPlays, p); }
+    pill = `${n} levels`;
+    what = `Accepted ${n} level${list.length === 1 ? "" : "s"}${minPlays < Infinity ? `, each verified with ${minPlays}+ bot plays` : ""}`;
+    split = countBy(list, (e) => GAMES[(String(e.why || "").match(/(\w+) position/) || [])[1]] || "Other");
+  } else {
+    pill = `${n} calls`;
+    what = `Approved ${n} held call${list.length === 1 ? "" : "s"} to our own servers, by policy`;
+    split = "For " + countBy(list, (e) => { const w = String(e.result || "").match(/approved for ([\w-]+)/); return w ? info(keyOf(w[1])).name : "an agent"; });
+  }
+  const more = list.slice(0, 5).map((e) => `<span>${esc(hms(e.at))} ${esc(describe(e))}</span>`).join("");
+  return `<li class="item group${isNew ? " new" : ""}${open ? " open" : ""}" data-id="${esc("g:" + oldest.id)}" style="${vars(m)}" title="Click for the newest rows">${tile(m)}<div>
+    <div class="meta"><span class="who">${esc(m.name)}</span><span class="pill${m.light ? " dark" : ""}" style="${vars(m)}">${pill}</span><time>${hms(oldest.at)} to ${hms(newest.at)}</time></div>
+    <div class="what">${what}</div><div class="why">${esc(split)}</div><div class="more">${more}</div></div></li>`;
+}
+/** Feed rows, newest first, with compiler runs grouped. At most `max` lines. */
+function renderList(list, { newIds = new Set(), openAll = false, max = MAX_FEED } = {}) {
+  const out = [];
+  for (let i = 0; i < list.length && out.length < max; i++) {
+    const e = list[i];
+    const same = (x) => x && isBulk(x) && x.agent === e.agent;
+    if (isBulk(e) && same(list[i + 1])) {
+      const run = [e];
+      while (i + 1 < list.length && same(list[i + 1])) run.push(list[++i]);
+      const key = "g:" + run[run.length - 1].id;
+      out.push(groupHtml(run, run.every((x) => newIds.has(x.id)), openAll || openIds.has(key)));
+    } else out.push(itemHtml(e, newIds.has(e.id), openAll || openIds.has(e.id)));
+  }
+  return out.join("");
+}
+const openIds = new Set();   // rows a viewer expanded, kept across re-renders
 
 let booted = false;
 function addEvents(list, isNew) {
@@ -870,15 +1002,14 @@ function addEvents(list, isNew) {
   if (!list.length) return;
   allEvents.push(...list);
   if (allEvents.length > 5000) allEvents.splice(0, allEvents.length - 5000);
-  const feed = $("feed");
-  const shownNow = list.filter(matchesFilter);
-  if (shownNow.length) {
-    if (feed.querySelector(".empty")) feed.innerHTML = "";
-    feed.insertAdjacentHTML("afterbegin", shownNow.slice(-MAX_FEED).reverse().map((e) => itemHtml(e, isNew)).join(""));
-    while (feed.children.length > MAX_FEED) feed.lastElementChild.remove();
-  }
+  renderFeed(isNew ? new Set(list.map((e) => e.id)) : undefined);
   renderPlaytestSteps();
-  recent.push(...list);
+  // The board: one tile per action, but a run of the compiler's accepted levels is one tile.
+  for (const e of list) {
+    const prev = recent[recent.length - 1];
+    if (isBulk(e) && prev && isBulk(prev) && prev.agent === e.agent) continue;
+    recent.push(e);
+  }
   if (recent.length > 36) recent.splice(0, recent.length - 36);
   renderBoard(isNew);
   if (isNew) {
@@ -892,13 +1023,12 @@ function addEvents(list, isNew) {
 
 // ---- Feed filter: click an agent to see only its rows ------------------------------------------
 const matchesFilter = (e) => !filterAgent || (!e.human && e.agent === filterAgent);
-function renderFeed() {
-  const list = allEvents.filter(matchesFilter).slice(-MAX_FEED).reverse();
+function renderFeed(newIds) {
+  const list = allEvents.filter(matchesFilter).reverse();
   const m = filterAgent ? info(filterAgent) : null;
   $("feed").innerHTML = list.length
-    ? list.map((e) => itemHtml(e, false)).join("")
+    ? renderList(list, { newIds })
     : `<li class="empty">${m ? `${esc(m.name)} has no rows in the recent log. Click the Agent actions number for the full history.` : "Waiting for the first agent action."}</li>`;
-  $("feed").scrollTop = 0;
   const f = $("filters");
   f.hidden = !m;
   $("feed-n").hidden = !!m;
@@ -907,18 +1037,28 @@ function renderFeed() {
 function setFilter(agent) {
   filterAgent = filterAgent === agent ? null : agent;
   renderFeed();
+  $("feed").scrollTop = 0;
   renderAgents(state.stats.perAgent);
 }
 $("filters").addEventListener("click", (e) => { if (e.target.closest("[data-clear]")) { filterAgent = null; renderFeed(); renderAgents(state.stats.perAgent); } });
 // Click a row to see its full text, exact time, and cost.
-for (const id of ["feed", "dr-body"]) $(id).addEventListener("click", (e) => { const li = e.target.closest(".item"); if (li) li.classList.toggle("open"); });
+for (const id of ["feed", "dr-body"]) $(id).addEventListener("click", (e) => {
+  const li = e.target.closest(".item");
+  if (!li) return;
+  const on = li.classList.toggle("open");
+  if (id === "feed" && li.dataset.id) on ? openIds.add(li.dataset.id) : openIds.delete(li.dataset.id);
+});
 
 function renderSteps() {
+  // The same step-in can arrive twice (in the first page load's step-ins and again in a later poll).
+  const seen = new Set();
+  for (let i = stepIns.length - 1; i >= 0; i--) { if (seen.has(stepIns[i].id)) stepIns.splice(i, 1); else seen.add(stepIns[i].id); }
   const n = state?.stats?.stepIns ?? stepIns.length;
-  $("steps-n").textContent = n ? `${n} in the log` : "";
+  const ap = state?.stats?.autoApprovals ?? 0;
+  $("steps-n").textContent = n ? `${n} in the log${ap ? `, plus ${ap.toLocaleString()} auto-approved calls` : ""}` : "";
   if (!stepIns.length) { $("steps").innerHTML = '<span class="none">None logged</span>'; return; }
   $("steps").innerHTML = stepIns.slice().reverse().map((e) =>
-    `<div class="step" title="${esc(e.why || "")}"><time>${esc(hm(e.at))}</time><span class="s-who">${esc(e.agent === "human" ? "A person" : e.agent)}</span><span class="s-what">${esc(show(e.action))}${e.why ? ` (${esc(show(e.why))})` : ""}</span></div>`).join("");
+    `<div class="step" title="${esc(e.why || "")}"><time>${esc(hm(e.at))}</time><span class="s-who">${esc(e.agent === "human" ? "A person" : cap(e.agent))}</span><span class="s-what">${esc(show(e.action))}${e.why ? ` (${esc(show(e.why))})` : ""}</span></div>`).join("");
 }
 
 function renderPipeline(p) {
@@ -932,7 +1072,7 @@ function renderPipeline(p) {
     return `<div class="stage-n clickable${n ? "" : " zero"}" style="--c:${c};--cd:${cd}" data-stage="${k}" role="button" tabindex="0" title="See the studios marked ${l}"><div class="c">${n}</div><div class="bar"><i style="--w:${(n / max) * 100}%"></i></div><div class="l">${l}</div></div>`;
   });
   const pay = p.payments;
-  parts.push(`<div class="stage-n money"><div class="c">$${(pay.liveAmountMinor / 100).toFixed(0)}</div><div class="bar"></div><div class="l">Earned</div></div>`);
+  parts.push(`<div class="stage-n money"><div class="c">$${(pay.liveAmountMinor / 100).toFixed(0)}</div><div class="bar"></div><div class="l">Earned (live payments)</div></div>`);
   if (pay.test) parts.push(`<div class="stage-n money test"><div class="c">$${(pay.testAmountMinor / 100).toFixed(0)}</div><div class="bar"></div><div class="l">${pay.test} test payment${pay.test === 1 ? "" : "s"}, not real</div></div>`);
   $("pipe").innerHTML = parts.join("");
 }
@@ -954,6 +1094,8 @@ function renderMode(s) {
   else if (s.mode === "replay") banner.innerHTML = `<b>Replay</b><span>${esc(s.banner || "")}</span>`;
   else banner.textContent = s.banner || "";
   for (const id of ["phone-live", "pb-live"]) $(id).hidden = s.mode !== "live";
+  // A replay plays back the log, but the phone view is still the phone right now. Say so.
+  if (s.mode === "replay") $("phone-title").textContent = "Real iPhone, live now (not part of the replay)";
   if (s.mode === "sample") $("help-note").textContent = "Rehearsal data: an invented story for practice. Never present it as live.";
   if (s.mode === "replay") $("help-note").textContent = "A replay of a recorded run of the real activity log.";
 }
@@ -996,7 +1138,7 @@ function nextMoment() {
     <h2>${esc(show(mo.title))}</h2>${mo.detail ? `<p>${esc(show(mo.detail))}</p>` : ""}</div></div>`;
   requestAnimationFrame(() => box.classList.add("on"));
   if (mo.tier === "big") setTimeout(() => burst(box.querySelector(".tile")), 250);
-  if (mo.kind === "playtest_started") spotlight(10_000);
+  if (mo.kind === "playtest_started" || mo.kind === "x_posting") spotlight(10_000);
   const hold = mo.tier === "big" ? 6000 : 3600;
   setTimeout(() => { box.classList.remove("on"); setTimeout(nextMoment, 600); }, hold);
 }
@@ -1077,7 +1219,9 @@ const ROWS = {
   actions: ["Agent actions", "Every action an agent logged, newest first. Click a row for details."],
   decisions: ["Decisions", "What each agent saw, what it chose, why, and what it expected."],
   stepins: ["Human step-ins", "Every time a person stepped in, and why."],
-  spend: ["Spent", "Every logged cost, newest first."],
+  compiled: ["Levels compiled", "Levels the level compiler built, each verified with 200+ bot plays. A deterministic program, counted apart from agent actions."],
+  approvals: ["Auto-approved calls", "Naïve holds a tool call after an agent reads output from an MCP server. A policy program approves held calls to our own servers; anything else waits for a person."],
+  spend: ["Spent", "Naïve agent credits, plus every logged data and tool cost, newest first."],
 };
 async function openRows(type) {
   const [title, sub] = ROWS[type];
@@ -1090,11 +1234,17 @@ async function openRows(type) {
       for (const e of r.rows) by.set(e.agent, (by.get(e.agent) ?? 0) + e.costUsd);
       html += `<div class="spend-by">${[...by].sort((a, b) => b[1] - a[1]).map(([a, usd]) => `${tile(info(a))}<span>${esc(info(a).name)}</span><span>$${usd.toFixed(2)}</span>`).join("")}</div>`;
     }
+    const ap = state?.stats?.autoApprovals ?? 0;
+    const lc = state?.stats?.levelsCompiled ?? 0;
+    if (type === "actions" && lc) html += `<p class="rs-fine" style="margin:0 0 1rem">Not counted as agent actions: ${lc.toLocaleString()} levels the level compiler built and ${ap.toLocaleString()} calls the auto-approver approved. Both are programs. <button type="button" class="chip all" data-rows-open="compiled">Levels compiled</button> <button type="button" class="chip all" data-rows-open="approvals">Auto-approved calls</button></p>`;
+    if (type === "spend" && state?.naiveSpend) html += `<p class="rs-fine" style="margin:0 0 1rem">Naïve agents: $${state.naiveSpend.usd.toFixed(2)} in credits since ${esc(state.naiveSpend.since || "Nov 7")} (model, phone, email), read from Naïve's billing. The rows below are the data and tool costs the agents logged.</p>`;
+    if (type === "stepins" && ap) html += `<p class="rs-fine" style="margin:0 0 1rem">Not counted as step-ins: ${ap.toLocaleString()} held tool calls the auto-approver, a policy program, approved. <button type="button" class="chip all" data-rows-open="approvals">See them</button></p>`;
+    const empty = { spend: "No costs logged yet.", decisions: "No decisions logged yet. When the CEO agent changes the plan, it logs what it saw, why, and what it expects, and the row shows here." }[type] || "Nothing logged yet.";
     html += r.rows.length
-      ? `<ul class="feed">${r.rows.map((e) => itemHtml(e, false, true)).join("")}</ul>`
-      : `<div class="dr-empty">${type === "spend" ? "No costs logged yet." : "Nothing logged yet."}</div>`;
+      ? `<ul class="feed">${renderList(r.rows, { openAll: true, max: 300 })}</ul>`
+      : `<div class="dr-empty">${empty}</div>`;
     $("dr-body").innerHTML = html;
-    const shown = r.rows.length < r.count ? `, showing the newest ${r.rows.length}` : "";
+    const shown = r.rows.length < r.count ? ", showing the most recent" : "";
     $("dr-sub").textContent = type === "spend" ? `$${r.totalUsd.toFixed(2)} across ${r.count} row${r.count === 1 ? "" : "s"}${shown}.` : `${r.count.toLocaleString()} in the log${shown}. ${sub}`;
   } catch { $("dr-body").innerHTML = '<div class="dr-empty">Couldn\'t load these rows. Try again in a moment.</div>'; }
 }
@@ -1115,6 +1265,7 @@ async function openStage(stage) {
   } catch { $("dr-body").innerHTML = '<div class="dr-empty">Couldn\'t load the studios. Try again in a moment.</div>'; }
 }
 document.querySelectorAll("[data-rows]").forEach((el) => el.addEventListener("click", () => openRows(el.dataset.rows)));
+$("dr-body").addEventListener("click", (e) => { const b = e.target.closest("[data-rows-open]"); if (b) openRows(b.dataset.rowsOpen); });
 $("pipe").addEventListener("click", (e) => { const el = e.target.closest("[data-stage]"); if (el) openStage(el.dataset.stage); });
 
 // ---- Market research: what the players of the chart games say about levels -------------------------
@@ -1172,7 +1323,7 @@ async function openResearch() {
 $("research-card").addEventListener("click", openResearch);
 
 // The latest playtest steps, shown beside the enlarged phone.
-const PLAYTEST_KINDS = new Set(["playtest_ordered", "playtest_started", "playtest_done", "report_sent"]);
+const PLAYTEST_KINDS = new Set(["playtest_ordered", "playtest_started", "playtest_done", "report_sent", "x_posting", "x_posted"]);
 function renderPlaytestSteps() {
   const steps = allEvents.filter((e) => e.moment && PLAYTEST_KINDS.has(e.moment.kind)).slice(-6).reverse();
   $("pb-steps").innerHTML = steps.map((e) => `<li><time>${esc(hm(e.at))}</time><span>${esc(show(e.moment.title))}${e.moment.detail ? `: ${esc(show(e.moment.detail))}` : ""}</span></li>`).join("");
@@ -1269,20 +1420,30 @@ async function boot() {
   // Fallback for the public console: some proxies buffer the live stream. If no message arrives
   // within 6 s, poll the state every 4 s and add only events we haven't shown yet.
   let streamAlive = false;
-  const shown = new Set((state.events || []).map((e) => e.id));
+  const shown = new Set([...(state.events || []), ...(state.stepIns || [])].map((e) => e.id));
+  // Pull the state and add only rows not shown yet: the polling fallback, and a catch-up after the
+  // stream reconnects (rows that arrived while it was down are never re-sent on the stream).
+  async function resync() {
+    try {
+      const s2 = await (await fetch("/api/state", { cache: "no-store" })).json();
+      const fresh = (s2.events || []).filter((e) => !shown.has(e.id));
+      for (const e of fresh) shown.add(e.id);
+      if (s2.clock) setClock(s2.clock);
+      state.stats = s2.stats;
+      if (fresh.length) addEvents(fresh, true);
+      renderStats(s2.stats);
+      renderSteps();
+      state.pipeline = s2.pipeline; renderPipeline(s2.pipeline);
+      state.naiveSpend = s2.naiveSpend; renderSpend();
+    } catch {}
+  }
   setTimeout(() => {
     if (streamAlive) return;
-    setInterval(async () => {
-      try {
-        const s2 = await (await fetch("/api/state", { cache: "no-store" })).json();
-        const fresh = (s2.events || []).filter((e) => !shown.has(e.id));
-        for (const e of fresh) shown.add(e.id);
-        if (s2.clock) setClock(s2.clock);
-        if (fresh.length) { state.stats = s2.stats; addEvents(fresh, true); renderStats(s2.stats); }
-        state.pipeline = s2.pipeline; renderPipeline(s2.pipeline);
-      } catch {}
-    }, 4000);
+    setInterval(resync, 4000);
   }, 6000);
+  let dropped = false;
+  es.onerror = () => { dropped = true; };
+  es.onopen = () => { if (dropped) { dropped = false; resync(); } };
   es.onmessage = (msg) => {
     streamAlive = true;
     const m = JSON.parse(msg.data);
@@ -1297,6 +1458,7 @@ async function boot() {
       $("feed-n").textContent = "Newest first";
     } else if (m.type === "status") {
       state.pipeline = m.pipeline;
+      if ("naiveSpend" in m) { state.naiveSpend = m.naiveSpend; renderSpend(); }
       renderPipeline(m.pipeline);
       renderHealth(m.health);
     }

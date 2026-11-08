@@ -25,6 +25,20 @@ export function step(id: string, text: string, state: StepState = "active"): voi
   entries.set(id, e);
 }
 
+/**
+ * Starts a fresh run for this id. A repeat signup from the same address reuses its lead id, and
+ * without this its page would show the earlier run's "Email sent" and stop right away.
+ */
+export function start(id: string, text: string): void {
+  entries.delete(id);
+  step(id, text);
+}
+
+/** Whether this id's current run has finished. */
+export function isDone(id: string): boolean {
+  return entries.get(id)?.done ?? false;
+}
+
 export function finish(id: string, text: string, ok = true): void {
   step(id, text, ok ? "done" : "failed");
   const e = entries.get(id);

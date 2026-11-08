@@ -24,10 +24,10 @@ async function freshDb(): Promise<Query> {
   return async (text, params = []) => (await db.query<Record<string, unknown>>(text, params)).rows;
 }
 
-async function addLevel(q: Query, l: object, status: string, opts: { game?: string; measured?: number | null; notes?: string } = {}): Promise<string> {
+async function addLevel(q: Query, l: object, status: string, opts: { game?: string; measured?: number | null; notes?: string; createdBy?: string } = {}): Promise<string> {
   const rows = await q(
-    `insert into levels(game_id, level, target_win_rate, status, measured_win_rate, notes, created_by) values ($1,$2,0.4,$3,$4,$5,'designer') returning level_id`,
-    [opts.game ?? "match3", JSON.stringify(l), status, opts.measured ?? null, opts.notes ?? null],
+    `insert into levels(game_id, level, target_win_rate, status, measured_win_rate, notes, created_by) values ($1,$2,0.4,$3,$4,$5,$6) returning level_id`,
+    [opts.game ?? "match3", JSON.stringify(l), status, opts.measured ?? null, opts.notes ?? null, opts.createdBy ?? "designer"],
   );
   return String(rows[0]!.level_id);
 }
@@ -142,6 +142,18 @@ describe("public level API", () => {
     const fromPack = (await (await get(routes, "/levels-latest"))!.json()) as { pack: { pack_id: string }; levels: Array<{ level_id: string }> };
     expect(fromPack.pack.pack_id).toBe(pack!.pack_id);
     expect(fromPack.levels.map((l) => l.level_id)).toEqual([hard]);
+  });
+
+  it("latest: before any pack, the Designer agent's levels come before the production compiler's", async () => {
+    const routes = publicLevelRoutes(q);
+    const tuned = await addLevel(q, level("Tuned"), "accepted", { measured: 0.4, createdBy: "tuner" });
+    const designed = await addLevel(q, level("Designed"), "accepted", { measured: 0.35 });
+    const compiled = [];
+    for (let i = 0; i < 12; i++) compiled.push(await addLevel(q, level(`Compiled ${i}`), "accepted", { measured: 0.9, createdBy: "production" }));
+    const latest = (await (await get(routes, "/levels-latest?game=match3&limit=10"))!.json()) as { levels: Array<{ level_id: string }> };
+    expect(latest.levels.map((l) => l.level_id).slice(0, 2)).toEqual([tuned, designed]);
+    expect(latest.levels).toHaveLength(10);
+    expect(compiled).toContain(latest.levels[2]!.level_id);
   });
 
   it("answers 503 without a database, through the server's router", async () => {

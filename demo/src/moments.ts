@@ -18,7 +18,9 @@ export type MomentKind =
   | "payment"
   | "audit"
   | "contact"
-  | "decision";
+  | "decision"
+  | "x_posting"
+  | "x_posted";
 
 export interface Moment {
   kind: MomentKind;
@@ -36,6 +38,8 @@ export interface Moment {
   test: boolean | null;
   /** Playtests only: true for a market study of someone else's web game (no customer). */
   market?: boolean;
+  /** What the phone is on: a web game, an App Store app, one of our own levels, or X in Safari. */
+  surface?: "web" | "ios" | "own" | "x";
 }
 
 /** Results that are plumbing (message ids, lead ids), not something to show the room. */
@@ -76,12 +80,33 @@ export function momentFor(e: StageEvent): Moment | null {
   if ((x = a.match(/^playtest ordered by (.+)$/i))) {
     return m("playtest_ordered", "small", "Playtest", `New playtest order from ${x[1]}`, { subject: x[1]!, app: e.why });
   }
+  // X posts from the phone (marketing/phone-post.ts): the phone panel shows x.com while it posts.
+  if (/^posting on x from the iphone$/i.test(a)) {
+    return m("x_posting", "big", "Posting on X", "Posting on X from the iPhone", { subject: "", app: "X (x.com)", surface: "x", detail: e.why });
+  }
+  if (/^posted on x from the iphone$/i.test(a)) {
+    return m("x_posted", "big", "Posted on X", "Posted on X from the iPhone", { subject: "", app: "X (x.com)", surface: "x", detail: e.why });
+  }
+  if (/^couldn't post on x from the iphone$/i.test(a)) {
+    return m("x_posted", "small", "X", "Couldn't post on X from the iPhone", { subject: "", app: "X (x.com)", surface: "x", detail: e.why });
+  }
+  // Our own levels on the phone (mobile/loop.ts): "playtesting our Gem Match level Garden 0041 on the iPhone".
+  if ((x = a.match(/^playtesting our (.+?) level (.+?)(?: on the iPhone)?$/i))) {
+    return m("playtest_started", "big", "Our level", `Now playtesting our ${x[1]} level ${x[2]}`, { subject: "", app: `${x[1]} · ${x[2]}`, market: false, surface: "own" });
+  }
+  if ((x = a.match(/^playtested our (.+?) level (.+?)(?::\s*(.*))?$/i))) {
+    return m("playtest_done", "small", "Our level", `Played our ${x[1]} level ${x[2]}`, { subject: "", app: `${x[1]} · ${x[2]}`, surface: "own", detail: x[3] ?? cleanResult(e.result) });
+  }
+  if ((x = a.match(/^playtest failed for our (.+?) level (.+)$/i))) {
+    return m("playtest_done", "small", "Our level", `Couldn't play our ${x[1]} level ${x[2]}`, { subject: "", app: `${x[1]} · ${x[2]}`, surface: "own", detail: cleanResult(e.result) });
+  }
   // Market studies from the phone loop: "playtesting 2048 (web game, market study) on the iPhone".
   if ((x = a.match(/^playtesting (.+?) \((?:web game|iOS app)[^)]*\)(?: on the iPhone)?$/i))) {
-    return m("playtest_started", "big", "Market study", `Now playtesting ${x[1]}${/iOS app/.test(a) ? ", an App Store game" : ", a web puzzle game"}`, { subject: "", app: x[1]!, market: true });
+    const ios = /iOS app/.test(a);
+    return m("playtest_started", "big", "Market study", `Now playtesting ${x[1]}${ios ? ", an App Store game" : ", a web puzzle game"}`, { subject: "", app: x[1]!, market: true, surface: ios ? "ios" : "web" });
   }
   if ((x = a.match(/^playtested (.+?) \((?:web game|iOS app)[^)]*\)(?::.*)?$/i))) {
-    return m("playtest_done", "small", "Market study", `Finished studying ${x[1]}`, { subject: "", app: x[1]!, market: true, detail: cleanResult(e.result) || a.replace(/^[^:]*:\s*/, "") });
+    return m("playtest_done", "small", "Market study", `Finished studying ${x[1]}`, { subject: "", app: x[1]!, market: true, surface: /iOS app/.test(a) ? "ios" : "web", detail: a.includes(":") ? a.replace(/^[^:]*:\s*/, "") : cleanResult(e.result) });
   }
   if ((x = a.match(/^playtesting (.+?)(?:'s app)?(?: on the iPhone)?$/i))) {
     return m("playtest_started", "big", "Playtest", `Now testing ${x[1]}'s app`, { subject: x[1]!, app: e.why });

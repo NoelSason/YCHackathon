@@ -127,6 +127,21 @@ const TERMINAL = new Set(["completed", "failed", "cancelled"]);
 const GLOBAL_HOME = 2;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** The loop's own task on the phone right now (never a paid order's), so on-demand work can cut it short. */
+let loopTask: { id: string; name: string; stopReason: string | null } | null = null;
+
+/**
+ * Stops the loop's current market study or level playtest early, for on-demand work a person is
+ * waiting on (POST /social/post-now). Paid orders are never touched: they don't run through here.
+ * Returns the stopped job's name, or null when the loop wasn't using the phone.
+ */
+export async function stopLoopTask(client: Mobilerun, reason: string): Promise<string | null> {
+  if (!loopTask) return null;
+  loopTask.stopReason = reason;
+  await client.tasks.stop(loopTask.id).catch(() => undefined);
+  return loopTask.name;
+}
 const errText = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200);
 
 /** How the log names a job: the label the console shows. */
@@ -151,7 +166,7 @@ export async function activePhoneTask(client: Mobilerun, deviceId: string): Prom
   return hit ? hit.id : null;
 }
 
-interface PublicLevelLite { level_id: string; target_win_rate?: number | null }
+interface PublicLevelLite { level_id: string; target_win_rate?: number | null; level?: { name?: unknown } | null }
 
 /** Our playable levels, as the site serves them. Empty when there are none or the site is down. */
 export async function fetchOwnLevels(siteUrl: string, fetchImpl: typeof fetch = fetch): Promise<PublicLevelLite[]> {
@@ -175,10 +190,11 @@ export async function pickWork(ctx: ToolContext, fetchImpl: typeof fetch = fetch
   const played = (needle: string) => recent.findIndex((a) => a.action.includes(needle));
   const own: LoopWork[] = (await fetchOwnLevels(site, fetchImpl))
     .map((l): LoopWork => {
-      const short = l.level_id.slice(0, 8);
+      // The console reads "our <game> level <name>" as one of our own levels (demo/src/moments.ts).
+      const title = typeof l.level?.name === "string" && l.level.name.trim() ? l.level.name.trim().slice(0, 40) : l.level_id.slice(0, 8);
       return {
         kind: "own",
-        name: `our match-3 level ${short}`,
+        name: `our Gem Match level ${title}`,
         url: `${site}/play?level=${encodeURIComponent(l.level_id)}`,
         levelId: l.level_id,
         targetWinRate: typeof l.target_win_rate === "number" ? l.target_win_rate : null,
@@ -204,7 +220,7 @@ const RULES = [
   "Look at the screen itself. If the page is blank or the game isn't visible, wait 5 seconds; if it's still blank, stop and report loaded = false. Never guess moves on a blank screen.",
 ];
 
-export function workToTask(work: LoopWork): string {
+export function workToTask(work: LoopWork, moves = 15): string {
   const bundle = work.kind === "market" ? work.game.bundleId : undefined;
   const open = bundle
     ? `The app "${work.name}" should already be open. If it isn't, go to the home screen and open "${work.name}".`
@@ -215,13 +231,13 @@ export function workToTask(work: LoopWork): string {
           `Goal: playtest one ${work.genre ?? "match-3"} level made by our level designer, as a first-time player would.`,
           open,
           `How to play: ${work.howToPlay ?? "swap two neighboring tiles to make a line of three or more of the same kind. The goals and the moves left are shown at the top."}`,
-          "Play until you win, run out of moves, or have made 15 moves. Count every move.",
+          `Play until you win, run out of moves, or have made ${moves} moves. Count every move.`,
         ]
       : [
           `Goal: study the ${work.game.bundleId ? "iOS puzzle app" : "free web puzzle game"} "${work.name}" (${work.game.genre}) the way a new player would, for game-design research.`,
           open,
           `How to play: ${work.game.howToPlay}`,
-          "Play for up to 15 moves, or until you lose or the game clearly gets hard. Count every move, and note the level number you reach if the game has levels.",
+          `Play for up to ${moves} moves, or until you lose or the game clearly gets hard. Count every move, and note the level number you reach if the game has levels.`,
         ];
   return [
     ...play,
@@ -282,7 +298,8 @@ async function waitForScreen(client: Mobilerun, deviceId: string, pollMs: number
   return !sawBlank;
 }
 
-type Opts = { pollMs?: number; maxSeconds?: number; deadlineMs?: number };
+/** `moves` and `maxSteps` shorten a run (a pack's phone study must finish within its time limit). */
+type Opts = { pollMs?: number; maxSeconds?: number; deadlineMs?: number; moves?: number; maxSteps?: number };
 
 /**
  * Runs one job on the phone and logs it. Returns null (after logging the failure) when the page
@@ -311,15 +328,16 @@ export async function runWork(ctx: ToolContext, client: Mobilerun, deviceId: str
   try {
     const task = await client.tasks.run({
       deviceId,
-      task: workToTask(work),
+      task: workToTask(work, opts.moves),
       llmModel: ctx.config.MOBILERUN_MODEL,
-      maxSteps: MAX_STEPS,
+      maxSteps: opts.maxSteps ?? MAX_STEPS,
       executionTimeout: maxSeconds,
       vision: true,
       outputSchema: z.toJSONSchema(LoopResultSchema) as Record<string, unknown>,
       recordingEnabled: false,
     });
     taskId = task.id;
+    loopTask = { id: task.id, name: work.name, stopReason: null };
     // Mobilerun enforces executionTimeout itself; this is a backstop with 30 s of slack.
     const deadline = Date.now() + (opts.deadlineMs ?? (maxSeconds + 30) * 1000);
     let blanks = 0;
@@ -331,7 +349,9 @@ export async function runWork(ctx: ToolContext, client: Mobilerun, deviceId: str
       s = await client.tasks.getStatus(task.id);
     }
     status = s.status;
-    if (blanks >= BLANK_POLLS) {
+    if (loopTask?.stopReason) {
+      error = `stopped early: ${loopTask.stopReason}`;
+    } else if (blanks >= BLANK_POLLS) {
       await client.tasks.stop(task.id).catch(() => undefined);
       status = "stopped";
       error = "the page went blank on the phone, so the run was stopped";
@@ -347,6 +367,7 @@ export async function runWork(ctx: ToolContext, client: Mobilerun, deviceId: str
   } catch (err) {
     error = errText(err);
   } finally {
+    loopTask = null;
     // Leave the board up if it's showing something; otherwise the home screen. Never a blank tab.
     if (!result || (await screenState(client, deviceId)) === "blank") await goHome(client, deviceId);
   }

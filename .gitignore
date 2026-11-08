@@ -3,3 +3,7 @@ node_modules/
 site/vercel.json
 .gstack/
 business/.scratch*
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+business/.dh/
+business/.q*-scratch.mjs

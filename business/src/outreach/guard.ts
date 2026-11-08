@@ -15,13 +15,21 @@ export interface GuardContext {
   /** Numbers allowed outside `draft.facts`, such as those in the price, sample URL, or address. */
   extraAllowedNumbers: string[];
   now?: Date;
+  /**
+   * A welcome email a signup just asked for (leads/live.ts). It counts against the signup cap, not
+   * cold outreach, even for a team test signup (stored as internal_test). A lead already contacted
+   * may get another welcome when they sign up again; live.ts limits how often.
+   */
+  welcome?: boolean;
 }
 
 export async function checkOutreach(lead: Lead, draft: OutreachDraft, ctx: GuardContext): Promise<string | null> {
   if (!lead.email) return "Lead has no email address.";
   if (await ctx.store.isSuppressed(lead.email)) return "This address opted out.";
   if (lead.stage === "opted_out" || lead.stage === "lost") return `Lead is ${lead.stage}.`;
-  if (["emailed", "replied", "pilot_offered", "pilot_paid", "delivered"].includes(lead.stage)) {
+  // A welcome was asked for on the form just now, so it may go to a lead in any later stage (live.ts
+  // limits repeats). A cold first email may not.
+  if (!ctx.welcome && ["emailed", "replied", "pilot_offered", "pilot_paid", "delivered"].includes(lead.stage)) {
     return "Lead was already contacted. Replies go through the Sales Reader, not a new first email.";
   }
 
@@ -36,7 +44,7 @@ export async function checkOutreach(lead: Lead, draft: OutreachDraft, ctx: Guard
   if (unverified.length > 0) return `Email states numbers with no source: ${[...new Set(unverified)].join(", ")}.`;
 
   const since = new Date((ctx.now ?? new Date()).getTime() - 24 * 60 * 60 * 1000).toISOString();
-  const inbound = lead.source === "inbound_form";
+  const inbound = ctx.welcome ?? lead.source === "inbound_form";
   const cap = inbound ? (ctx.inboundDailyCap ?? 200) : ctx.dailyCap;
   if ((await ctx.store.countSentSince(since, inbound)) >= cap) {
     return `Daily cap of ${cap} ${inbound ? "signup welcome" : "outreach"} emails reached.`;

@@ -5,6 +5,7 @@ import { runPlan, type PlaytestOutcome } from "../mobile/playtest.js";
 import { installFromAppStore } from "../mobile/install.js";
 import { appIdFromStoreUrl } from "./intake.js";
 import { idempotencyKey } from "../outreach/send.js";
+import { sendCustomerEmail } from "../billing/outbox.js";
 import type { Lead, WatchOrder, WatchState, WatchSummary } from "../types.js";
 import { finish, step } from "./progress.js";
 import { composeWatchEmail, gameNameFromUrl, newWatchToken, phoneDone, phoneStart, watchUrl } from "./watch.js";
@@ -205,14 +206,14 @@ async function sendWatchEmail(ctx: ToolContext, lead: Lead, order: WatchOrder, t
     name: lead.contactName, team: lead.company, gameName: order.gameName, watchUrl: watchUrl(ctx.config.SITE_URL, order.token), test,
     companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
   });
-  try {
-    const key = idempotencyKey("playtest-watch", lead.id, order.id);
-    const { messageId } = await ctx.mail.send({ to: lead.email, subject, text: body, html, idempotencyKey: key });
-    await ctx.store.addOutreach({ leadId: lead.id, to: lead.email, subject, body, status: "sent", blockedReason: null, providerMessageId: messageId });
-    await log(`emailed the live watch link to ${lead.company}`, null, `message ${messageId}${label}`);
-  } catch (err) {
-    await log(`couldn't email ${lead.company} the live watch link`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", `not sent${label}`);
-  }
+  // A refused send is logged and kept for a retry (billing/outbox.ts); the playtest never waits on it.
+  const sent = await sendCustomerEmail(ctx, {
+    kind: "playtest-watch", leadId: lead.id, company: lead.company, to: lead.email, subject, text: body, html,
+    idempotencyKey: idempotencyKey("playtest-watch", lead.id, order.id), test,
+  });
+  if (!sent.sent) return;
+  await ctx.store.addOutreach({ leadId: lead.id, to: lead.email, subject, body, status: "sent", blockedReason: null, providerMessageId: sent.messageId });
+  await log(`emailed the live watch link to ${lead.company}`, null, `message ${sent.messageId}${label}`);
 }
 
 async function playAndReport(
@@ -328,17 +329,27 @@ async function playAndReport(
     paid: payment ? (payment.livemode ? "live" : "test") : "free",
     companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "", siteUrl: ctx.config.SITE_URL,
   });
-  let messageId: string;
-  try {
-    // Keyed to the payment (or the phone task), so a retried job never sends twice but a new order does.
-    const key = idempotencyKey("playtest-report", lead.id, appUrl, payment?.id ?? outcome?.taskId ?? new Date().toISOString().slice(0, 16));
-    messageId = (await ctx.mail.send({ to: lead.email, subject, text: body, html, idempotencyKey: key })).messageId;
-  } catch (err) {
-    await log(`couldn't email ${lead.company} about their playtest`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", `not sent${label}`);
-    await settle("failed", "the email didn't send");
-    finish(lead.id, "Something went wrong. A person will follow up", false);
+  // Keyed to the payment (or the phone task), so a retried job never sends twice but a new order does.
+  const key = idempotencyKey("playtest-report", lead.id, appUrl, payment?.id ?? outcome?.taskId ?? new Date().toISOString().slice(0, 16));
+  const sent = await sendCustomerEmail(ctx, {
+    kind: "playtest-report", leadId: lead.id, company: lead.company, to: lead.email, subject, text: body, html, idempotencyKey: key,
+    test: Boolean(payment && !payment.livemode),
+  });
+  if (!sent.sent) {
+    // The send is logged and kept for a retry (billing/outbox.ts). A finished playtest is still
+    // delivered: the results are on the customer's watch page, where they land after paying.
+    if (delivered) {
+      run.state = "finished";
+      await ctx.store.setStage(lead.id, "delivered");
+      await settle("delivered", run.order ? "results on the customer's watch page; the report email is kept to retry" : "report ready; the email is kept to retry");
+      finish(lead.id, "Playtest finished. Your report is below, and we'll email it too", true);
+    } else {
+      await settle("failed", "no report, and the status email is kept to retry");
+      finish(lead.id, "Something went wrong. A person will follow up", false);
+    }
     return;
   }
+  const messageId = sent.messageId;
   await ctx.store.addOutreach({ leadId: lead.id, to: lead.email, subject, body, status: "sent", blockedReason: null, providerMessageId: messageId });
   if (delivered) {
     run.state = "finished";
@@ -360,12 +371,37 @@ export async function resumePaidOrders(ctx: ToolContext): Promise<number> {
   const orders = await ctx.store.listUnfinishedPaidOrders().catch(() => []);
   for (const o of orders) {
     const lead = await ctx.store.getLead(o.leadId);
-    if (!lead || !o.paymentId) continue;
+    if (!o.paymentId) continue;
+    if (!lead) {
+      await ctx.store.logActivity({
+        at: new Date().toISOString(), agent: "billing", action: "paid playtest can't resume after a restart",
+        why: `order ${o.id}: its customer record is missing`, result: `left for a person${o.test ? " (test mode)" : ""}`, costUsd: null, human: false,
+      }).catch(() => undefined);
+      continue;
+    }
+    // At most 2 resumes per order: restarts by other processes shouldn't re-run a playtest forever
+    // (seen Nov 7: one order ran 5 times). After that it goes to a person.
+    const resumes = (await ctx.store.listActivity(2000).catch(() => []))
+      .filter((a) => a.action.startsWith("resumed a paid playtest") && (a.result ?? "").includes(o.id)).length;
+    if (resumes >= 2) {
+      if (resumes === 2) {
+        await ctx.store.logActivity({
+          at: new Date().toISOString(), agent: "billing", action: `resumed a paid playtest after a restart: ${lead.company} (stopped retrying)`,
+          why: "it was already resumed twice and still didn't finish", result: `order ${o.id}: left for a person${o.test ? " (test mode)" : ""}`, costUsd: null, human: false,
+        }).catch(() => undefined);
+      }
+      continue;
+    }
     await ctx.store.logActivity({
       at: new Date().toISOString(), agent: "billing", action: `resumed a paid playtest after a restart: ${lead.company}`,
       why: "the server restarted before this order finished", result: `order ${o.id}${o.test ? " (test mode)" : ""}`, costUsd: null, human: false,
     });
-    void enqueue(() => runPlaytestOrder(ctx, lead, o.appUrl, o.focus ?? null, { id: o.paymentId!, livemode: !o.test }, o.id)).catch(() => undefined);
+    void enqueue(() => runPlaytestOrder(ctx, lead, o.appUrl, o.focus ?? null, { id: o.paymentId!, livemode: !o.test }, o.id)).catch((err) =>
+      ctx.store.logActivity({
+        at: new Date().toISOString(), agent: "playtest-lead", action: `playtest order needs a person: ${lead.company}`,
+        why: err instanceof Error ? err.message.slice(0, 200) : "unknown error", result: `left for a person${o.test ? " (test order)" : ""}`, costUsd: null, human: false,
+      }).catch(() => undefined),
+    );
   }
   return orders.length;
 }

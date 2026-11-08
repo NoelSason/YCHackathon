@@ -139,11 +139,20 @@ export type WebhookOutcome =
 
 const idOf = (v: string | { id: string } | null | undefined): string | null => (typeof v === "string" ? v : v?.id ?? null);
 
+class MissingSignatureError extends Error {}
+
+/** True when a webhook was refused for its signature (missing, forged, or signed with another secret). */
+export function isSignatureError(err: unknown): boolean {
+  return err instanceof MissingSignatureError || err instanceof Stripe.errors.StripeSignatureVerificationError;
+}
+
 /**
  * Verifies and handles one Stripe webhook:
  *   checkout.session.completed (paid)  records the payment once (Stripe retries), notes a new
- *                                      subscription, moves the lead to pilot_paid, and adds a pending delivery
- *   invoice.paid                       records a subscription renewal once (the first invoice is skipped)
+ *                                      subscription, moves the lead to pilot_paid, and adds a pending delivery.
+ *                                      An unpaid one (a delayed payment method) is logged and waits for
+ *   checkout.session.async_payment_succeeded / _failed   (handled if the endpoint subscribes to them)
+ *   invoice.paid                     records a subscription renewal once (the first invoice is skipped)
  *   customer.subscription.deleted      marks the subscription cancelled, once
  */
 export async function handleStripeWebhook(args: {
@@ -154,7 +163,7 @@ export async function handleStripeWebhook(args: {
   signature: string | undefined;
   store: Store;
 }): Promise<WebhookOutcome> {
-  if (!args.signature) throw new Error("Missing stripe-signature header.");
+  if (!args.signature) throw new MissingSignatureError("Missing stripe-signature header.");
   const secrets = (Array.isArray(args.webhookSecret) ? args.webhookSecret : [args.webhookSecret]).filter(Boolean);
   let event: ReturnType<typeof args.stripe.webhooks.constructEvent> | null = null;
   let lastErr: unknown = null;
@@ -175,12 +184,30 @@ export async function handleStripeWebhook(args: {
     if (!cancelled) return { kind: "duplicate", eventId: event.id };
     return { kind: "cancelled", subscriptionId: sub.id, leadId: cancelled.leadId ?? leadId, livemode: event.livemode };
   }
-  if (event.type !== "checkout.session.completed") return { kind: "ignored", type: event.type };
+  const log = (action: string, why: string | null, result: string) =>
+    args.store.logActivity({ at: new Date().toISOString(), agent: "billing", action, why, result, costUsd: null, human: false });
+  const modeLabel = event.livemode ? "" : " (test mode)";
+  if (event.type === "checkout.session.async_payment_failed") {
+    const s = event.data.object;
+    await log("a delayed payment failed", `checkout ${s.id}${s.metadata?.lead_id ? `, lead ${s.metadata.lead_id}` : ""}`, `nothing recorded; no work started${modeLabel}`);
+    return { kind: "ignored", type: event.type };
+  }
+  // A delayed payment method (bank debit and the like) completes checkout unpaid and pays later.
+  if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded") return { kind: "ignored", type: event.type };
 
   const session = event.data.object;
-  if (session.payment_status !== "paid") return { kind: "ignored", type: `${event.type}:${session.payment_status}` };
+  if (session.payment_status !== "paid") {
+    await log("checkout finished, payment still pending", `checkout ${session.id} (${session.payment_status})`, `nothing recorded until it's paid${modeLabel}`);
+    return { kind: "ignored", type: `${event.type}:${session.payment_status}` };
+  }
 
-  const leadId = session.metadata?.lead_id || null;
+  // The lead id comes from our own checkout metadata. A payment whose order isn't on file (a link
+  // made elsewhere, or a deleted lead) is still recorded, without the lead, and flagged for a person.
+  const claimedLead = session.metadata?.lead_id || null;
+  const leadId = claimedLead && (await args.store.getLead(claimedLead).catch(() => null)) ? claimedLead : null;
+  if (claimedLead && !leadId) {
+    await log("payment for an order we don't have on file", `lead ${claimedLead.slice(0, 64)}, checkout ${session.id}`, `recorded without a lead; left for a person${modeLabel}`);
+  }
   const product = (session.metadata?.product as Product | undefined) ?? "other";
   const subscriptionId = idOf(session.subscription);
   const payment = await args.store.recordPayment({
@@ -202,15 +229,7 @@ export async function handleStripeWebhook(args: {
   }
   if (leadId) await args.store.setStage(leadId, "pilot_paid");
   await args.store.addDelivery({ paymentId: payment.id, leadId, status: "pending", detail: null });
-  await args.store.logActivity({
-    at: new Date().toISOString(),
-    agent: "billing",
-    action: `payment received: ${product}`,
-    why: leadId ? `lead ${leadId}` : "no lead attached",
-    result: `${(payment.amountMinor / 100).toFixed(2)} ${payment.currency.toUpperCase()}${payment.livemode ? "" : " (test mode)"}`,
-    costUsd: null,
-    human: false,
-  });
+  await log(`payment received: ${product}`, leadId ? `lead ${leadId}` : "no lead attached", `${(payment.amountMinor / 100).toFixed(2)} ${payment.currency.toUpperCase()}${modeLabel}`);
   return {
     kind: "paid", payment, metadata: { ...(session.metadata ?? {}) },
     customerEmail: session.customer_details?.email ?? session.customer_email ?? null, subscriptionId,

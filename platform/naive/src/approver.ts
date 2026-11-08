@@ -20,6 +20,10 @@ const ALLOWED_PREFIXES = ["platform.", "platformcrm.", "business."];
 // is approvable too. Nothing that sends, posts, pays, or touches a phone is on this list.
 const ALLOWED_EXACT = new Set(["board_read", "board_write"]);
 const once = process.argv.includes("--once");
+// Optional: leave sessions older than this many minutes parked. A run that parked hours ago (for
+// example while no approver was running) would resume on the numbers it read back then and log
+// decisions from them. Unset = approve any age (the original behavior).
+const maxAgeMin = Number(process.env.APPROVER_MAX_AGE_MIN ?? 0);
 const team = JSON.parse(readFileSync(new URL("../team.json", import.meta.url), "utf8")) as { agents: Record<string, string> };
 const agentIds = new Set(Object.values(team.agents));
 const agentName = new Map(Object.entries(team.agents).map(([n, id]) => [id, n]));
@@ -42,6 +46,10 @@ async function pass(): Promise<number> {
   let approved = 0;
   for (const s of page.data) {
     if (!agentIds.has(s.agent_id)) continue;
+    if (maxAgeMin > 0 && Date.now() - new Date(s.created_at).getTime() > maxAgeMin * 60_000) {
+      console.log(`  stale    ${agentName.get(s.agent_id) ?? s.agent_id} ${s.id}: started ${s.created_at}, older than ${maxAgeMin} min; left parked`);
+      continue;
+    }
     const agent = agentName.get(s.agent_id) ?? s.agent_id;
     const pending = (s as { pending_actions?: Array<{ kind: string; tool_call_id: string; name: string; read_people?: true }> }).pending_actions ?? [];
     const held = pending.filter((p) => p.kind === "tool");

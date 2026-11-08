@@ -1,11 +1,12 @@
 import { timingSafeEqual } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { integrationStatus, type Config, activeStripeKey } from "./config.js";
-import { createStore, type Query } from "./store.js";
+import { createStore, isTeamEmail, type Query } from "./store.js";
 import { MonidCli } from "./research/monid.js";
 import { AgentMailSender } from "./outreach/send.js";
 import { answerReply, handleInboundReply, parseAgentMailEvent, setReplyResponder, verifySvixSignature } from "./outreach/inbound.js";
-import { handleStripeWebhook, stripeClient } from "./billing/stripe.js";
+import { handleStripeWebhook, isSignatureError, stripeClient } from "./billing/stripe.js";
+import { flagMoneyRequest } from "./billing/requests.js";
 import { intakeLead } from "./leads/intake.js";
 import { runLiveSignup } from "./leads/live.js";
 import { levelsQuery, publicLevelRoutes, studioLevels } from "./levels/public.js";
@@ -13,15 +14,19 @@ import { joinPage } from "./leads/join-page.js";
 import { playtestPage } from "./leads/playtest-page.js";
 import { createPlaytestOrder, enqueue, runPlaytestOrder } from "./leads/playtest-offer.js";
 import { afterOrderPaid, createOrder, queueLevelDelivery } from "./leads/orders.js";
-import { GENRES, packGameFor, packGameOpen } from "./levels/deliver-pack.js";
+import { addPackDelivery, GENRES, packGameFor, packGameOpen, runDueDeliveries } from "./levels/deliver-pack.js";
 import { PACK_GAME_IDS } from "./levels/pack-types.js";
-import { status as progressStatus, step as progressStep } from "./leads/progress.js";
+import { start as progressStart, status as progressStatus } from "./leads/progress.js";
 import { watchRoutes } from "./leads/watch.js";
+import { postJob, postNow } from "./marketing/loop.js";
 import { mobilerunClient } from "./mobile/playtest.js";
 import { naiveClient, startSession } from "./naive.js";
 import { buildMcpServer } from "./mcp/server.js";
 import { buildStudioMcp } from "./studio/mcp.js";
 import { hashKey, issueDeveloperKey } from "./studio/keys.js";
+import { generatorRoute } from "./generators/routes.js";
+import { getGenerator } from "./generators/store.js";
+import { registerAgency } from "./agency/index.js";
 import type { ToolContext } from "./mcp/tools.js";
 import type { PaymentRecord } from "./types.js";
 
@@ -35,10 +40,12 @@ import type { PaymentRecord } from "./types.js";
  *   POST /leads               the table QR form; starts the live audit and welcome email
  *   POST /orders              a level pack or subscription order; answers with the checkout page to pay on
  *   POST /orders/demo-run     a level pack for a team address, no payment, same delivery path (Bearer BUSINESS_MCP_TOKEN)
+ *   POST /social/post-now     post the next honest social post now (X falls back to the iPhone); GET ?job=<id> for its status (Bearer BUSINESS_MCP_TOKEN)
  *   GET  /health              which integrations are configured (booleans only)
  *   GET  /games, /levels, /levels/:id, /packs/:id, /levels-latest   public levels (levels/public.ts)
  *   GET  /studio/levels       a studio's levels (Bearer lvl_ developer key)
  *   POST /studio-mcp          the studio MCP server (Bearer lvl_ developer key)
+ *   GET/POST /studio/generators, POST /studio/generators/:id/test   a studio's own level generator (generators/routes.ts)
  */
 export type Handler = (request: Request) => Promise<Response>;
 
@@ -75,6 +82,9 @@ function bearerOk(token: string | undefined, authorization: string | null): bool
   return given.length === want.length && timingSafeEqual(given, want);
 }
 
+/** When a rejected (unsigned or mis-signed) Stripe webhook was last written to the activity log. */
+let lastRejectedWebhookLog = 0;
+
 export function createHandler(config: Config, ctx: ToolContext = buildContext(config), levelsDb: Query | null = levelsQuery(config.DATABASE_URL)): Handler {
   const header = (request: Request, name: string): string | undefined => request.headers.get(name) ?? undefined;
   const levelRoutes = publicLevelRoutes(levelsDb);
@@ -87,7 +97,11 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
   }
 
   // Replies that arrive by webhook or by the inbox poll: answer plainly interested ones right away.
-  setReplyResponder((o) => answerReply(ctx, o));
+  // A refund, cancellation, or billing complaint goes to a person and never gets the sales answer.
+  setReplyResponder(async (o) => ((await flagMoneyRequest(ctx, o)) ? false : answerReply(ctx, o)));
+  // Agency outreach and the conversational sales agent: wraps the responder above (money requests still go
+  // to a person first) and serves POST /agency/demo-start. See src/agency/index.ts.
+  const agencyRoute = registerAgency(ctx, config);
 
   /** What a recorded payment sets off: an amount check against the team's price, then delivery. */
   async function afterPayment(payment: PaymentRecord, metadata: Record<string, string>, customerEmail: string | null = null): Promise<void> {
@@ -159,6 +173,10 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
 
     if (request.method === "GET" && url.pathname === "/health") return json(200, { ok: true, integrations: integrationStatus(config) });
 
+    // Bring your own generator: register, list, and test a studio's own level generator (Bearer lvl_ key).
+    const genRoute = await generatorRoute(ctx, request, url, () => studioForKey(request), async () => JSON.parse(await readBody(request)));
+    if (genRoute) return genRoute;
+
     if (url.pathname === "/studio/levels") {
       if (request.method !== "GET") return json(405, { error: "method not allowed" });
       const studio = await studioForKey(request);
@@ -207,14 +225,34 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       const webhookSecrets = [config.STRIPE_WEBHOOK_SECRET_LIVE, config.STRIPE_WEBHOOK_SECRET].filter((x): x is string => Boolean(x));
       if (!ctx.stripe || !webhookSecrets.length) return json(503, { error: "billing not configured" });
       const raw = await readBody(request);
-      const outcome = await handleStripeWebhook({
-        stripe: ctx.stripe, webhookSecret: webhookSecrets, rawBody: raw, signature: header(request, "stripe-signature"), store: ctx.store,
-      });
-      if (outcome.kind === "duplicate") {
-        await ctx.store.logActivity({ at: new Date().toISOString(), agent: "billing", action: "payment event seen again", why: `event ${outcome.eventId}`, result: "ignored; already recorded", costUsd: null, human: false });
+      const billingLog = (action: string, why: string | null, result: string) =>
+        ctx.store.logActivity({ at: new Date().toISOString(), agent: "billing", action, why, result, costUsd: null, human: false });
+      let outcome: Awaited<ReturnType<typeof handleStripeWebhook>>;
+      try {
+        outcome = await handleStripeWebhook({
+          stripe: ctx.stripe, webhookSecret: webhookSecrets, rawBody: raw, signature: header(request, "stripe-signature"), store: ctx.store,
+        });
+      } catch (err) {
+        if (!isSignatureError(err)) throw err; // not recorded yet (e.g. the database is down): 400, so Stripe retries
+        // Not from Stripe, or a secret mismatch. Logged at most every 10 minutes so junk can't flood the feed.
+        if (Date.now() - lastRejectedWebhookLog > 600_000) {
+          lastRejectedWebhookLog = Date.now();
+          await billingLog("rejected a payment event", "its signature didn't match our Stripe signing secrets", "nothing recorded").catch(() => undefined);
+        }
+        return json(400, { error: "bad signature" });
       }
-      if (outcome.kind === "paid") await afterPayment(outcome.payment, outcome.metadata, outcome.customerEmail);
-      if (outcome.kind === "renewal" || outcome.kind === "cancelled") await afterSubscriptionEvent(outcome);
+      // The payment is recorded from here, so a retry would only be a duplicate: a failed follow-up is
+      // answered 200 and logged for a person instead of being retried into "seen again" and lost.
+      try {
+        if (outcome.kind === "duplicate") await billingLog("payment event seen again", `event ${outcome.eventId}`, "ignored; already recorded");
+        if (outcome.kind === "paid") await afterPayment(outcome.payment, outcome.metadata, outcome.customerEmail);
+        if (outcome.kind === "renewal" || outcome.kind === "cancelled") await afterSubscriptionEvent(outcome);
+      } catch (err) {
+        const what = outcome.kind === "paid" || outcome.kind === "renewal" ? `${outcome.payment.product} payment ${outcome.payment.id}${outcome.payment.livemode ? "" : " (test mode)"}` : outcome.kind;
+        console.error(`payment follow-up failed: ${what}`);
+        await billingLog("payment recorded, but starting its work failed", `${what}: ${err instanceof Error ? err.message.slice(0, 160) : "unknown error"}`, "left for a person")
+          .catch(() => undefined);
+      }
       return json(200, { received: true, outcome: outcome.kind });
     }
 
@@ -260,6 +298,28 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       const email = s("email")?.toLowerCase() ?? null;
       const team = config.TEAM_EMAILS.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
       if (!email || !team.includes(email)) return json(400, { ok: false, error: "email must be one of TEAM_EMAILS" });
+      // With generator_id: the pack is built by that studio's own registered generator (generators/pack.ts),
+      // for that studio, which must be one of the team's (internal test). `levels` sets the size (1–20).
+      if (s("generator_id")) {
+        if (!ctx.db) return json(503, { ok: false, error: "no database on this server" });
+        const gen = await getGenerator(ctx.db, s("generator_id")!);
+        if (!gen || gen.status !== "active") return json(404, { ok: false, error: "no active generator with that id" });
+        const owner = await ctx.store.getLead(gen.studioId);
+        if (!owner || !isTeamEmail(owner.email, team)) return json(400, { ok: false, error: "demo runs only use generators registered to a team studio" });
+        const studio = s("company") && s("company") !== owner.company ? await ctx.store.upsertLead({ ...owner, company: s("company")! }) : owner;
+        const levels = Math.max(1, Math.min(20, Math.round(Number(b.levels ?? config.PILOT_LEVELS)) || config.PILOT_LEVELS));
+        const difficulty = (["easy", "medium", "hard"] as const).find((x) => x === s("difficulty")) ?? "medium";
+        await ctx.store.logActivity({
+          at: new Date().toISOString(), agent: "sales", action: `level pack ordered by ${studio.company} (demo run, their generator)`,
+          why: `${levels} ${GENRES[gen.genre].label} levels (${difficulty}) from their generator "${gen.name}"`, result: "no payment: a team test order", costUsd: null, human: false,
+        });
+        const d = await addPackDelivery(ctx.db, {
+          paymentId: null, leadId: studio.id, plan: "level_pack", gameId: gen.genre, difficulty, levelsOwed: levels,
+          studiedGame: null, gameUrl: null, bundleId: null, test: true, demo: true,
+        });
+        void runDueDeliveries(ctx).catch(() => undefined);
+        return json(202, { ok: true, leadId: studio.id, deliveryId: d?.id ?? null, generator: gen.name, levels, status: "queued; watch the activity log" });
+      }
       const gameId = packGameFor(s("genre"));
       if (!gameId || !packGameOpen(gameId)) return json(400, { ok: false, error: `genre must be one of: ${PACK_GAME_IDS.filter(packGameOpen).join(", ")}` });
       if (!ctx.db) return json(503, { ok: false, error: "no database on this server" });
@@ -281,6 +341,20 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       return json(202, { ok: true, leadId: lead.id, status: "queued; watch the activity log" });
     }
 
+    if (url.pathname === "/social/post-now") {
+      // The stage trigger for a live X post: POST starts one (the next honest post, normal path:
+      // social API, then the iPhone in Safari for X); GET ?job=<id> reports how it went.
+      if (!bearerOk(config.BUSINESS_MCP_TOKEN, request.headers.get("authorization"))) return json(401, { error: "unauthorized" });
+      if (request.method === "GET") {
+        const job = postJob(url.searchParams.get("job") ?? "");
+        return job ? json(200, { ok: true, job }) : json(404, { ok: false, error: "unknown job" });
+      }
+      if (request.method !== "POST") return json(405, { ok: false, error: "use POST" });
+      // ?preempt=0 waits for a running market study instead of cutting it short.
+      const r = postNow(ctx, { preempt: url.searchParams.get("preempt") !== "0" });
+      return r.ok ? json(202, { ok: true, job: r.job, status: "started; watch the console" }) : json(409, { ok: false, error: r.error, job: r.job ?? null });
+    }
+
     if (request.method === "POST" && url.pathname === "/orders") {
       const result = await createOrder(ctx, JSON.parse(await readBody(request)));
       return json(result.ok ? 201 : 400, result.ok ? { ok: true, id: result.lead.id, payUrl: result.payUrl } : { ok: false, error: result.error });
@@ -288,12 +362,13 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
 
     if (request.method === "POST" && url.pathname === "/leads") {
       const body = JSON.parse(await readBody(request)) as Record<string, unknown>;
-      const result = await intakeLead(body, ctx.store);
+      const teamTest = isTeamEmail(typeof body.email === "string" ? body.email : null, config.TEAM_EMAILS.split(","));
+      const result = await intakeLead(body, ctx.store, { teamTest });
       if (result.ok) {
-        progressStep(result.lead.id, "Got it. Starting now");
+        // A fresh run each time: a repeat signup from the same address reuses its lead id.
+        progressStart(result.lead.id, "Got it. Starting now");
         // Research and the welcome email run in the background so the form answers right away.
-        const game = typeof body.game === "string" && body.game.trim() ? body.game.trim() : null;
-        void runLiveSignup(ctx, result.lead, game).catch((err) =>
+        void runLiveSignup(ctx, result.lead, result.game, undefined, { appId: result.appId, teamTest }).catch((err) =>
           ctx.store.logActivity({
             at: new Date().toISOString(), agent: "sales-sender", action: `live signup failed for ${result.lead.company}`,
             why: err instanceof Error ? err.message.slice(0, 200) : "unknown error", result: null, costUsd: null, human: false,
@@ -310,6 +385,9 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
     }
 
     // Public read-only levels: /games, /levels, /levels/:id, /packs/:id, /levels-latest.
+    const agencyRes = await agencyRoute(request, url);
+    if (agencyRes) return agencyRes;
+
     const watchRoute = await watch(request, url);
     if (watchRoute) return watchRoute;
 
@@ -318,12 +396,13 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
 
     if (request.method === "GET" && url.pathname === "/public-stats") {
       // Aggregate counts only, for the website's proof section. No names, no emails.
+      // Counted over the whole history: the newest log rows are mostly bulk level work.
       const leads = await ctx.store.listLeads();
-      const acts = await ctx.store.listActivity(500);
+      const counts = await ctx.store.publicCounts();
       return json(200, {
         studiosAudited: leads.filter((l) => l.source === "research").length,
-        playtestsRun: acts.filter((a) => /^playtested /.test(a.action)).length,
-        emailsSent: acts.filter((a) => /^outreach sent|^emailed the playtest report/.test(a.action)).length,
+        playtestsRun: counts.playtestsRun,
+        emailsSent: counts.emailsSent,
         signups: leads.filter((l) => l.source === "inbound_form").length,
         reviewsRead: (await ctx.store.listResearchRuns(500)).reduce((n, r) => n + r.reviewsRead, 0),
       });

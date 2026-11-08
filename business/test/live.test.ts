@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import reviewsSample from "./fixtures/reviews-sample.json" with { type: "json" };
 import { loadConfig } from "../src/config.js";
 import { MemoryStore } from "../src/store.js";
 import { intakeLead } from "../src/leads/intake.js";
-import { composeWelcome, runLiveSignup } from "../src/leads/live.js";
+import { composeWelcome, resetWelcomeCounts, runLiveSignup, setPlaySearch } from "../src/leads/live.js";
 import { joinPage } from "../src/leads/join-page.js";
 import type { ToolContext } from "../src/mcp/tools.js";
 
@@ -30,6 +30,7 @@ const form = {
 };
 
 describe("live signup", () => {
+  beforeEach(() => { resetWelcomeCounts(); setPlaySearch(async () => null); });
   it("audits the game's reviews and emails the evidence and free levels within one call", async () => {
     const { c, sent } = ctx();
     const r = await intakeLead(form, c.store);

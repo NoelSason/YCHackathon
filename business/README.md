@@ -30,13 +30,24 @@ later) and starts the queue. The queue runs one delivery at a time:
 
 1. **Phone study.** Through the shared phone queue (`enqueue`, so it never collides with paid
    playtests or the playtest loop), the main phone plays the customer's game: a known App Store app
-   by bundle id (`MARKET_GAMES`, e.g. Candy Crush Saga), or a web link. Logged as "studying <game> on
-   the iPhone to set the difficulty curve" and "<game>: gets harder after N moves; players get stuck
-   at …". No phone, or no playable link: the standard curve for the difficulty, said so in the log.
-2. **Curve.** `curveFor`: 85% at level 1, held for a plateau the study sets (moves before the ramp ÷ 2,
-   1 to 6 levels), then a straight line to the difficulty's end point (easy 55%, medium 40%, hard 28%;
-   5 points harder when the game ramped within 5 moves, 8 easier when it never did). A heuristic, and
-   the email says where it came from. Stored on the row as `curve`.
+   by bundle id (`MARKET_GAMES`, e.g. Candy Crush Saga), or a web link. A short session (10 moves, 20
+   agent steps, 6-minute limit). Logged as "studying <game> on the iPhone to set the difficulty curve"
+   and "<game>: gets harder after ~N moves (reached level L); players get stuck at …". If the live
+   session fails, the newest successful session of the same game this week (the playtest loop studies
+   App Store games too) is used and named as such; with neither, the default curve. Right after the
+   study the customer gets a **recap email** ("How <game> played on our iPhone"): levels reached,
+   result, moves, where it got harder, where a player gets stuck, the design note, an inline phone
+   screenshot (JPEG via `sips`, about 50 KB), the curve mapping, and "Next: we're building 20 levels
+   calibrated to this curve; you'll get them in about N minutes."
+2. **Curve.** `curveFor`, logged as "difficulty curve for <studio>'s pack: <mapping>", for example
+   "Candy Crush Saga got harder after ~6 moves at level 2; players get stuck at level 3 jelly → so pack
+   levels start at 85% win rate for 3 levels and ramp to 40% by level 20, with the steepest step
+   around level 4." Rules: 85% held for a plateau of (moves before the ramp ÷ 2) levels, 1 to 6, then
+   an ease-out ramp (biggest step first) to the difficulty's end point: easy 55%, medium 40%, hard 28%,
+   5 points harder when the game got harder within 5 moves. **Default curve** when the study measured
+   no ramp (or there was no study): plateau 3, the difficulty's end point, and the log and emails say
+   there was no measured ramp. Study fields the phone didn't report are shown as not seen, never
+   filled in. Stored on the row as `curve`.
 3. **Build.** `pack-maker.ts` in a worker thread, slot by slot: the game's own generator (match-3 uses
    our practice board shapes with a fresh seed; Splash Sort and Turbo Lanes use their generators; Lot
    Escape uses `games/lotescape/src/generate.ts` notches), measured by the game's reference bot
@@ -47,9 +58,15 @@ later) and starts the queue. The queue runs one delivery at a time:
 4. **Save.** One statement: the levels (`published`, `created_by = 'pack-delivery'`), one `solver_runs`
    row each (replayable seeds), and the pack. Customer levels open by id but stay out of the public lists.
 5. **Email** (keyed to the row, so it sends once): the play link (`/play?pack=` or
-   `/games/<id>/?pack=`), the JSON link (`/api/packs/<id>`), and each level's target vs. measured.
+   `/games/<id>/?pack=`), the JSON link (`/api/packs/<id>`), "How we set the curve: <mapping>", and the
+   curve as a table: level, target, measured, play link.
 6. **Closing shot.** The main phone opens level 1 of the pack in our player and plays it ("playtested
-   level 1 of <studio>'s <genre> pack").
+   level 1 of <studio>'s <genre> pack"), and the customer gets a second recap: "We played level 1 of
+   your pack on our iPhone: <result>", with the design note and a screenshot. This step runs from the
+   in-memory phone queue, so a server restart before it starts skips it (the pack is already delivered).
+
+Every email uses our games' public names (Gem Match, Splash Sort, Turbo Lanes, Lot Escape), labels
+test orders "[Test order]", and never puts the studied game's name, art, or levels into ours.
 
 Short of the full count within the caps (`PACK_MAX_MINUTES`, default 40; 6 candidates per slot), it
 delivers what passed, says so, and logs "step-in needed". On boot, rows a restart cut off go back in

@@ -51,6 +51,17 @@ export function checkRow(label: string, value: string, state: "pass" | "fail" | 
   </tr>`;
 }
 
+/** A small data table (e.g. a pack's curve: level, target, measured). Cells are text; `link` makes the last cell a link. */
+export function table(headers: string[], rows: Array<{ cells: string[]; link?: string }>): string {
+  const th = headers.map((h, i) => `<th align="${i ? "right" : "left"}" style="padding:8px 6px;border-bottom:1px solid ${C.line};font-family:${FONT};font-size:12px;font-weight:800;letter-spacing:0.3px;color:${C.muted}">${esc(h)}</th>`).join("");
+  const tr = rows.map((r) => `<tr>${r.cells.map((c, i) => {
+    const last = i === r.cells.length - 1 && r.link;
+    const inner = last ? `<a href="${esc(r.link!)}" style="color:${C.yellow};text-decoration:underline">${esc(c)}</a>` : esc(c);
+    return `<td align="${i ? "right" : "left"}" style="padding:7px 6px;border-bottom:1px solid ${C.line};font-family:${FONT};font-size:14px;color:${C.text}">${inner}</td>`;
+  }).join("")}</tr>`).join("");
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.panel};border-radius:16px;margin:4px 0 18px;padding:8px 12px"><tr>${th}</tr>${tr}</table>`;
+}
+
 export function panel(inner: string): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.panel};border-radius:16px;margin:4px 0 18px"><tr><td style="padding:18px 20px">${inner}</td></tr></table>`;
 }

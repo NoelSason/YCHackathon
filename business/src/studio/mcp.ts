@@ -10,6 +10,7 @@ import { buildTarget } from "../research/targets.js";
 import { status as progressStatus, step } from "../leads/progress.js";
 import { levelsQuery, studioLevels } from "../levels/public.js";
 import type { Query } from "../store.js";
+import { listForStudio, registerForStudio, testForStudio } from "../generators/routes.js";
 
 /**
  * The studio MCP: what a studio's own coding agent can ask Level AI to do, authenticated by that
@@ -85,6 +86,33 @@ export function buildStudioMcp(ctx: ToolContext, studio: Lead, levelsDb: Query |
       inputSchema: {},
     },
     async () => json(await studioLevels(levelsDb, studio)),
+  );
+
+  server.registerTool(
+    "register_generator",
+    {
+      description: "Register your own level generator: an HTTPS endpoint with POST {base_url}/generate, /evaluate, and optionally /validate (see /developers#byog). Returns a signing secret once; we sign every request to your endpoint with it. After that, level packs we build for your studio in this genre come from your generator, measured by your bot. Registering again for the same genre replaces the old one.",
+      inputSchema: {
+        name: z.string().max(80), genre: z.string().max(40).describe("match3, watersort, racer, or lotescape (or match-3, sort, lane-racer, parking)"),
+        base_url: z.url().max(300), format: z.enum(["custom", "levelai"]).optional().describe("levelai if your level JSON uses our format for that genre, so we can preview it in our player"),
+      },
+    },
+    async (args) => json((await registerForStudio(ctx, studio, args)).body),
+  );
+
+  server.registerTool(
+    "test_generator",
+    {
+      description: "Call your registered generator once: generate at difficulty 0.5, validate if you offer it, and evaluate 50 plays. Returns each request and answer, the timings, and the measured win rate, or what failed.",
+      inputSchema: { generator_id: z.string() },
+    },
+    async (args) => json((await testForStudio(ctx, studio, args.generator_id)).body),
+  );
+
+  server.registerTool(
+    "list_generators",
+    { description: "List your studio's registered level generators and their last test result (never the secret).", inputSchema: {} },
+    async () => json((await listForStudio(ctx, studio)).body),
   );
 
   return server;

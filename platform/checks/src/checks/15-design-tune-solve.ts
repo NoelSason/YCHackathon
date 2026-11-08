@@ -11,7 +11,8 @@ const check: Check = {
              count(l.*) filter (where l.status in ('accepted','published') and l.updated_at > now() - interval '3 hours'
                                   and l.measured_win_rate is not null
                                   and abs(l.measured_win_rate - l.target_win_rate) <= 0.05) as on_target_3h,
-             max(l.updated_at) filter (where l.status in ('accepted','published')) as last_accepted
+             max(l.updated_at) filter (where l.status in ('accepted','published')) as last_accepted,
+             count(l.*) as ever
         from games g left join levels l on l.game_id = g.game_id
        where g.game_id <> 'stub'
        group by g.game_id order by g.game_id`);
@@ -24,14 +25,19 @@ const check: Check = {
       ? `harness last finished a run ${Math.round((Date.now() - new Date(h.finished_at).getTime()) / 60000)} min ago (${h.claimed_by ?? "unknown worker"})`
       : "harness has never finished a run";
 
-    const rows = games.rows as Array<{ game_id: string; on_target_3h: string; last_accepted: Date | null }>;
+    // A game nobody has ever made a level for (platformer: no browser game, no tuner knob, not in
+    // the Designer's rotation) isn't live yet, so it's named but not required. A game that has had
+    // levels and stops getting accepted ones still fails.
+    const all = games.rows as Array<{ game_id: string; on_target_3h: string; last_accepted: Date | null; ever: string }>;
+    const notLive = all.filter((r) => Number(r.ever) === 0).map((r) => r.game_id);
+    const rows = all.filter((r) => Number(r.ever) > 0);
     if (!rows.length) {
       const detail = `no real games in the games table (only stub); ${harnessNote}`;
       return expectRunning ? { ok: false, detail: `${detail}: redeploy the platform so it seeds a row per adapter` } : { ok: true, detail: `${detail} (not required before switch-on)` };
     }
     const per = rows.map((r) => `${r.game_id} ${r.on_target_3h}`);
     const missing = rows.filter((r) => Number(r.on_target_3h) === 0).map((r) => r.game_id);
-    const detail = `levels accepted on target in 3h: ${per.join(", ")}; ${harnessNote}`;
+    const detail = `levels accepted on target in 3h: ${per.join(", ")}; ${harnessNote}${notLive.length ? `; no levels ever made, so not counted: ${notLive.join(", ")}` : ""}`;
     if (!expectRunning) return { ok: true, detail: `${detail} (not required before switch-on)` };
     return missing.length
       ? { ok: false, detail: `${detail}. No on-target level yet for: ${missing.join(", ")}` }

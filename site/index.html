@@ -61,7 +61,7 @@
     <div class="wrap">
       <div>
         <h1 id="hero-title">New levels for your puzzle game, tuned before your players see them.</h1>
-        <p class="lede">We design new levels in your game's style. Simulated players play each one hundreds of times, and we tune it until its win rate lands on the target you pick. Then a real iPhone plays it before you ship.</p>
+        <p class="lede">We design new levels in your game's style. Simulated players play each one hundreds of times, and we tune it until its win rate lands on the target you pick. Then a real iPhone plays the set before you ship.</p>
         <div class="hero-actions">
           <a class="btn" href="/join">Get free levels for your game</a>
           <a class="text-link" href="#measure">See how we measure difficulty</a>
@@ -125,8 +125,8 @@
       <div class="measure-grid">
         <ol class="mechanics">
           <li>
-            <h3>Three kinds of simulated players</h3>
-            <p>Each level is played hundreds of times by three simulated players: one that moves at random, a greedy one that takes the best-looking move, and one that looks a few moves ahead.</p>
+            <h3>Simulated players</h3>
+            <p>Each level is played hundreds of times by simulated players: one that plays like a person and makes small mistakes, a greedy one that takes the best-looking move, and one that moves at random. Each game is tuned against one of them.</p>
           </li>
           <li>
             <h3>A score you can read</h3>
@@ -142,45 +142,41 @@
           </li>
           <li>
             <h3>Played on a real iPhone</h3>
-            <p>Last, a real iPhone plays the level to catch loading, touch, and layout problems.</p>
+            <p>Last, a real iPhone opens the set and plays its first level to catch loading, touch, and layout problems.</p>
           </li>
         </ol>
 
         <figure class="example" aria-labelledby="ex-cap">
           <figcaption class="ex-top">
-            <span class="ex-label">Example</span>
-            <span id="ex-cap">One level, tuned to a 40% target</span>
+            <span class="ex-label">From our log</span>
+            <span id="ex-cap">One match-3 level, tuned to a 45% target on Nov 7</span>
           </figcaption>
 
           <div class="ex-state is-hard">
             <div class="ex-head">
-              <span class="ex-when">Before tuning</span>
-              <span class="ex-rate"><b>3%</b> win rate</span>
-              <span class="ex-verdict">Too hard</span>
+              <span class="ex-when">First draft: clear 29 green gems</span>
+              <span class="ex-rate"><b>100%</b> win rate</span>
+              <span class="ex-verdict">Too easy</span>
             </div>
-            <div class="ex-track" aria-hidden="true"><i class="ex-band"></i><i class="ex-pin" style="left:3%"></i></div>
+            <div class="ex-track" aria-hidden="true"><i class="ex-band" style="left:40%"></i><i class="ex-pin" style="left:99%"></i></div>
             <ul class="ex-players">
-              <li><span>Random player</span><i style="--w:0%"></i><b>0%</b></li>
-              <li><span>Greedy player</span><i style="--w:2%"></i><b>2%</b></li>
-              <li><span>Looks ahead</span><i style="--w:8%"></i><b>8%</b></li>
+              <li><span>Greedy player</span><i style="--w:100%"></i><b>100%</b></li>
             </ul>
           </div>
 
-          <p class="ex-change"><span aria-hidden="true"></span>Tuned: 4 more moves, 2 fewer blockers</p>
+          <p class="ex-change"><span aria-hidden="true"></span>Six more rounds: 93%, 0%, 5%, 34%, 60%, then 45%</p>
 
           <div class="ex-state is-ok">
             <div class="ex-head">
-              <span class="ex-when">After tuning</span>
-              <span class="ex-rate"><b>41%</b> win rate</span>
+              <span class="ex-when">Accepted: clear 89 green gems</span>
+              <span class="ex-rate"><b>45%</b> win rate</span>
               <span class="ex-verdict">On target</span>
             </div>
-            <div class="ex-track" aria-hidden="true"><i class="ex-band"></i><i class="ex-pin" style="left:41%"></i></div>
+            <div class="ex-track" aria-hidden="true"><i class="ex-band" style="left:40%"></i><i class="ex-pin" style="left:45%"></i></div>
             <ul class="ex-players">
-              <li><span>Random player</span><i style="--w:12%"></i><b>12%</b></li>
-              <li><span>Greedy player</span><i style="--w:41%"></i><b>41%</b></li>
-              <li><span>Looks ahead</span><i style="--w:70%"></i><b>70%</b></li>
+              <li><span>Greedy player</span><i style="--w:45%"></i><b>45%</b></li>
             </ul>
-            <p class="ex-key" aria-hidden="true"><span></span>Target band: 35% to 45%</p>
+            <p class="ex-key" aria-hidden="true"><span></span>Target band: 40% to 50%. 100 games each round.</p>
           </div>
         </figure>
       </div>

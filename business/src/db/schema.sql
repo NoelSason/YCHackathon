@@ -127,3 +127,48 @@ create table if not exists biz_pack_deliveries (
 );
 create unique index if not exists biz_pack_deliveries_payment_part on biz_pack_deliveries (payment_id, part) where payment_id is not null;
 create index if not exists biz_pack_deliveries_queue on biz_pack_deliveries (state, due_at);
+
+-- Bring your own level generator (src/generators/): a studio's own HTTPS endpoint that makes and plays
+-- levels for its game. Level packs for that studio and genre are built by it: it makes each level, its
+-- bot measures it, and our tuning loop moves the difficulty input to each level's target. The signing
+-- secret is encrypted (AES-256-GCM, GENERATOR_SECRET_KEY), never stored in the clear or logged. One
+-- active generator per studio and genre; registering another replaces it (and rotates the secret).
+create table if not exists biz_generators (
+  id            uuid primary key default gen_random_uuid(),
+  studio_id     uuid not null references studios (studio_id),
+  name          text not null,
+  genre         text not null,
+  format        text not null default 'custom' check (format in ('custom', 'levelai')),
+  base_url      text not null,
+  secret_enc    text not null,
+  secret_hint   text not null,
+  status        text not null default 'active' check (status in ('active', 'replaced')),
+  last_test_at  timestamptz,
+  last_test_ok  boolean,
+  last_error    text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+create unique index if not exists biz_generators_active on biz_generators (studio_id, genre) where status = 'active';
+
+-- Customer emails after a payment (order confirmations, playtest watch links and reports, level
+-- packs) that the mail provider refused, kept for a retry (billing/outbox.ts). The idempotency key
+-- is the original send's, so a retry can never send twice. Given up after two days, for a person.
+create table if not exists biz_mail_outbox (
+  id               uuid primary key default gen_random_uuid(),
+  idempotency_key  text not null unique,
+  kind             text not null,
+  studio_id        uuid references studios (studio_id),
+  company          text not null,
+  to_email         text not null,
+  payload          jsonb not null,
+  test_order       boolean not null default false,
+  attempts         int not null default 1,
+  last_error       text,
+  next_at          timestamptz not null default now() + interval '15 minutes',
+  sent_at          timestamptz,
+  message_id       text,
+  gave_up_at       timestamptz,
+  created_at       timestamptz not null default now()
+);
+create index if not exists biz_mail_outbox_due on biz_mail_outbox (next_at) where sent_at is null and gave_up_at is null;

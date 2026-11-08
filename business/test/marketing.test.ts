@@ -88,3 +88,32 @@ describe("post status", () => {
     expect((await store.listActivity())[0]?.action).toBe("couldn't post on x");
   });
 });
+
+describe("unconfirmed posts and quiet hours", () => {
+  it("doesn't claim or count a post the network never confirmed", async () => {
+    const store = new MemoryStore();
+    const naive = { social: {
+      createPost: async () => ({ id: "p1", status: "scheduled" }),
+      getPost: async () => ({ status: "processing", error: null }),
+    } } as unknown as NaiveClient;
+    const r = await publish({ naive, identityId: "idn", store, post: { title: "t", content: "c", platforms: ["x"] }, dailyCap: 1, pollMs: 0 });
+    expect(r.posted).toEqual([]);
+    expect(r.skipped[0]?.reason).toMatch(/not confirmed/);
+    expect((await store.listActivity())[0]?.action).toBe("sent a post to x, not confirmed");
+    const { postedToday } = await import("../src/marketing/posts.js");
+    expect(await postedToday(store, "x")).toBe(0);
+    await store.logActivity({ at: new Date().toISOString(), agent: "marketing", action: "posted on x from the iPhone", why: null, result: "[x] posted (phone task t1)", costUsd: null, human: false });
+    expect(await postedToday(store, "x")).toBe(1);
+  });
+
+  it("reads quiet hours in Pacific time, including ranges past midnight", async () => {
+    const { inQuietHours } = await import("../src/marketing/loop.js");
+    const at = (iso: string) => new Date(iso);
+    // 2026-11-08 is PST (UTC-8): 11:00Z = 3 AM, 21:00Z = 1 PM, 22:30Z = 2:30 PM.
+    expect(inQuietHours("3-14", at("2026-11-08T11:00:00Z"))).toBe(true);
+    expect(inQuietHours("3-14", at("2026-11-08T21:00:00Z"))).toBe(true);
+    expect(inQuietHours("3-14", at("2026-11-08T22:30:00Z"))).toBe(false);
+    expect(inQuietHours("23-2", at("2026-11-08T08:30:00Z"))).toBe(true); // 12:30 AM
+    expect(inQuietHours("", at("2026-11-08T11:00:00Z"))).toBe(false);
+  });
+});

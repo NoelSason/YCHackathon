@@ -41,6 +41,10 @@ export interface StageStats {
   unattendedSince: string | null;
   /** Agent actions logged after the unattended stretch began (all of them when there are no step-ins). */
   actionsSinceStepIn: number;
+  /** Held tool calls the auto-approver (a policy program) approved. Not in agentActions; shown next to step-ins. */
+  autoApprovals: number;
+  /** Levels the level compiler (a deterministic program) built and verified. Not in agentActions. */
+  levelsCompiled: number;
   perAgent: AgentStat[];
 }
 
@@ -112,7 +116,7 @@ export function normalizeRow(raw: Row, source: string, opts: { forceHuman?: bool
 
   const idPart = text(row.id) ?? createHash("sha1").update(JSON.stringify([at, agentName, action, why, result])).digest("hex").slice(0, 16);
 
-  return {
+  return refineAgent({
     id: `${source}:${idPart}`,
     at,
     agent: human && agentName === "unknown" ? "human" : agentKey(agentName),
@@ -125,8 +129,34 @@ export function normalizeRow(raw: Row, source: string, opts: { forceHuman?: bool
     human,
     kind,
     source,
-  };
+  });
 }
+
+/**
+ * The platform logs three different programs under one name. The stage shows them as who they are:
+ * the level compiler (`production.*`, a deterministic program that builds and verifies levels), the
+ * auto-approver (`auto_approve`, a policy program that approves held calls to our own servers), and
+ * the solver (everything else). Idempotent, so replay files saved before this change read the same.
+ */
+export function refineAgent(e: StageEvent): StageEvent {
+  if (e.human || e.agent !== "platform") return e;
+  if (/^production\./.test(e.action)) return { ...e, agent: "compiler" };
+  if (/^auto[_ ]approve/.test(e.action)) return { ...e, agent: "approver" };
+  // Solver runs stay "platform" (shown as the Solver); its other bookkeeping (publishing a pack,
+  // checking a decision for the CEO) is the platform itself.
+  if (!/^solve(r_run|_level)\b/.test(e.action)) return { ...e, agent: "platform_ops" };
+  return e;
+}
+
+/** True for the auto-approver's rows: held tool calls approved by policy, not by a person. */
+export const isAutoApproval = (e: StageEvent): boolean => !e.human && e.agent === "approver";
+
+/**
+ * Rows from the two bulk programs: the level compiler (one row per accepted level, dozens a minute)
+ * and the auto-approver. They're counted on their own, not as agent actions, so a burst of either
+ * never inflates "agent actions".
+ */
+export const isBulkProgram = (e: StageEvent): boolean => !e.human && (e.agent === "compiler" || e.agent === "approver");
 
 /**
  * Setup checks the team ran while wiring things up (the "probe" agent, "approval_test" rows, smoke-test decisions). They
@@ -135,7 +165,10 @@ export function normalizeRow(raw: Row, source: string, opts: { forceHuman?: bool
 export function isSetupNoise(e: StageEvent): boolean {
   if (e.human) return false;
   // Plus the platform's smoke-test decisions (chose "a", why "smoke") from wiring up the CEO.
-  return e.agent === "probe" || /^approval[_ ]test/i.test(e.action) || (e.kind === "decision" && /^smoke\b/i.test(e.why ?? ""));
+  // The CEO also writes an activity row "decision" for each decision record (including the smoke
+  // tests, whose reason is just "a"). The decisions table has the full record, so the copy is hidden.
+  const smokeDecisionRow = e.kind === "action" && e.action === "decision";
+  return e.agent === "probe" || /^approval[_ ]test/i.test(e.action) || (e.kind === "decision" && /^smoke\b/i.test(e.why ?? "")) || smokeDecisionRow;
 }
 
 export const byTime = (a: StageEvent, b: StageEvent): number => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0);
@@ -148,6 +181,8 @@ export function computeStats(events: readonly StageEvent[]): StageStats {
   let firstAt: string | null = null;
   let lastAt: string | null = null;
   let lastStepInAt: string | null = null;
+  let autoApprovals = 0;
+  let levelsCompiled = 0;
   const perAgent = new Map<string, AgentStat>();
 
   for (const e of events) {
@@ -159,7 +194,9 @@ export function computeStats(events: readonly StageEvent[]): StageStats {
       if (!lastStepInAt || e.at > lastStepInAt) lastStepInAt = e.at;
       continue;
     }
-    agentActions += 1;
+    if (isAutoApproval(e)) autoApprovals += 1;
+    else if (e.agent === "compiler") levelsCompiled += 1;
+    else agentActions += 1;
     if (e.kind === "decision") decisions += 1;
     const s = perAgent.get(e.agent) ?? { agent: e.agent, count: 0, lastAt: null, lastAction: null };
     s.count += 1;
@@ -171,7 +208,7 @@ export function computeStats(events: readonly StageEvent[]): StageStats {
   }
 
   const since = lastStepInAt;
-  const actionsSinceStepIn = since ? events.filter((e) => !e.human && e.at > since).length : agentActions;
+  const actionsSinceStepIn = since ? events.filter((e) => !e.human && !isBulkProgram(e) && e.at > since).length : agentActions;
 
   return {
     agentActions,
@@ -183,6 +220,28 @@ export function computeStats(events: readonly StageEvent[]): StageStats {
     lastStepInAt,
     unattendedSince: lastStepInAt ?? firstAt,
     actionsSinceStepIn,
+    autoApprovals,
+    levelsCompiled,
     perAgent: [...perAgent.values()].sort((a, b) => b.count - a.count),
   };
 }
+
+/**
+ * The newest `limit` events, plus the level compiler's and auto-approver's rows from the same stretch (at most
+ * `bulkLimit`). The compiler can log dozens of accepted levels a minute; without this, the page
+ * would open on nothing but its rows. The page groups a run of compiler rows into one line.
+ */
+export function pickRecent(list: readonly StageEvent[], limit: number, bulkLimit = 300): StageEvent[] {
+  const bulk = (e: StageEvent) => e.agent === "compiler" || e.agent === "approver";
+  const regular: StageEvent[] = [];
+  for (let i = list.length - 1; i >= 0 && regular.length < limit; i--) if (!bulk(list[i]!)) regular.push(list[i]!);
+  const since = regular.length === limit ? regular[regular.length - 1]!.at : "";
+  const compiler: StageEvent[] = [];
+  for (let i = list.length - 1; i >= 0 && compiler.length < bulkLimit; i--) {
+    const e = list[i]!;
+    if (e.at < since) break;
+    if (bulk(e)) compiler.push(e);
+  }
+  return [...regular, ...compiler].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+}
+

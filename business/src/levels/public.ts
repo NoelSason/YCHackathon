@@ -139,10 +139,15 @@ export async function getPublicPack(q: Query, id: string): Promise<PublicPack | 
   return { pack_id: String(p.pack_id), game_id: String(p.game_id), name: String(p.name), published_at: iso(p.published_at), levels };
 }
 
+/** Levels our Designer agent made (created_by 'designer', its Tuner versions 'tuner'). */
+const BY_DESIGNER = `coalesce(created_by in ('designer', 'tuner'), false)`;
+
 /**
  * What /play with no parameters plays: the newest published pack in its own order, or, before any
  * pack exists, the newest accepted levels ordered easiest first (highest measured win rate), so
- * the difficulty ramps up.
+ * the difficulty ramps up. Levels the Designer agent made come before the production compiler's
+ * (solver/PRODUCTION.md), which imports hundreds at a time and would otherwise bury them. The
+ * phone loop (mobile/loop.ts) plays the first of these too.
  */
 export async function latestLevels(q: Query, gameId: string, limit = 10): Promise<LatestLevels> {
   const n = Math.max(1, Math.min(MAX_LIMIT, Math.floor(limit) || 10));
@@ -155,11 +160,11 @@ export async function latestLevels(q: Query, gameId: string, limit = 10): Promis
     if (levels.length) return { game_id: gameId, pack: { pack_id: String(p.pack_id), name: String(p.name) }, levels: levels.slice(0, n) };
   }
   const rows = await q(
-    `select * from (
-       select ${LEVEL_COLUMNS} from levels
+    `select ${LEVEL_COLUMNS} from (
+       select ${LEVEL_COLUMNS}, ${BY_DESIGNER} as by_designer from levels
        where game_id = $1 and status = any($2::text[]) and ${NOT_CUSTOMER}
-       order by created_at desc limit $3
-     ) newest order by measured_win_rate desc nulls last, created_at desc`,
+       order by by_designer desc, created_at desc limit $3
+     ) newest order by by_designer desc, measured_win_rate desc nulls last, created_at desc`,
     [gameId, PLAYABLE_STATUSES, n],
   );
   return { game_id: gameId, pack: null, levels: rows.map(toLevel) };

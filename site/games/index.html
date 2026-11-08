@@ -88,7 +88,7 @@
         </div>
       </li>
 
-      <li class="game-card" data-game="lotescape" data-practice="2">
+      <li class="game-card" data-game="lotescape" data-practice="6">
         <a class="game-shot" href="/games/lotescape/" tabindex="-1" aria-hidden="true">
           <img src="/games/thumbs/lotescape.jpg" alt="" width="388" height="376" loading="lazy">
         </a>
@@ -96,7 +96,7 @@
           <p class="game-meta"><span class="game-genre" style="--c:var(--cobalt)">Parking puzzle</span></p>
           <h2>Lot Escape</h2>
           <p class="game-desc">Slide each car along its lane and out its marked exit. Clear the lot before you run out of moves.</p>
-          <p class="game-levels" data-levels>2 practice lots. Still being polished.</p>
+          <p class="game-levels" data-levels>6 practice lots, then endless mode.</p>
           <a class="btn game-play" href="/games/lotescape/" data-play>Play Lot Escape</a>
         </div>
       </li>
@@ -113,10 +113,10 @@
         </a>
         <div class="game-body">
           <p class="game-meta"><span class="game-genre" style="--c:var(--tomato)">Match-3</span></p>
-          <h2>Gem Match</h2>
+          <h2>Gem Garden</h2>
           <p class="game-desc">Swap neighboring gems to line up three or more of a kind. Clear the goals before your moves run out.</p>
           <p class="game-levels" data-levels>New levels are on the way.</p>
-          <a class="btn game-play" href="/play" data-play>Open Gem Match</a>
+          <a class="btn game-play" href="/play" data-play>Open Gem Garden</a>
           <p class="game-credit">Rules engine from <a href="https://github.com/johnmorrisdotca/houseki">Houseki</a>, MIT License.</p>
         </div>
       </li>
@@ -159,20 +159,29 @@
       return r.json();
     });
   }
+  /* How many accepted or published levels each game has, for the card's count. */
+  var totals = json('/api/games').then(function (data) {
+    var out = {};
+    (data && Array.isArray(data.games) ? data.games : []).forEach(function (g) { out[g.game_id] = g.levels_available; });
+    return out;
+  }).catch(function () { return {}; });
   json('/games/published.json').then(function (served) {
     document.querySelectorAll('.game-card').forEach(function (card) {
       var id = card.getAttribute('data-game');
       if (!served || served[id] !== true) return;
-      json('/levels-latest?game=' + encodeURIComponent(id) + '&limit=10').then(function (data) {
+      Promise.all([json('/levels-latest?game=' + encodeURIComponent(id) + '&limit=10'), totals]).then(function (got) {
+        var data = got[0];
+        var total = got[1][id];
         var levels = data && Array.isArray(data.levels) ? data.levels : [];
         if (!levels.length) return;
         var note = card.querySelector('[data-levels]');
         var play = card.querySelector('[data-play]');
         var badge = card.querySelector('[data-badge]');
         var name = data.pack && data.pack.name ? data.pack.name : null;
-        note.textContent = levels.length + (levels.length === 1 ? ' new level' : ' new levels') + (name ? ' in “' + name + '”' : '') + ', fresh from our studio.';
+        var count = typeof total === 'number' && total >= levels.length ? total : levels.length;
+        note.textContent = count.toLocaleString('en-US') + (count === 1 ? ' level' : ' levels') + ' from our studio' + (name ? '. Start with “' + name + '”.' : '.');
         if (badge) badge.remove();
-        if (id === 'match3') { play.textContent = 'Play Gem Match'; return; }
+        if (id === 'match3') { play.textContent = 'Play Gem Garden'; return; }
         var href = '/games/' + id + '/?level=' + encodeURIComponent(levels[0].level_id);
         play.href = href;
         card.querySelectorAll('.game-shot').forEach(function (a) { a.href = href; });

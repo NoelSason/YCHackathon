@@ -1,0 +1,25 @@
+{
+  "buildCommand": "echo 'api/generator.js is prebuilt by build.mjs'",
+  "installCommand": "echo none",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/generate",
+      "destination": "/api/generator?op=generate"
+    },
+    {
+      "source": "/evaluate",
+      "destination": "/api/generator?op=evaluate"
+    },
+    {
+      "source": "/validate",
+      "destination": "/api/generator?op=validate"
+    }
+  ],
+  "functions": {
+    "api/generator.js": {
+      "maxDuration": 60
+    }
+  },
+  "outputDirectory": "public"
+}

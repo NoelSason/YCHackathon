@@ -14,7 +14,16 @@ const check: Check = {
     const x = p.rows[0] as { paid: string; live: string; last_paid: string | null };
     let delivered = "n/a", pending = 0;
     if (hasDeliveries) {
-      const d = await db.query(`select count(*) filter (where status='delivered') as delivered, count(*) filter (where status='pending' and created_at < now() - interval '30 minutes') as stale from biz_deliveries`);
+      // A subscription month ships in two halves, two weeks apart, so its row stays pending until the
+      // second half. It's only stale when a half that is already due hasn't been delivered.
+      const hasPacks = (await db.query(`select to_regclass('biz_pack_deliveries') as t`)).rows[0]?.t;
+      const scheduled = hasPacks
+        ? `and not (exists (select 1 from biz_pack_deliveries pd where pd.payment_id = d.payment_id)
+             and not exists (select 1 from biz_pack_deliveries pd where pd.payment_id = d.payment_id and pd.state <> 'delivered' and pd.due_at <= now()))`
+        : "";
+      const d = await db.query(`select count(*) filter (where status='delivered') as delivered,
+          count(*) filter (where status='pending' and created_at < now() - interval '30 minutes' ${scheduled}) as stale
+        from biz_deliveries d`);
       delivered = String((d.rows[0] as { delivered: string }).delivered);
       pending = Number((d.rows[0] as { stale: string }).stale);
     }

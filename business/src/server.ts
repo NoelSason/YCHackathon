@@ -2,12 +2,15 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { integrationStatus, loadConfig } from "./config.js";
 import { buildContext, createHandler, MAX_BODY_BYTES } from "./app.js";
 import { agentMailLister, pollOnce } from "./outreach/poll.js";
+import { takeAuditRequest } from "./leads/email-in.js";
 import { startSession } from "./naive.js";
 import { runOutreachCycle } from "./outreach/autopilot.js";
 import { startSocialLoop } from "./marketing/loop.js";
 import { resumePaidOrders } from "./leads/playtest-offer.js";
 import { startPlaytestLoop } from "./mobile/loop.js";
+import { startOutboxLoop } from "./billing/outbox.js";
 import { resumePackDeliveries, startPackDeliveryLoop } from "./levels/deliver-pack.js";
+import { agencyInbox, startAgencyLoop } from "./agency/index.js";
 
 /**
  * The business server on Node: `npm run webhooks` (dev) or `npm start` (built, `node dist/server.js`).
@@ -18,13 +21,16 @@ const config = loadConfig();
 const ctx = buildContext(config);
 const handle = createHandler(config, ctx);
 
-// Replies: check the sales inbox every minute (no webhook needed while the URL keeps changing).
+// Replies and email-in audits: check the sales inbox every 15 s (no webhook needed while the URL keeps changing).
 if (config.AGENTMAIL_API_KEY && config.AGENTMAIL_INBOX_ID) {
-  const list = agentMailLister(config.AGENTMAIL_API_KEY, config.AGENTMAIL_INBOX_ID);
+  // agencyInbox: a prospect who writes to us first (or the test agency) becomes a lead before the poll handles it.
+  const list = agencyInbox(ctx, agentMailLister(config.AGENTMAIL_API_KEY, config.AGENTMAIL_INBOX_ID));
   const seen = new Set<string>();
   const tick = () =>
     pollOnce({
       list, store: ctx.store, ownAddress: config.AGENTMAIL_INBOX_ID!, seen,
+      // "Audit: <game>" or a store link: run the review audit and answer in the thread (leads/email-in.ts).
+      onNewMessage: async (m) => (await takeAuditRequest(ctx, m)).taken,
       onReply: async (o) => {
         if (!ctx.naive || !config.SALES_READER_AGENT_ID) return;
         await startSession(ctx.naive, config.SALES_READER_AGENT_ID,
@@ -33,7 +39,8 @@ if (config.AGENTMAIL_API_KEY && config.AGENTMAIL_INBOX_ID) {
     }).then((r) => { if (r.length) console.log(`inbox: handled ${r.length} new repl${r.length === 1 ? "y" : "ies"}`); })
       .catch((err) => console.error("inbox check failed:", err instanceof Error ? err.message.slice(0, 200) : "unknown"));
   void tick();
-  setInterval(tick, 60_000);
+  // Every 15 s, so an emailed audit request is answered in well under a minute.
+  setInterval(tick, 15_000);
 }
 
 // Outreach loop: research → public contact → evidence email, within the daily cap.
@@ -63,6 +70,8 @@ setTimeout(() => {
   void resumePackDeliveries(ctx).then((n) => n && console.log(`resumed ${n} level pack(s)`)).catch(() => undefined);
 }, 15_000);
 startPackDeliveryLoop(ctx);
+// Customer emails the mail provider refused (e.g. a new-recipient limit) are retried here.
+startOutboxLoop(ctx);
 
 if (config.SOCIAL_LOOP === "1" && config.NAIVE_API_KEY_SOCIAL && config.NAIVE_SOCIAL_IDENTITY_ID) {
   startSocialLoop(ctx, config.SOCIAL_LOOP_MINUTES);
@@ -71,6 +80,9 @@ if (config.SOCIAL_LOOP === "1" && config.NAIVE_API_KEY_SOCIAL && config.NAIVE_SO
 if (config.PLAYTEST_LOOP === "1" && ctx.mobilerun && config.MOBILERUN_DEVICE_ID) {
   startPlaytestLoop(ctx, config.PLAYTEST_LOOP_MINUTES);
 }
+
+// Agency outreach: game-development agencies from Clutch, a free-trial offer, at most AGENCY_DAILY_CAP a day (AGENCY_OUTREACH=1).
+startAgencyLoop(ctx);
 
 async function readBody(req: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];

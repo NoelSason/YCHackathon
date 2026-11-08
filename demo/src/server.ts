@@ -7,7 +7,7 @@ import QRCode from "qrcode";
 import { timingSafeEqual } from "node:crypto";
 import { loadOutreach, loadStageStudios, PIPELINE_STAGES, sampleOutreach, sampleStageStudios } from "./outreach.js";
 import { momentFor } from "./moments.ts";
-import { computeStats, type StageEvent } from "./events.ts";
+import { computeStats, isBulkProgram, pickRecent, type StageEvent } from "./events.ts";
 import { DEFAULT_ACTIVITY, DEFAULT_STEPINS, LiveFeed, RehearsalFeed, ReplayFeed, loadResearch, parseTables, sampleResearch, type Feed, type HealthItem, type Pipeline } from "./feeds.ts";
 import { PhoneView } from "./phone.ts";
 
@@ -47,7 +47,8 @@ function makeFeed(): Feed {
 
 const feed = makeFeed();
 const phone = new PhoneView(env.MOBILERUN_API_KEY, env.MOBILERUN_DEVICE_ID);
-const playUrl = env.DEMO_PLAY_URL ?? null;
+/** "Play it yourself": DEMO_PLAY_URL, or the public game hub when it isn't set. */
+const playUrl = env.DEMO_PLAY_URL || "https://levelai.vercel.app/games";
 /** The signup page ("Become a customer"): the business server's /join, usually behind a tunnel. */
 const joinUrl = env.DEMO_JOIN_URL ?? null;
 const company = env.COMPANY_NAME ?? "Level Studio";
@@ -58,6 +59,29 @@ const MAX_EVENTS = 50_000;
 const events: StageEvent[] = [];
 let pipeline: Pipeline | null = null;
 let playUrlOk: boolean | null = null;
+
+/**
+ * What the Naïve agents have spent (model, phone, email, and so on), read from Naïve's credits API
+ * with NAIVE_API_KEY_SOCIAL (it has billing:read). Read-only, server-side; the key never reaches the
+ * page. Covers Pacific days since Nov 7 (`days=2`). Null when unreadable or in a replay/rehearsal.
+ */
+let naiveSpend: { usd: number; since: string; checkedAt: string } | null = null;
+async function readNaiveSpend(): Promise<void> {
+  const key = env.NAIVE_API_KEY_SOCIAL;
+  if (!key || feed.mode !== "live") return;
+  try {
+    const base = (env.NAIVE_BASE_URL || "https://api.vetta.sh").replace(/\/$/, "");
+    const r = await fetch(`${base}/v1/credits/spend?days=2&timezone=America/Los_Angeles`, { headers: { authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return;
+    const j = (await r.json()) as { spent_micro_usd?: number; by_day?: Array<{ day: string; micro_usd?: number }> };
+    if (typeof j.spent_micro_usd !== "number") return;
+    const first = j.by_day?.find((d) => (d.micro_usd ?? 0) > 0)?.day ?? "";
+    const since = first ? new Date(`${first}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "";
+    naiveSpend = { usd: Math.round(j.spent_micro_usd / 10_000) / 100, since, checkedAt: new Date().toISOString() };
+  } catch {
+    // Keep the last good reading.
+  }
+}
 
 function health(): HealthItem[] {
   const items = [...feed.health()];
@@ -85,9 +109,10 @@ function snapshot(limit = 150) {
     clock: feed.clock(),
     clockTicks: feed.clockTicks,
     stats: computeStats(events),
-    events: annotate(events.slice(-limit)),
+    events: annotate(pickRecent(events, limit)),
     stepIns: events.filter((e) => e.human).slice(-6),
     pipeline,
+    naiveSpend,
     health: health(),
     phone: phone.configured,
     playUrl,
@@ -118,8 +143,13 @@ async function tick(): Promise<void> {
   }
 }
 
+let lastSpendRead = 0;
 async function slowTick(): Promise<void> {
   pipeline = await feed.pipeline();
+  if (!naiveSpend || Date.now() - lastSpendRead > 60_000) {
+    lastSpendRead = Date.now();
+    await readNaiveSpend();
+  }
   if (playUrl) {
     try {
       const r = await fetch(playUrl, { method: "GET", signal: AbortSignal.timeout(5000) });
@@ -128,7 +158,7 @@ async function slowTick(): Promise<void> {
       playUrlOk = false;
     }
   }
-  broadcast({ type: "status", pipeline, health: health(), clock: feed.clock() });
+  broadcast({ type: "status", pipeline, naiveSpend, health: health(), clock: feed.clock() });
 }
 
 // ---- Preflight --------------------------------------------------------------------------------
@@ -193,9 +223,11 @@ const server = createServer(async (req, res) => {
         // The rows behind a stat card on the console, newest first.
         const type = url.searchParams.get("type") ?? "actions";
         const pick: Record<string, (e: StageEvent) => boolean> = {
-          actions: (e) => !e.human,
+          actions: (e) => !e.human && !isBulkProgram(e),
+          compiled: (e) => e.agent === "compiler",
           decisions: (e) => e.kind === "decision",
           stepins: (e) => e.human,
+          approvals: (e) => e.agent === "approver",
           spend: (e) => (e.costUsd ?? 0) > 0,
         };
         const test = pick[type];
@@ -207,7 +239,7 @@ const server = createServer(async (req, res) => {
         const list = events.filter(test);
         const totalUsd = Math.round(list.reduce((sum, e) => sum + (e.costUsd ?? 0), 0) * 100) / 100;
         res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
-        res.end(JSON.stringify({ type, count: list.length, totalUsd, rows: annotate(list.slice(-300)).reverse() }));
+        res.end(JSON.stringify({ type, count: list.length, totalUsd, rows: annotate(pickRecent(list, 300)).reverse() }));
         return;
       }
       case "/api/market-research": {

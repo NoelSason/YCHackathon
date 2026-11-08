@@ -101,6 +101,11 @@ const EnvSchema = z.object({
   // Server
   PORT: z.coerce.number().int().positive().default(8787),
   BUSINESS_MCP_TOKEN: z.string().optional(),
+  /**
+   * Encrypts the signing secrets of studios' own level generators (src/generators/). 64 hex characters
+   * (AES-256). They're encrypted, not hashed, because we sign every request to the studio with them.
+   */
+  GENERATOR_SECRET_KEY: z.string().regex(/^[0-9a-f]{64}$/i).optional(),
 });
 
 export type Config = z.infer<typeof EnvSchema>;

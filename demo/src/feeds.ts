@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
-import { byTime, isSetupNoise, normalizeRow, type StageEvent } from "./events.ts";
+import { byTime, isSetupNoise, normalizeRow, refineAgent, type StageEvent } from "./events.ts";
 
 export type Mode = "live" | "replay" | "sample";
 
@@ -169,9 +169,9 @@ export class LiveFeed implements Feed {
       if (!this.pipelineTables.leads && !this.pipelineTables.payments) return null;
       const stages: Record<string, number> = {};
       if (this.pipelineTables.leads) {
-        // The team's own test orders (source 'internal_test') aren't customers, so they're left out.
+        // The team's own test orders (source 'internal_test', or named "Level AI …") aren't customers, so they're left out.
         const r = (await this.sql.query(
-          "select stage, count(*)::int as n from studios where coalesce(source, '') <> 'internal_test' group by stage",
+          "select stage, count(*)::int as n from studios where coalesce(source, '') <> 'internal_test' and coalesce(name, '') !~* '^level ai( |$)' group by stage",
         )) as Array<{ stage: string; n: number }>;
         for (const { stage, n } of r) stages[stage] = n;
       }
@@ -183,7 +183,7 @@ export class LiveFeed implements Feed {
                   coalesce(round(sum(p.amount_usd) filter (where p.mode = 'test') * 100), 0)::int as test_amt
            from payments p
            left join studios s on s.studio_id = p.studio_id
-           where p.status in ('paid', 'delivered') and coalesce(s.source, '') <> 'internal_test'`,
+           where p.status in ('paid', 'delivered') and coalesce(s.source, '') <> 'internal_test' and coalesce(s.name, '') !~* '^level ai( |$)'`,
         )) as Array<{ live: number; test: number; live_amt: number; test_amt: number }>;
         const p = r[0];
         if (p) Object.assign(payments, { live: p.live, test: p.test, liveAmountMinor: p.live_amt, testAmountMinor: p.test_amt });
@@ -213,7 +213,7 @@ export class ReplayFeed implements Feed {
     this.events = readFileSync(file, "utf8")
       .split("\n")
       .filter((l) => l.trim())
-      .map((l) => JSON.parse(l) as StageEvent)
+      .map((l) => refineAgent(JSON.parse(l) as StageEvent))
       .filter((e) => !isSetupNoise(e))
       .sort(byTime);
     if (this.events.length === 0) throw new Error(`${file} has no events.`);

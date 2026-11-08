@@ -4,7 +4,7 @@ import { neon } from "@neondatabase/serverless";
  * The outreach board: every studio the agents found or that signed up, the evidence they used,
  * the email they sent, and any reply. Read live from the platform tables (studios, emails).
  * Nothing here is typed in; with no database it says so. The team's own test orders
- * (source 'internal_test') and smoke-test rows aren't customers, so they're left out.
+ * (source 'internal_test'), smoke-test rows, and the team's own "Level AI …" test signups aren't customers, so they're left out.
  */
 export interface OutreachRow {
   company: string;
@@ -43,7 +43,7 @@ export async function loadOutreach(databaseUrl: string | undefined): Promise<Out
                            where e.studio_id = s.studio_id and e.direction = 'out' order by ts asc limit 1) o on true
        left join lateral (select summary, ts from emails e
                            where e.studio_id = s.studio_id and e.direction = 'in' order by ts desc limit 1) i on true
-      where s.name not ilike '%smoke test%' and coalesce(s.source, '') <> 'internal_test'
+      where s.name not ilike '%smoke test%' and s.name !~* '^level ai( |$)' and coalesce(s.source, '') <> 'internal_test'
       order by coalesce(i.ts, o.ts, s.updated_at) desc
       limit 24`,
   )) as Array<Record<string, unknown>>;
@@ -71,7 +71,7 @@ export async function loadOutreach(databaseUrl: string | undefined): Promise<Out
             count(*) filter (where exists (select 1 from emails e where e.studio_id = s.studio_id and e.direction = 'out'))::int as emailed,
             count(*) filter (where exists (select 1 from emails e where e.studio_id = s.studio_id and e.direction = 'in'))::int as replied,
             count(*) filter (where stage in ('pilot_paid', 'delivered'))::int as won
-       from studios s where s.name not ilike '%smoke test%' and coalesce(s.source, '') <> 'internal_test'`,
+       from studios s where s.name not ilike '%smoke test%' and s.name !~* '^level ai( |$)' and coalesce(s.source, '') <> 'internal_test'`,
   )) as Array<OutreachBoard["totals"]>;
   if (t[0]) board.totals = t[0];
   return board;
@@ -125,7 +125,7 @@ export async function loadStageStudios(databaseUrl: string | undefined, stage: s
             (select max(ts) from emails e where e.studio_id = s.studio_id and e.direction = 'out') as last_out,
             (select max(ts) from emails e where e.studio_id = s.studio_id and e.direction = 'in') as last_in
        from studios s
-      where s.stage = $1 and s.name not ilike '%smoke test%' and coalesce(s.source, '') <> 'internal_test'
+      where s.stage = $1 and s.name not ilike '%smoke test%' and s.name !~* '^level ai( |$)' and coalesce(s.source, '') <> 'internal_test'
       order by s.updated_at desc
       limit 100`,
     [stage],

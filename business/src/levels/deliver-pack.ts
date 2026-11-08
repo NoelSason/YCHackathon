@@ -7,7 +7,10 @@ import type { Lead } from "../types.js";
 import { enqueue } from "../leads/playtest-offer.js";
 import { idempotencyKey } from "../outreach/send.js";
 import { MARKET_GAMES, runWork, type LoopResult, type LoopWork } from "../mobile/loop.js";
+import { captureScreen } from "../mobile/screen.js";
 import * as E from "../email/html.js";
+// BYOG hook (see runPackDelivery): a studio's own registered level generator.
+import { externalPackRunner } from "../generators/hook.js";
 import { PACK_GAME_IDS, type MadeLevel, type MakeProgress, type MakeRequest, type MakeResult, type PackDifficulty, type PackGameId, type PackMaker } from "./pack-types.js";
 
 /**
@@ -43,7 +46,7 @@ export const SECOND_HALF_DAYS = 14;
 const MAX_MINUTES = Number(process.env.PACK_MAX_MINUTES ?? 40);
 
 export const GENRES: Record<PackGameId, { label: string; game: string; howToPlay: string }> = {
-  match3: { label: "match-3", game: "Gem Garden", howToPlay: "swap two neighboring gems to make a line of three or more of the same color. The goal and the moves left are shown on the screen." },
+  match3: { label: "match-3", game: "Gem Match", howToPlay: "swap two neighboring gems to make a line of three or more of the same color. The goal and the moves left are shown on the screen." },
   watersort: { label: "water-sort", game: "Splash Sort", howToPlay: "tap a tube, then tap another tube to pour the top color into it. The level is won when every tube holds one color." },
   racer: { label: "lane-racer", game: "Turbo Lanes", howToPlay: "tap the left or right arrow buttons (or swipe) to change lanes, dodge cars and cones, and reach the finish before the timer runs out." },
   lotescape: { label: "parking-puzzle", game: "Lot Escape", howToPlay: "drag a car along its lane (or tap it and use the arrows) to drive every car out through its marked exit within the move limit." },
@@ -96,6 +99,8 @@ export interface PackStudy {
   won: boolean | null;
   summary: string;
   taskId: string | null;
+  /** Set when the numbers come from an earlier phone session of the same game (the live one failed). */
+  from?: string;
 }
 
 export interface PackCurve {
@@ -103,38 +108,66 @@ export interface PackCurve {
   end: number;
   /** Levels held at the start rate before the ramp begins. */
   plateau: number;
+  /** The level with the biggest drop in target: the first level of the ramp. */
+  steepest: number;
   targets: number[];
-  /** One sentence on where the curve came from, for the log and the email. */
+  /** True when the study set the curve; false for the documented default. */
+  fromStudy: boolean;
+  /** The mapping from what the phone saw to the curve, in one sentence: for the log and both emails. */
   basis: string;
 }
 
+/** The default curve, used whenever the study didn't measure a ramp: hold 85% for 3 levels. */
+export const DEFAULT_PLATEAU = 3;
+
 /**
- * The pack's curve: a target win rate per level. Starts at 85% and holds for `plateau` levels, then
- * falls in a straight line to the difficulty's end point by the last level. The phone study moves
- * both: a game that got harder within a few moves gets a short plateau and a slightly harder end;
- * one that never got harder gets a longer plateau and a gentler end. A heuristic, said as one.
+ * The pack's curve: a target win rate per level.
+ *
+ *   - Starts at 85% and holds for a plateau. With a measured ramp, the plateau is half the moves the
+ *     studied game took to get harder (1 to 6 levels); a game that got harder within 5 moves also ends
+ *     5 points harder. Without one, it's the documented default: 3 levels, and the difficulty's end.
+ *   - Then an ease-out ramp to the end point (easy 55%, medium 40%, hard 28%) by the last level: the
+ *     biggest step comes first, right where the studied game got harder, and the steps shrink after it.
+ *
+ * It never invents study numbers: a field the phone didn't report is said to be missing.
  */
 export function curveFor(difficulty: PackDifficulty, count: number, study: PackStudy | null): PackCurve {
   let end = CURVE_END[difficulty];
-  let plateau = 3;
-  let basis = `No phone study, so this is our standard ${difficulty} curve.`;
-  if (study?.ok) {
-    if (study.movesBeforeRamp !== null) {
-      plateau = Math.max(1, Math.min(6, Math.round(study.movesBeforeRamp / 2)));
-      if (study.movesBeforeRamp <= 5) end -= 0.05;
-      basis = `${study.game} got harder after ${study.movesBeforeRamp} moves on our iPhone${study.stuckAt ? ` (stuck: ${study.stuckAt})` : ""}, so the first ${plateau} level${plateau === 1 ? "" : "s"} hold at ${pct(CURVE_START)} before the ramp.`;
-    } else {
-      plateau = 5;
-      end += 0.08;
-      basis = `${study.game} didn't get noticeably harder in our iPhone session, so the pack starts gently and ends a little easier.`;
-    }
+  let plateau = DEFAULT_PLATEAU;
+  const ramped = Boolean(study?.ok && study.movesBeforeRamp !== null);
+  if (ramped) {
+    plateau = Math.max(1, Math.min(6, Math.round(study!.movesBeforeRamp! / 2)));
+    if (study!.movesBeforeRamp! <= 5) end -= 0.05;
   }
   end = Math.round(Math.max(0.2, Math.min(0.7, end)) * 100) / 100;
   plateau = Math.min(plateau, Math.max(1, count - 1));
   const ramp = Math.max(1, count - plateau);
-  const targets = Array.from({ length: count }, (_, i) =>
-    i < plateau ? CURVE_START : Math.round((CURVE_START - ((CURVE_START - end) * (i - plateau + 1)) / ramp) * 100) / 100);
-  return { start: CURVE_START, end, plateau, targets, basis: `${basis} It ramps to ${pct(end)} by level ${count}.` };
+  // Ease-out: F(x) = 1 - (1 - x)^2, so the first step down is the biggest.
+  const targets = Array.from({ length: count }, (_, i) => {
+    if (i < plateau) return CURVE_START;
+    const x = (i - plateau + 1) / ramp;
+    return Math.round((CURVE_START - (CURVE_START - end) * (1 - (1 - x) ** 2)) * 100) / 100;
+  });
+  const steepest = Math.min(count, plateau + 1);
+  const shape = `pack levels start at ${pct(CURVE_START)} win rate${plateau > 1 ? ` for ${plateau} levels` : ""} and ramp to ${pct(end)} by level ${count}, with the steepest step around level ${steepest}`;
+  let basis: string;
+  if (study?.ok && ramped) {
+    const where = study.levelReached !== null ? ` at level ${study.levelReached}` : "";
+    const stuck = study.stuckAt ? `players get stuck at ${study.stuckAt}` : "the phone didn't report a stuck point";
+    basis = `${study.game} got harder after ~${study.movesBeforeRamp} moves${where}; ${stuck}${study.from ? ` (from ${study.from})` : ""} → so ${shape}.`;
+  } else if (study?.ok) {
+    const seen = study.levelReached !== null ? `reached level ${study.levelReached} without it getting noticeably harder` : "didn't see it get noticeably harder";
+    basis = `Our iPhone ${seen} in ${study.game}${study.from ? ` (${study.from})` : ""}, so there's no measured ramp → we used our default ${difficulty} curve: ${shape}.`;
+  } else {
+    basis = `${study ? `Our iPhone couldn't finish a session of ${study.game}` : "No phone study"}, so there's no measured ramp → we used our default ${difficulty} curve: ${shape}.`;
+  }
+  return { start: CURVE_START, end, plateau, steepest, targets, fromStudy: ramped, basis };
+}
+
+/** Rough build time for the "you'll get them in about N minutes" line (measured Nov 7 on this laptop). */
+export function etaMinutes(game: PackGameId, levels: number): number {
+  const per20 = { match3: 10, watersort: 1, racer: 3, lotescape: 3 }[game];
+  return Math.max(1, Math.ceil((per20 * levels) / 20));
 }
 
 // ---------- the rows ----------
@@ -209,7 +242,7 @@ export async function getPackDelivery(q: Query, id: string): Promise<PackDeliver
 
 async function claimNext(q: Query): Promise<PackDelivery | null> {
   const r = await q(
-    `update biz_pack_deliveries set state = 'working', started_at = coalesce(started_at, now())
+    `update biz_pack_deliveries set state = 'working', started_at = now()
       where id = (select id from biz_pack_deliveries where state = 'queued' and due_at <= now() order by due_at, created_at limit 1 for update skip locked)
       returning *`,
   );
@@ -308,44 +341,244 @@ export function studyWork(d: Pick<PackDelivery, "studiedGame" | "gameUrl" | "bun
   };
 }
 
-async function studyGame(ctx: ToolContext, d: PackDelivery, company: string, pollMs?: number): Promise<PackStudy | null> {
+/**
+ * The newest successful phone session of this game in the activity log (the playtest loop studies
+ * App Store games on its own), parsed back from its summary line. Null when there's none this week.
+ */
+export async function earlierStudy(ctx: ToolContext, game: string): Promise<PackStudy | null> {
+  const week = Date.now() - 7 * 86_400_000;
+  const hit = (await ctx.store.listActivity(1000)).find((a) =>
+    a.agent === "playtest-lead" && a.action.startsWith(`playtested ${game} (`) && Date.parse(a.at) >= week);
+  if (!hit) return null;
+  const summary = hit.action.slice(hit.action.indexOf("): ") + 3);
+  const num = (re: RegExp): number | null => { const m = summary.match(re); return m ? Number(m[1]) : null; };
+  const when = new Date(hit.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return {
+    ok: true, game, movesBeforeRamp: num(/got harder after (\d+)/), levelReached: num(/level (\d+)/), stuckAt: summary.match(/stuck: ([^;]+)/)?.[1] ?? null,
+    designNote: hit.result?.startsWith("Design note: ") ? hit.result.slice(13).replace(/ \(task [^)]+\)$/, "") : null,
+    won: /^won/.test(summary) ? true : /^lost/.test(summary) ? false : null, summary, taskId: hit.result?.match(/\(task ([^)]+)\)/)?.[1] ?? null,
+    from: `our iPhone's earlier session, ${when} PT`,
+  };
+}
+
+/** A phone screenshot made small for email: a JPEG under ~150 KB via macOS `sips`, or the PNG as is. */
+export async function smallScreenshot(png: Uint8Array): Promise<{ data: Buffer; type: string; ext: string } | null> {
+  if (!png.length) return null;
+  const { execFile } = await import("node:child_process");
+  const { mkdtemp, readFile, rm, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "levelai-shot-"));
+  try {
+    await writeFile(join(dir, "in.png"), png);
+    await new Promise<void>((res, rej) => execFile("sips", ["-s", "format", "jpeg", "-s", "formatOptions", "60", "-Z", "640", join(dir, "in.png"), "--out", join(dir, "out.jpg")], { timeout: 15_000 }, (e) => (e ? rej(e) : res())));
+    return { data: await readFile(join(dir, "out.jpg")), type: "image/jpeg", ext: "jpg" };
+  } catch {
+    return png.length <= 1_500_000 ? { data: Buffer.from(png), type: "image/png", ext: "png" } : null;
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
+/** Who a delivery's emails go to, and how they're labeled. */
+interface Recipient { to: string | null; first: string; company: string; test: boolean; leadId: string | null }
+
+/** Sends a recap email with an optional inline screenshot. Logs a skipped or failed send; never throws. */
+async function sendRecap(ctx: ToolContext, who: Recipient, key: string, mail: { subject: string; body: string; html: string }, shot: { data: Buffer; type: string; ext: string } | null, what: string): Promise<string | null> {
+  const log = (action: string, why: string | null, result: string | null) => ctx.store.logActivity({ at: new Date().toISOString(), agent: AGENT, action, why, result, costUsd: null, human: false });
+  const mode = who.test ? " (test order)" : "";
+  if (!who.to || !ctx.mail) { await log(`${what} not emailed: ${who.company}`, !who.to ? "no email address on the order" : "no mail sender on this server", null); return null; }
+  if (await ctx.store.isSuppressed(who.to)) { await log(`${what} not emailed: ${who.company}`, "the customer opted out of email", null); return null; }
+  try {
+    const { messageId } = await ctx.mail.send({
+      to: who.to, subject: mail.subject, text: mail.body, html: mail.html, idempotencyKey: idempotencyKey("pack-recap", key),
+      ...(shot ? { attachments: [{ filename: `iphone.${shot.ext}`, contentType: shot.type, contentBase64: shot.data.toString("base64"), contentId: "iphone-shot", inline: true }] } : {}),
+    });
+    if (who.leadId) await ctx.store.addOutreach({ leadId: who.leadId, to: who.to, subject: mail.subject, body: mail.body, status: "sent", blockedReason: null, providerMessageId: messageId });
+    await log(`emailed the ${what} to ${who.company}`, mail.subject, `message ${messageId}${shot ? ", with an iPhone screenshot" : ""}${mode}`);
+    return messageId;
+  } catch (err) {
+    await log(`couldn't email the ${what} to ${who.company}`, errText(err), `not sent${mode}`);
+    return null;
+  }
+}
+
+const shotHtml = `<img src="cid:iphone-shot" width="240" alt="Screenshot from our iPhone" style="display:block;max-width:240px;width:100%;height:auto;border-radius:14px;margin:4px 0 18px;border:0">`;
+
+/** "Here's how your game played on our iPhone": sent as soon as the phone study ends. */
+export function composeStudyRecap(args: {
+  first: string; game: string; study: PackStudy | null; liveFailed: string | null; curve: PackCurve; levels: number; genre: string; eta: number;
+  test: boolean; screenshot: boolean; companyName: string; postalAddress: string; replyTo: string;
+}): { subject: string; body: string; html: string } {
+  const st = args.study;
+  const facts: Array<[string, string]> = [];
+  if (st?.ok) {
+    facts.push(["Levels reached", st.levelReached !== null ? `level ${st.levelReached}` : "not reported"]);
+    facts.push(["Result", st.won === true ? "won" : st.won === false ? "lost" : "still playing"]);
+    const moves = st.summary.match(/in (\d+) moves/)?.[1];
+    if (moves) facts.push(["Moves played", moves]);
+    facts.push(["Got harder after", st.movesBeforeRamp !== null ? `about ${st.movesBeforeRamp} moves` : "not seen in this session"]);
+    facts.push(["Where a player gets stuck", st.stuckAt ?? "not seen in this session"]);
+  }
+  const intro = st?.ok
+    ? st.from
+      ? `Our iPhone's session of ${args.game} just now didn't finish (${args.liveFailed ?? "no result"}), so we used its earlier session (${st.from.replace(/^our iPhone's earlier session, /, "")}). Here's what it saw.`
+      : `Here's how ${args.game} played on our iPhone, before we build your levels.`
+    : `Our iPhone couldn't finish a session of ${args.game} this time (${args.liveFailed ?? "no result"}), so we have no measurements from it.`;
+  const next = `Next: we're building ${args.levels} ${args.genre} levels calibrated to this curve; you'll get them in about ${args.eta} minute${args.eta === 1 ? "" : "s"}.`;
+  const testNote = args.test ? "This is a test order, so no money was charged." : null;
+  const footerReason = "You're getting it because you ordered a level pack.";
+  const body = [
+    `Hi ${args.first},`, "", intro, "",
+    ...facts.map(([k, v]) => `- ${k}: ${v}`),
+    ...(st?.ok && st.designNote ? [`- Design note: ${st.designNote}`] : []),
+    ...(facts.length ? [""] : []),
+    `What that means for your pack: ${args.curve.basis}`, "",
+    ...(args.screenshot ? ["A screenshot from the phone is attached.", ""] : []),
+    next, "",
+    ...(testNote ? [testNote, ""] : []),
+    args.companyName, "", "—",
+    `${args.companyName} is a small studio where AI agents design and test levels, and this email was written by one of them. ${footerReason}`,
+    args.postalAddress,
+  ].join("\n");
+  const html = E.layout({
+    preheader: st?.ok ? `${args.game} on our iPhone, and the curve it sets for your pack.` : `We used our default curve for your pack.`,
+    companyName: args.companyName, postalAddress: args.postalAddress, footerReason,
+    body: [
+      E.eyebrow(args.test ? "Phone study · test order" : "Phone study", E.C.blue),
+      E.heading(`How ${args.game} played on our iPhone`),
+      E.text(intro, { color: E.C.muted }),
+      ...(args.screenshot ? [shotHtml] : []),
+      ...(facts.length ? [E.panel(E.rows(facts.map(([k, v]) => E.checkRow(k, v, "info")).join("")))] : []),
+      ...(st?.ok && st.designNote ? [E.quote(st.designNote)] : []),
+      E.text(`What that means for your pack: ${args.curve.basis}`),
+      E.text(next, { weight: 800 }),
+      ...(testNote ? [E.text(testNote, { color: E.C.muted })] : []),
+    ].join(""),
+  });
+  const subject = `How ${args.game} played on our iPhone`;
+  return { subject: args.test ? `[Test order] ${subject}` : subject, body, html };
+}
+
+/** "We played level 1 of your pack": sent after the closing phone run. */
+export function composeLevelOneRecap(args: {
+  first: string; genre: string; result: LoopResult | null; summary: string; target: number | null; playUrl: string; test: boolean; screenshot: boolean;
+  companyName: string; postalAddress: string; replyTo: string;
+}): { subject: string; body: string; html: string } {
+  const r = args.result;
+  const outcome = r ? args.summary : `the phone couldn't finish the run (${args.summary})`;
+  const target = args.target !== null ? ` Our bots set it to about ${pct(args.target)} win rate, so most first-time players should beat it.` : "";
+  const testNote = args.test ? "This is a test order, so no money was charged." : null;
+  const footerReason = "You're getting it because you ordered a level pack.";
+  const body = [
+    `Hi ${args.first},`, "",
+    `We played level 1 of your ${args.genre} pack on our iPhone, as a first-time player: ${outcome}.${target}`, "",
+    ...(r?.designNote ? [`What the phone noticed: ${r.designNote}`, ""] : []),
+    ...(r?.visualIssues.length ? [`Anything that looked off: ${r.visualIssues.join("; ")}`, ""] : []),
+    ...(args.screenshot ? ["A screenshot from the phone is attached.", ""] : []),
+    `Play it yourself: ${args.playUrl}`, "",
+    ...(testNote ? [testNote, ""] : []),
+    args.companyName, "", "—",
+    `${args.companyName} is a small studio where AI agents design and test levels, and this email was written by one of them. ${footerReason}`,
+    args.postalAddress,
+  ].join("\n");
+  const html = E.layout({
+    preheader: `Level 1 of your pack on our iPhone: ${outcome}.`, companyName: args.companyName, postalAddress: args.postalAddress, footerReason,
+    body: [
+      E.eyebrow(args.test ? "Phone playtest · test order" : "Phone playtest", E.C.purple),
+      E.heading(`We played level 1 of your pack`),
+      E.text(`On our iPhone, as a first-time player: ${outcome}.${target}`),
+      ...(args.screenshot ? [shotHtml] : []),
+      ...(r?.designNote ? [E.quote(r.designNote)] : []),
+      ...(r?.visualIssues.length ? [E.text(`Anything that looked off: ${r.visualIssues.join("; ")}`, { color: E.C.muted })] : []),
+      E.button("Play level 1", args.playUrl),
+      ...(testNote ? [E.text(testNote, { color: E.C.muted })] : []),
+    ].join(""),
+  });
+  const subject = "We played level 1 of your pack on our iPhone";
+  return { subject: args.test ? `[Test order] ${subject}` : subject, body, html };
+}
+
+async function studyGame(ctx: ToolContext, d: PackDelivery, who: Recipient, pollMs?: number): Promise<PackStudy | null> {
+  const company = who.company;
   const log = (action: string, why: string | null, result: string | null) => ctx.store.logActivity({ at: new Date().toISOString(), agent: AGENT, action, why, result, costUsd: null, human: false });
   const work = studyWork(d);
   const name = d.studiedGame ?? "their game";
   const client = ctx.mobilerun;
   const deviceId = ctx.config.MOBILERUN_DEVICE_ID;
   if (!work || !client || !deviceId) {
-    await log(`couldn't study ${name} on the iPhone; using the standard ${d.difficulty} curve`, `level pack for ${company}`, !work ? "no playable link or App Store bundle id on the order" : "the phone isn't set up on this server");
+    await log(`couldn't study ${name} on the iPhone; using the default ${d.difficulty} curve`, `level pack for ${company}`, !work ? "no playable link or App Store bundle id on the order" : "the phone isn't set up on this server");
     return null;
   }
   await log(`studying ${work.name} on the iPhone to set the difficulty curve`, `level pack for ${company}`, null);
-  // The shared phone queue: paid playtests, the playtest loop, and this never collide.
-  const out = await enqueue(() => runWork(ctx, client, deviceId, work, { maxSeconds: 5 * 60, ...(pollMs ? { pollMs } : {}) })).catch((err: unknown) => ({ error: errText(err), result: null as LoopResult | null, taskId: null as string | null, summary: "" }));
+  // The shared phone queue: paid playtests, the playtest loop, and this never collide. A short session
+  // (10 moves, 20 steps) so it finishes inside the time limit; the screenshot is taken while the game
+  // is still on screen.
+  const t0 = Date.now();
+  let shotPng: Uint8Array | null = null;
+  const out = await enqueue(async () => {
+    const o = await runWork(ctx, client, deviceId, work, { maxSeconds: 6 * 60, moves: 10, maxSteps: 20, ...(pollMs ? { pollMs } : {}) });
+    if (o?.result) shotPng = await captureScreen(client, deviceId);
+    return o;
+  }).catch((err: unknown) => ({ error: errText(err), result: null as LoopResult | null, taskId: null as string | null, summary: "" }));
+  const secs = Math.round((Date.now() - t0) / 1000);
   const r = out && "result" in out ? out.result : null;
+  let study: PackStudy;
+  let liveFailed: string | null = null;
   if (!r) {
-    await log(`couldn't study ${work.name} on the iPhone; using the standard ${d.difficulty} curve`, `level pack for ${company}`, (out && "error" in out && out.error) || "the phone didn't return a result");
-    return { ok: false, game: work.name, movesBeforeRamp: null, levelReached: null, stuckAt: null, designNote: null, won: null, summary: "no result", taskId: out?.taskId ?? null };
+    liveFailed = (out && "error" in out && out.error) || "the phone didn't return a result";
+    const past = await earlierStudy(ctx, work.name).catch(() => null);
+    if (past) {
+      const ramp = past.movesBeforeRamp !== null ? `gets harder after ~${past.movesBeforeRamp} moves` : "didn't get noticeably harder";
+      await log(`${work.name}: ${ramp}${past.stuckAt ? `; players get stuck at ${past.stuckAt}` : ""} (from ${past.from})`.slice(0, 300), `this ${secs} s session failed (${liveFailed}), so the curve uses the newest earlier one`, past.designNote ? `Design note: ${past.designNote.slice(0, 300)}` : null);
+      study = past;
+    } else {
+      await log(`couldn't study ${work.name} on the iPhone; using the default ${d.difficulty} curve`, `level pack for ${company}; ${secs} s`, liveFailed);
+      study = { ok: false, game: work.name, movesBeforeRamp: null, levelReached: null, stuckAt: null, designNote: null, won: null, summary: "no result", taskId: out?.taskId ?? null };
+    }
+  } else {
+    study = {
+      ok: true, game: work.name, movesBeforeRamp: r.movesBeforeRamp, levelReached: r.levelReached, stuckAt: r.stuckAt, designNote: r.designNote || null,
+      won: r.won, summary: out?.summary ?? "", taskId: out?.taskId ?? null,
+    };
+    const ramp = r.movesBeforeRamp !== null ? `gets harder after ~${r.movesBeforeRamp} moves${r.levelReached !== null ? ` (reached level ${r.levelReached})` : ""}` : `didn't get noticeably harder in our session${r.levelReached !== null ? ` (reached level ${r.levelReached})` : ""}`;
+    await log(`${work.name}: ${ramp}${r.stuckAt ? `; players get stuck at ${r.stuckAt}` : ""}`.slice(0, 300), `phone study for ${company}'s level pack, ${secs} s`, r.designNote ? `Design note: ${r.designNote.slice(0, 300)}` : null);
   }
-  const study: PackStudy = {
-    ok: true, game: work.name, movesBeforeRamp: r.movesBeforeRamp, levelReached: r.levelReached, stuckAt: r.stuckAt, designNote: r.designNote || null,
-    won: r.won, summary: out?.summary ?? "", taskId: out?.taskId ?? null,
-  };
-  const ramp = r.movesBeforeRamp !== null ? `gets harder after ${r.movesBeforeRamp} moves` : "didn't get noticeably harder in our session";
-  await log(`${work.name}: ${ramp}${r.stuckAt ? `; players get stuck at ${r.stuckAt}` : ""}`.slice(0, 300), `phone study for ${company}'s level pack`, r.designNote ? `Design note: ${r.designNote.slice(0, 300)}` : null);
+
+  // The recap goes out right away, before the build.
+  const curve = curveFor(d.difficulty, d.levelsOwed, study);
+  const shot = shotPng ? await smallScreenshot(shotPng) : null;
+  await sendRecap(ctx, who, `${d.id}:study`, composeStudyRecap({
+    first: who.first, game: work.name, study, liveFailed, curve, levels: d.levelsOwed, genre: GENRES[d.gameId].label, eta: etaMinutes(d.gameId, d.levelsOwed),
+    test: d.test, screenshot: Boolean(shot), companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
+    replyTo: ctx.config.AGENTMAIL_INBOX_ID ?? "levelai@agentmail.to",
+  }), shot, "phone study recap");
   return study;
 }
 
-/** The closing shot: the main phone opens level 1 of the pack in our player and plays it. */
-async function playtestPack(ctx: ToolContext, d: PackDelivery, company: string, packId: string, firstLevelId: string, pollMs?: number): Promise<void> {
+/** The closing shot: the main phone opens level 1 of the pack in our player, plays it, and the customer gets a recap. */
+async function playtestPack(ctx: ToolContext, d: PackDelivery, who: Recipient, packId: string, firstLevelId: string, pollMs?: number): Promise<void> {
   const client = ctx.mobilerun;
   const deviceId = ctx.config.MOBILERUN_DEVICE_ID;
   if (!client || !deviceId) return;
   const genre = GENRES[d.gameId];
   const site = ctx.config.SITE_URL.replace(/\/+$/, "");
-  await enqueue(() => runWork(ctx, client, deviceId, {
-    kind: "own", name: `level 1 of ${company}'s ${genre.label} pack`, url: playUrl(site, d.gameId, packId, firstLevelId), levelId: firstLevelId,
-    targetWinRate: d.curve?.targets[0] ?? null, genre: genre.label, howToPlay: genre.howToPlay,
-  }, { maxSeconds: 4 * 60, ...(pollMs ? { pollMs } : {}) }));
+  const url = playUrl(site, d.gameId, packId, firstLevelId);
+  let shotPng: Uint8Array | null = null;
+  const out = await enqueue(async () => {
+    const o = await runWork(ctx, client, deviceId, {
+      kind: "own", name: `level 1 of ${who.company}'s ${genre.label} pack`, url, levelId: firstLevelId,
+      targetWinRate: d.curve?.targets[0] ?? null, genre: genre.label, howToPlay: genre.howToPlay,
+    }, { maxSeconds: 4 * 60, ...(pollMs ? { pollMs } : {}) });
+    if (o?.result) shotPng = await captureScreen(client, deviceId);
+    return o;
+  });
+  const shot = shotPng ? await smallScreenshot(shotPng) : null;
+  await sendRecap(ctx, who, `${d.id}:level1`, composeLevelOneRecap({
+    first: who.first, genre: genre.label, result: out?.result ?? null, summary: out?.summary ?? "the page didn't load on the phone", target: d.curve?.targets[0] ?? null,
+    playUrl: url, test: d.test, screenshot: Boolean(shot), companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
+    replyTo: ctx.config.AGENTMAIL_INBOX_ID ?? "levelai@agentmail.to",
+  }), shot, "level 1 playtest recap");
 }
 
 // ---------- the email ----------
@@ -363,10 +596,11 @@ export function composePackEmail(args: {
   const range = measured.length ? `${pct(Math.min(...measured))}–${pct(Math.max(...measured))}` : null;
   const botName = args.bot === "human" ? "human-like test bot" : args.bot === "greedy" ? "greedy test bot" : `${args.bot} bot`;
   const what = `${n} ${g.label} level${n === 1 ? "" : "s"}`;
-  const lines = args.levels.map((l, i) => `Level ${i + 1}: target ${pct(l.target)}, ${l.measured === null ? `exact puzzle, ${l.notes?.replace(/^.*: search bot /, "") ?? "fewest moves checked"}` : `measured ${pct(l.measured)}`}: ${l.url}`);
+  const measuredCell = (l: { measured: number | null; notes: string | null }) => (l.measured === null ? (l.notes?.replace(/^.*: search bot /, "") ?? "exact puzzle") : pct(l.measured));
+  const lines = args.levels.map((l, i) => `Level ${String(i + 1).padStart(2)}   target ${pct(l.target).padStart(4)}   measured ${measuredCell(l).padStart(4)}   ${l.url}`);
   const calibration = args.studied && args.studiedGame
-    ? `Before building, our iPhone played ${args.studiedGame} to see how quickly it gets harder. ${args.curve.basis}`
-    : args.curve.basis;
+    ? `How we set the curve: before building, our iPhone played ${args.studiedGame}. ${args.curve.basis}`
+    : `How we set the curve: ${args.curve.basis}`;
   const honest = `These levels are made in our own ${g.label} game (${g.game}) for your genre, calibrated to how your game plays. They aren't built inside your game: you get playable previews plus JSON in a documented format (${args.siteUrl}/developers#formats) to adapt to your engine.`;
   const shortNote = short
     ? `We promised ${args.owed} levels and ${n} passed testing in the time we allow, so this pack has ${n}. A person on our team will follow up with the rest.`
@@ -386,7 +620,7 @@ export function composePackEmail(args: {
     honest,
     "",
     ...(shortNote ? [shortNote, ""] : []),
-    `Each level, target vs. measured (${args.runs} plays each by the ${botName}):`,
+    `The curve, level by level: target vs. measured (${args.runs} plays each by the ${botName}):`,
     ...lines,
     "",
     `Questions, or a different curve? Reply to this email or write to ${args.replyTo}.`,
@@ -416,7 +650,8 @@ export function composePackEmail(args: {
       E.text(calibration),
       E.text(honest, { color: E.C.muted }),
       ...(shortNote ? [E.text(shortNote, { weight: 800 })] : []),
-      E.panel(E.rows(args.levels.map((l, i) => E.checkRow(`Level ${i + 1} · target ${pct(l.target)}`, l.measured === null ? (l.notes?.replace(/^.*: search bot /, "") ?? "exact puzzle") : `measured ${pct(l.measured)}`, "pass")).join(""))),
+      E.text(`The curve, level by level (${args.runs} plays each by the ${botName}):`, { weight: 800 }),
+      E.table(["Level", "Target", "Measured", ""], args.levels.map((l, i) => ({ cells: [String(i + 1), pct(l.target), measuredCell(l), "Play"], link: l.url }))),
       E.text(`Questions, or a different curve? Reply to this email or write to ${args.replyTo}.`, { color: E.C.muted }),
       ...(testNote ? [E.text(testNote, { color: E.C.muted })] : []),
     ].join(""),
@@ -445,6 +680,7 @@ export async function runPackDelivery(ctx: ToolContext, d: PackDelivery, opts: R
   const company = lead?.company ?? "a customer";
   const genre = GENRES[d.gameId];
   const site = ctx.config.SITE_URL.replace(/\/+$/, "");
+  const who: Recipient = { to: lead?.email ?? null, first: lead?.contactName ? lead.contactName.split(" ")[0]! : company, company, test: d.test, leadId: lead?.id ?? null };
   const stepIn = async (why: string, state: "partial" | "failed", detail: string) => {
     await log(`step-in needed: level pack for ${company}`, why, `left for a person${mode}`);
     await patch(q, d.id, { state, detail, finished_at: new Date() });
@@ -452,15 +688,26 @@ export async function runPackDelivery(ctx: ToolContext, d: PackDelivery, opts: R
   };
 
   try {
+    // ---- BYOG hook (bring your own generator, generators/hook.ts) ----
+    // A studio that registered its own level generator for this genre gets its pack built by it:
+    // their generator makes each level, their bot measures it, our loop tunes it (generators/pack.ts).
+    // A failed lookup (e.g. its table isn't in this database yet) must not stop the normal path.
+    const external = await externalPackRunner(ctx, d).catch(async (err: unknown) => {
+      await log(`own-generator check skipped for ${company}'s pack`, errText(err), "using our engine");
+      return null;
+    });
+    if (external) return await external(opts);
+    // ---- end BYOG hook ----
     let packId = d.packId;
     let study = d.study;
     let curve = d.curve;
     let made: MakeResult | null = null;
     if (!packId || !(await packLevelIds(q, packId))) {
-      if (!study) study = await studyGame(ctx, d, company, opts.phonePollMs);
+      if (!study) study = await studyGame(ctx, d, who, opts.phonePollMs);
       curve = curveFor(d.difficulty, d.levelsOwed, study);
       packId = packId ?? randomUUID();
       await patch(q, d.id, { study, curve, pack_id: packId });
+      await log(`difficulty curve for ${company}'s pack: ${curve.basis}`.slice(0, 400), curve.fromStudy ? "set from the phone study" : "documented default curve (no measured ramp)", `targets ${curve.targets.map(pct).join(", ")}`);
       await log(`designing level pack for ${company}: ${d.levelsOwed} ${genre.label} levels`, curve.basis, `targets ${curve.targets.map(pct).join(", ")}${mode}`);
 
       const req: MakeRequest = {
@@ -534,7 +781,7 @@ export async function runPackDelivery(ctx: ToolContext, d: PackDelivery, opts: R
     if (lead && messageId) await ctx.store.setStage(lead.id, "delivered");
 
     if (opts.closingPlaytest !== false && saved[0]) {
-      await playtestPack(ctx, { ...d, curve }, company, packId, saved[0].level_id, opts.phonePollMs).catch((err: unknown) =>
+      await playtestPack(ctx, { ...d, curve }, who, packId, saved[0].level_id, opts.phonePollMs).catch((err: unknown) =>
         log(`playtest failed for level 1 of ${company}'s ${genre.label} pack`, errText(err), null));
     }
     return state;
@@ -546,6 +793,8 @@ export async function runPackDelivery(ctx: ToolContext, d: PackDelivery, opts: R
 // ---------- the queue ----------
 
 let draining: Promise<number> | null = null;
+let rerun = false;
+const PROCESS_START = new Date();
 
 /**
  * Runs every due delivery, one at a time (the levels are CPU work and the study needs the phone).
@@ -553,14 +802,18 @@ let draining: Promise<number> | null = null;
  */
 export function runDueDeliveries(ctx: ToolContext, opts: RunOptions = {}): Promise<number> {
   if (!ctx.db) return Promise.resolve(0);
-  if (draining) return draining;
+  // A call during a run asks for one more pass, so a row added after the run's last check isn't missed.
+  if (draining) { rerun = true; return draining; }
   draining = (async () => {
     let n = 0;
     try {
-      for (let d = await claimNext(ctx.db!); d; d = await claimNext(ctx.db!)) {
-        await runPackDelivery(ctx, d, opts);
-        n++;
-      }
+      do {
+        rerun = false;
+        for (let d = await claimNext(ctx.db!); d; d = await claimNext(ctx.db!)) {
+          await runPackDelivery(ctx, d, opts);
+          n++;
+        }
+      } while (rerun);
     } finally {
       draining = null;
     }
@@ -572,7 +825,8 @@ export function runDueDeliveries(ctx: ToolContext, opts: RunOptions = {}): Promi
 /** On boot: deliveries a restart cut off go back in the queue, then the queue runs. */
 export async function resumePackDeliveries(ctx: ToolContext, opts: RunOptions = {}): Promise<number> {
   if (!ctx.db) return 0;
-  const r = await ctx.db(`update biz_pack_deliveries set state = 'queued' where state = 'working' returning id`);
+  // Only rows claimed before this process started: a delivery this process already picked up keeps going.
+  const r = await ctx.db(`update biz_pack_deliveries set state = 'queued' where state = 'working' and started_at < $1 returning id`, [PROCESS_START.toISOString()]);
   for (const row of r) {
     await ctx.store.logActivity({ at: new Date().toISOString(), agent: AGENT, action: "resumed a level pack after a restart", why: "the server restarted before this pack was delivered", result: `delivery ${String(row.id)}`, costUsd: null, human: false });
   }

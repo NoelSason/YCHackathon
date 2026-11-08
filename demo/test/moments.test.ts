@@ -110,3 +110,51 @@ test("market studies read as studies, not a customer's app", async () => {
   assert.equal(done?.kind, "playtest_done");
   assert.equal(done?.title, "Finished studying 2048");
 });
+
+test("the platform's three programs show as who they are, and auto-approvals are counted apart", () => {
+  const compiler = row("platform", "production.level_accepted", { reason: "deterministic content compiler; watersort position 276, target 0.67", result: "measured 0.67" });
+  const approver = row("platform", "auto_approve", { reason: "Naïve held platform.log_action with read_people", result: "approved for ceo, scope session (1 held)" });
+  const solver = row("platform", "solver_run.done", { result: "human 19% (38/200)" });
+  assert.equal(compiler.agent, "compiler");
+  assert.equal(approver.agent, "approver");
+  assert.equal(solver.agent, "platform");
+  assert.equal(row("platform", "publish_pack").agent, "platform_ops");
+  const s = computeStats([compiler, approver, solver]);
+  assert.equal(s.agentActions, 1);
+  assert.equal(s.levelsCompiled, 1);
+  assert.equal(s.autoApprovals, 1);
+  // The CEO's smoke tests: a decision row whose reason is just the option letter.
+  assert.equal(isSetupNoise(row("ceo", "decision", { reason: "a" })), true);
+  assert.equal(isSetupNoise(row("ceo", "decision", { reason: "Return the designer card to todo" })), true);
+  assert.equal(isSetupNoise(row("ceo", "look", { reason: "Routine CEO run" })), false);
+});
+
+test("our own levels and X posts on the phone read as what they are", () => {
+  const own = momentFor(row("playtest-lead", "playtesting our Gem Match level Garden 0041 on the iPhone"))!;
+  assert.equal(own.kind, "playtest_started");
+  assert.equal(own.surface, "own");
+  assert.equal(own.title, "Now playtesting our Gem Match level Garden 0041");
+  assert.ok(!own.title.includes("'s app"));
+  const ownDone = momentFor(row("playtest-lead", "playtested our Gem Match level Garden 0041: won in 8 moves"))!;
+  assert.equal(ownDone.kind, "playtest_done");
+  assert.equal(ownDone.detail, "won in 8 moves");
+  const ios = momentFor(row("playtest-lead", "playtesting Candy Crush Saga (iOS app, market study) on the iPhone"))!;
+  assert.equal(ios.surface, "ios");
+  assert.equal(ios.app, "Candy Crush Saga");
+  const posting = momentFor(row("marketing", "posting on X from the iPhone", { why: "Our agents have read 13,737 reviews" }))!;
+  assert.equal(posting.kind, "x_posting");
+  assert.equal(posting.surface, "x");
+  assert.equal(momentFor(row("marketing", "posted on x from the iPhone"))!.kind, "x_posted");
+});
+
+test("pickRecent keeps every agent visible when the compiler logs a burst", async () => {
+  const { pickRecent } = await import("../src/events.ts");
+  const at = (m: number) => new Date(Date.UTC(2026, 10, 8, 3, 0, m)).toISOString();
+  const list: StageEvent[] = [];
+  for (let i = 0; i < 10; i++) list.push({ ...row("research", `audited Game ${i}`), id: `r${i}`, at: at(i) });
+  for (let i = 0; i < 50; i++) list.push({ ...row("platform", "production.level_accepted"), id: `c${i}`, at: at(10 + i) });
+  const picked = pickRecent(list, 5, 20);
+  assert.equal(picked.filter((e) => e.agent === "research").length, 5);
+  assert.equal(picked.filter((e) => e.agent === "compiler").length, 20);
+  assert.deepEqual(picked.map((e) => e.at), [...picked.map((e) => e.at)].sort());
+});

@@ -2,6 +2,7 @@ import { activeStripeKey } from "../config.js";
 import { z } from "zod";
 import type { ToolContext } from "../mcp/tools.js";
 import { createCheckout, ensurePrice, isLiveKey } from "../billing/stripe.js";
+import { sendCustomerEmail } from "../billing/outbox.js";
 import { idempotencyKey } from "../outreach/send.js";
 import type { Lead, PaymentRecord } from "../types.js";
 import * as E from "../email/html.js";
@@ -291,11 +292,12 @@ export async function afterOrderPaid(
     replyTo: ctx.config.AGENTMAIL_INBOX_ID ?? "levelai@agentmail.to", siteUrl: ctx.config.SITE_URL.replace(/\/+$/, ""),
     genre: automated && gameId ? GENRES[gameId].label : null, studiedGame: automated ? studiedGameFor(gameUrl, company).name : null,
   });
-  try {
-    const { messageId } = await ctx.mail.send({ to, subject, text: body, html, idempotencyKey: idempotencyKey("order-confirmation", payment.id) });
-    if (lead) await ctx.store.addOutreach({ leadId: lead.id, to, subject, body, status: "sent", blockedReason: null, providerMessageId: messageId });
-    await log(`emailed the order confirmation to ${company}`, plan === "level_pack" ? "level pack" : "level subscription", `message ${messageId}${label}`);
-  } catch (err) {
-    await log(`couldn't email ${company} their order confirmation`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", `not sent${label}`);
-  }
+  // A refused send is logged and kept for a retry (billing/outbox.ts); the order goes ahead either way.
+  const sent = await sendCustomerEmail(ctx, {
+    kind: "order-confirmation", leadId: lead?.id ?? null, company, to, subject, text: body, html,
+    idempotencyKey: idempotencyKey("order-confirmation", payment.id), test: !payment.livemode,
+  });
+  if (!sent.sent) return;
+  if (lead) await ctx.store.addOutreach({ leadId: lead.id, to, subject, body, status: "sent", blockedReason: null, providerMessageId: sent.messageId });
+  await log(`emailed the order confirmation to ${company}`, plan === "level_pack" ? "level pack" : "level subscription", `message ${sent.messageId}${label}`);
 }

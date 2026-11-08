@@ -66,7 +66,21 @@ export interface Store {
   /** One market-research pass over a store chart: what the players of its games say about levels. */
   addResearchRun(run: ResearchRun): Promise<void>;
   listResearchRuns(limit?: number): Promise<ResearchRun[]>;
+
+  /**
+   * The home page's proof numbers over the whole history (not the newest log rows, which bulk
+   * level work floods): emails sent to people outside the team, and phone playtests run, not
+   * counting the team's own test orders.
+   */
+  publicCounts(): Promise<{ emailsSent: number; playtestsRun: number }>;
 }
+
+/**
+ * Phone playtest rows in the activity log start "playtested ". The team's own test orders use
+ * company names that start with "Level AI" ("Level AI billing check's app"), so those are left out.
+ */
+export const PLAYTEST_ROW = /^playtested /;
+export const TEAM_PLAYTEST_ROW = /^playtested Level AI\b/;
 
 export type WatchOrderPatch = Partial<Pick<WatchOrder, "state" | "test" | "gameName" | "startedAt" | "finishedAt" | "summary" | "paymentId" | "focus">>;
 
@@ -87,6 +101,29 @@ export interface ResearchRun {
 
 const now = (): string => new Date().toISOString();
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
+
+/**
+ * The mailbox an address delivers to, for recognizing the team's own addresses: lowercase, with any
+ * "+tag" dropped ("noel+judge1@x.edu" → "noel@x.edu"), and Gmail's ignored dots dropped too. Only for
+ * matching TEAM_EMAILS; leads keep the address exactly as typed.
+ */
+export function mailboxKey(email: string): string {
+  const e = normalizeEmail(email);
+  const at = e.lastIndexOf("@");
+  if (at <= 0) return e;
+  let local = e.slice(0, at).split("+")[0]!;
+  const domain = e.slice(at + 1);
+  if (domain === "gmail.com" || domain === "googlemail.com") local = local.replace(/\./g, "");
+  return `${local}@${domain === "googlemail.com" ? "gmail.com" : domain}`;
+}
+
+/** Whether an address is one of the team's (TEAM_EMAILS), including +tag variants used for tests. */
+export function isTeamEmail(email: string | null | undefined, teamEmails: Iterable<string>): boolean {
+  if (!email) return false;
+  const key = mailboxKey(email);
+  for (const t of teamEmails) if (t.trim() && mailboxKey(t) === key) return true;
+  return false;
+}
 
 export class MemoryStore implements Store {
   private leads = new Map<string, Lead>();
@@ -194,9 +231,17 @@ export class MemoryStore implements Store {
   }
 
   async addDelivery(input: Omit<DeliveryRecord, "id" | "createdAt">): Promise<DeliveryRecord> {
+    // An outcome closes the payment's open "pending" row instead of leaving it behind (see PgStore).
+    const open = input.status === "pending" ? undefined : this.deliveries.find((d) => d.paymentId === input.paymentId && d.status === "pending");
+    if (open) return Object.assign(open, { status: input.status, detail: input.detail, leadId: input.leadId ?? open.leadId });
     const record = { ...input, id: randomUUID(), createdAt: now() };
     this.deliveries.push(record);
     return record;
+  }
+
+  /** For tests: every delivery row. */
+  listDeliveries(): DeliveryRecord[] {
+    return [...this.deliveries];
   }
 
   private subscriptions = new Map<string, SubscriptionRecord>();
@@ -272,6 +317,13 @@ export class MemoryStore implements Store {
   }
   async listResearchRuns(limit = 50): Promise<ResearchRun[]> {
     return this.research.slice(-limit).reverse();
+  }
+
+  async publicCounts(): Promise<{ emailsSent: number; playtestsRun: number }> {
+    return {
+      emailsSent: this.outreach.filter((o) => o.status === "sent").length,
+      playtestsRun: this.activity.filter((a) => PLAYTEST_ROW.test(a.action) && !TEAM_PLAYTEST_ROW.test(a.action)).length,
+    };
   }
 }
 
@@ -350,9 +402,11 @@ export class PlatformStore implements Store {
       const r = await this.q(
         `update studios set name = $2, app_id = coalesce($3, app_id), contact_name = coalesce($4, contact_name),
            contact_email = coalesce($5, contact_email), reason = coalesce($6, reason),
-           sample_url = coalesce($7, sample_url), crm_contact_id = coalesce($8, crm_contact_id), updated_at = now()
+           sample_url = coalesce($7, sample_url), crm_contact_id = coalesce($8, crm_contact_id),
+           source = case when $9 then 'internal_test' else source end, updated_at = now()
          where studio_id = $1 returning *`,
-        [existing.id, input.company, input.appId, input.contactName, email, input.reason, input.sampleUrl, input.crmContactId],
+        [existing.id, input.company, input.appId, input.contactName, email, input.reason, input.sampleUrl, input.crmContactId,
+         isTeamEmail(email, this.teamEmails)],
       );
       return rowToLead(r[0]!);
     }
@@ -360,7 +414,7 @@ export class PlatformStore implements Store {
       `insert into studios (studio_id, name, app_id, contact_name, contact_email, source, stage, reason, sample_url, crm_contact_id)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *`,
       [input.id ?? randomUUID(), input.company, input.appId, input.contactName, email,
-       email && this.teamEmails.has(email) ? "internal_test" : toDbSource(input.source), input.stage,
+       isTeamEmail(email, this.teamEmails) ? "internal_test" : toDbSource(input.source), input.stage,
        input.reason, input.sampleUrl, input.crmContactId],
     );
     return rowToLead(r[0]!);
@@ -401,7 +455,7 @@ export class PlatformStore implements Store {
   async countSentSince(sinceIso: string, inbound = false): Promise<number> {
     const r = await this.q(
       `select count(*)::int as n from emails e left join studios s on s.studio_id = e.studio_id
-       where e.direction = 'out' and e.ts >= $1 and (coalesce(s.source, '') = 'inbound_qr') = $2`,
+       where e.direction = 'out' and e.ts >= $1 and (coalesce(s.source, '') in ('inbound_qr', 'internal_test')) = $2`,
       [sinceIso, inbound],
     );
     return Number(r[0]?.n ?? 0);
@@ -467,7 +521,16 @@ export class PlatformStore implements Store {
   }
 
   async addDelivery(input: Omit<DeliveryRecord, "id" | "createdAt">): Promise<DeliveryRecord> {
-    const r = await this.q(
+    // The webhook opens one "pending" row per payment; an outcome (delivered or failed) closes that
+    // row. Appending a second row left the pending one open forever, which read as an unfulfilled
+    // delivery. With no open row (a re-run after a failure), the outcome is added as a new row.
+    const closed = input.status === "pending" ? [] : await this.q(
+      `update biz_deliveries set status = $2, detail = $3, studio_id = coalesce($4, studio_id)
+       where id = (select id from biz_deliveries where payment_id::text = $1 and status = 'pending' order by created_at limit 1)
+       returning id, created_at`,
+      [input.paymentId, input.status, input.detail, input.leadId],
+    );
+    const r = closed[0] ? closed : await this.q(
       `insert into biz_deliveries (payment_id, studio_id, status, detail) values ($1, $2, $3, $4) returning id, created_at`,
       [input.paymentId, input.leadId, input.status, input.detail],
     );
@@ -586,6 +649,22 @@ export class PlatformStore implements Store {
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [r.at, r.chart, r.gamesRead, r.reviewsRead, r.tooHard, r.tooEasy, r.wantsMoreLevels, r.repetitive, r.gamesWithEvidence, r.topGame, r.topReason],
     );
+  }
+
+  async publicCounts(): Promise<{ emailsSent: number; playtestsRun: number }> {
+    // Emails: every sent email to a studio that isn't one of the team's own test records. Playtests:
+    // every phone playtest row (orders, market studies, our own levels) except the team's test orders,
+    // also matched by the current name of any internal_test studio.
+    const [e] = await this.q(
+      `select count(*)::int as n from emails m left join studios s on s.studio_id = m.studio_id
+       where m.direction = 'out' and coalesce(s.source, '') <> 'internal_test'`,
+    );
+    const [p] = await this.q(
+      `select count(*)::int as n from activity_log a
+       where a.action like 'playtested %' and a.action !~ '^playtested Level AI\\M'
+         and not exists (select 1 from studios s where s.source = 'internal_test' and a.action like 'playtested ' || s.name || '''s %')`,
+    );
+    return { emailsSent: Number(e?.n ?? 0), playtestsRun: Number(p?.n ?? 0) };
   }
 
   async listResearchRuns(limit = 50): Promise<ResearchRun[]> {

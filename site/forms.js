@@ -193,7 +193,7 @@
   };
 
   /* ---------- live progress ---------- */
-  // opts: { id, title, maxMs, waitingText, runningNote, doneText, failedText, timeoutText, actions: [{href, label, primary}] }
+  // opts: { id, title, maxMs, waitingText, runningNote, doneText, failedText, timeoutText, actions: [{href, label, primary}], failedActions }
   LA.showProgress = function (mount, opts) {
     if (opts.id != null && opts.id !== '') setParam('id', opts.id);
 
@@ -226,11 +226,15 @@
 
     var actions = el('div', 'progress-actions');
     actions.hidden = true;
-    (opts.actions || []).forEach(function (a) {
-      var link = el('a', a.primary ? 'btn' : 'text-link', a.label);
-      link.href = a.href;
-      actions.appendChild(link);
-    });
+    function setActions(list) {
+      actions.innerHTML = '';
+      (list || []).forEach(function (a) {
+        var link = el('a', a.primary ? 'btn' : 'text-link', a.label);
+        link.href = a.href;
+        actions.appendChild(link);
+      });
+    }
+    setActions(opts.actions);
 
     panel.appendChild(top);
     panel.appendChild(ticker);
@@ -322,6 +326,8 @@
       clearInterval(clockTimer);
       panel.classList.add('is-finished', 'pg-' + kind);
       note.textContent = kind === 'ok' ? opts.doneText : kind === 'failed' ? opts.failedText : opts.timeoutText;
+      // A failed run can offer a different next step (the join page offers emailing us instead).
+      if ((kind === 'failed' || kind === 'timeout') && opts.failedActions) setActions(opts.failedActions);
       // An unfinished step should stop looking busy once we stop watching.
       if (placeholder) { placeholder.li.remove(); placeholder = null; }
       actions.hidden = !actions.children.length;

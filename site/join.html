@@ -63,9 +63,15 @@
       <p class="lede">Tell us about your puzzle game. We read what your players say about its difficulty, then email you to start a free sample set of levels in its style.</p>
     </div>
 
-    <div class="page-form" id="join-mount">
+    <div class="page-form">
+      <div class="panel" id="email-in" style="margin-bottom: 20px;">
+        <h2 class="panel-title">Fastest: email us your game</h2>
+        <p class="panel-sub">Send your game’s name or store link to <strong>levelai@agentmail.to</strong>. Our agents read its newest reviews and reply in about a minute.</p>
+        <a class="btn" href="mailto:levelai@agentmail.to?subject=Audit%3A%20&amp;body=Game%20name%20or%20store%20link%3A%20">Email us your game</a>
+      </div>
+      <div id="join-mount">
       <div class="panel">
-        <h2 class="panel-title">About you and your game</h2>
+        <h2 class="panel-title">Or fill in the form</h2>
         <p class="panel-sub">It takes about a minute. We start as soon as you send it.</p>
         <form class="form" id="join-form" novalidate>
           <div class="field">
@@ -105,6 +111,7 @@
           <button class="btn" type="submit">Get my free levels</button>
           <p class="form-fine">We only use these details to work on your levels. <a href="/privacy">Privacy</a></p>
         </form>
+      </div>
       </div>
     </div>
 
@@ -152,7 +159,11 @@
       waitingText: 'Getting started…',
       runningNote: 'This page updates by itself. You can close it anytime; we’ll still email you.',
       doneText: 'All set. Check your inbox.',
-      failedText: 'One step didn’t go through. We have your details and will follow up by email.',
+      failedText: 'We couldn’t email you just now. Email us your game instead, and we’ll reply in about a minute.',
+      failedActions: [
+        { href: 'mailto:levelai@agentmail.to?subject=Audit%3A%20&body=Game%20name%20or%20store%20link%3A%20', label: 'Email us your game', primary: true },
+        { href: '/', label: 'Back to Level AI' }
+      ],
       timeoutText: 'This is taking longer than usual. You can close this page; we’ll email you when it’s ready.',
       actions: [
         { href: '/playtest', label: 'Book a playtest on a real iPhone', primary: true },

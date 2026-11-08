@@ -1,0 +1,10 @@
+{
+  "name": "levelai-sample-generator",
+  "private": true,
+  "type": "module",
+  "description": "Example generator (Level AI sample): a stand-in studio endpoint implementing the Level AI Generator Protocol for Lot Escape.",
+  "scripts": {
+    "build": "node build.mjs",
+    "deploy": "node build.mjs && vercel deploy --prod --yes"
+  }
+}

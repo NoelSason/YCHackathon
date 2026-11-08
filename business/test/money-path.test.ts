@@ -143,7 +143,10 @@ describe("playtest delivery when the phone can't finish", () => {
     s.ctx.mail = { async send() { throw new Error("mail down"); }, async reply() { return { messageId: "r" }; } };
     await runPlaytestOrder(s.ctx, l, "https://ada.example.app", null, null);
     const acts = await s.store.listActivity(20);
-    expect(acts.find((a) => a.action === "couldn't email Team Ada about their playtest")?.why).toBe("mail down");
+    // The status email is kept for a retry (billing/outbox.ts); with no report, a person follows up.
+    const failed = acts.find((a) => a.action === "couldn't email Team Ada their playtest report yet");
+    expect(failed?.why).toBe("mail down");
+    expect(failed?.result).toMatch(/^kept to retry every 15 minutes/);
     expect(acts.map((a) => a.action)).toContain("playtest order needs a person: Team Ada");
   });
 });

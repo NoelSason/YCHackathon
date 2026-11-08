@@ -118,3 +118,32 @@ describe("PlatformStore on the platform schema", () => {
     expect((await store.listActivityBetween("2026-11-08T02:59:00.000Z", null)).map((a) => a.action)).toEqual(["a", "b"]);
   });
 });
+
+describe("team test signups on the platform schema", () => {
+  it("stores +tag variants of team addresses as internal tests, and keeps their welcomes off the cold-outreach cap", async () => {
+    const { q } = await freshStore();
+    const store = new PlatformStore(q, new Set(["noel_sason@berkeley.edu"]));
+    const lead = { ...baseLead, source: "inbound_form" as const };
+    const test = await store.upsertLead({ ...lead, email: "Noel_Sason+judge1@berkeley.edu" });
+    const judge = await store.upsertLead({ ...lead, email: "judge@yc.example" });
+    const sources = await q("select contact_email, source from studios order by contact_email");
+    expect(sources).toEqual([
+      { contact_email: "judge@yc.example", source: "inbound_qr" },
+      { contact_email: "noel_sason+judge1@berkeley.edu", source: "internal_test" },
+    ]);
+    for (const l of [test, judge]) {
+      await store.addOutreach({ leadId: l.id, to: l.email!, subject: "s", body: "b", status: "sent", blockedReason: null, providerMessageId: `m-${l.id}` });
+    }
+    const since = new Date(Date.now() - 60_000).toISOString();
+    expect(await store.countSentSince(since, false)).toBe(0);
+    expect(await store.countSentSince(since, true)).toBe(2);
+  });
+
+  it("retags an existing team lead as a test when it signs up again", async () => {
+    const { q } = await freshStore();
+    const before = await new PlatformStore(q).upsertLead({ ...baseLead, source: "inbound_form", email: "noel_sason+x@berkeley.edu" });
+    expect((await q("select source from studios where studio_id = $1", [before.id]))[0]!.source).toBe("inbound_qr");
+    await new PlatformStore(q, new Set(["noel_sason@berkeley.edu"])).upsertLead({ ...baseLead, source: "inbound_form", email: "noel_sason+x@berkeley.edu" });
+    expect((await q("select source from studios where studio_id = $1", [before.id]))[0]!.source).toBe("internal_test");
+  });
+});
