@@ -40,11 +40,21 @@ can fake:
 | 2:20–2:45 | The phone panel, close up. The step-in counter. | "Every level ships only after a real phone plays it. And here's every time a human stepped in, with why." Read the list honestly. | Presenter |
 | 2:45–3:00 | The numbers. | Bottom-up math: studios × levels a month × price, each number sourced. "If we leave it running, tomorrow it'll have shipped more levels, learned from more players, and pitched more studios. We set the goal and the budget." | Presenter |
 
+## One sentence we say out loud (team decision B, Nov 7)
+
+Naïve pauses every call to an external MCP server after the first one in a chat, for a human to
+approve, no matter what the server returns. Our platform approves calls to **its own two servers**
+automatically and logs each one as `platform.auto_approve`. On stage, when the step-in list comes
+up: *"Naïve holds every tool call for review after an agent reads from any MCP server. Our
+platform auto-approves its own read-only tools and logs each one; that happened N times
+overnight. Humans stepped in M times, listed here."* Both numbers come from `activity_log`.
+
 ## The night before (checklist)
 
 - [ ] `business/live.sh` is running on Noel's laptop (it keeps the laptop awake). After any restart, restart `./demo.sh` so the QR shows the new URL.
 - [ ] `./demo.sh --check` is green, including the Play link once Max sends `DEMO_PLAY_URL`.
-- [ ] The overnight run is on: the CEO, Research, and Finance crons are enabled (Abhinav's kill switch is off).
+- [ ] The overnight run is on: the CEO, Designer, Research, Finance, and Marketing crons are enabled (Abhinav's kill switch is off).
+- [ ] `npm run approver` is running in `platform/naive` on a laptop that stays awake (Abhinav's or Pinara's), and its log shows `approved` lines.
 - [ ] Decide on cold outreach (below).
 - [ ] At 8:00 AM and 10:30 AM: `npm --prefix demo run snapshot` for the replay backup.
 - [ ] A test signup with a second phone at 10:30 AM. Time it.
