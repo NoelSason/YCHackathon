@@ -7,6 +7,7 @@ The unified workflow is defined in [the routing plan](../docs/skill-routing-plan
 
 - [Match-3](match3/README.md) — [level design skill](match3/SKILL.md).
 - [Platformer](platformer/README.md) — [level design skill](platformer/SKILL.md).
+- [Lot Escape](lotescape/README.md) — [level design skill](lotescape/SKILL.md).
 
 The local match-3 browser demo and its small server live in `match3/demo/`.
 
@@ -16,5 +17,5 @@ The local match-3 browser demo and its small server live in `match3/demo/`.
   existing user-authorized device. It does not ship a Geometry Dash fork or provide headless
   simulation.
 
-The product adapters currently cover match-3 and platformer. The Geometry Dash editor route is a
-separate workflow and is not a third product integration.
+The product adapters currently cover match-3, platformer, and car evacuation. The Geometry Dash
+editor route is a separate workflow and is not a third product integration.

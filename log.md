@@ -20,6 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:36 PT · Max (Codex) · branch `max-lot-escape-pr`
+
+**What:** Added Lot Escape, a playable lane-sliding car evacuation game with marked exits, two authored practice lots, a shared adapter, seeded bots, and a shortest-move solver.
+**Why:** Add an original puzzle where players clear blocking cars so every parked vehicle can reach its assigned exit.
+**Files:** `games/lotescape/`, `games/README.md`, `games/skill-routing.json`.
+**State:** Typecheck and browser build pass. The exact solver confirms both levels are beatable in 14/26 and 16/30 moves.
+**Next / heads-up:** Abhinav: register `lotescape` in the MCP adapter registry before connecting it to Designer/Tuner; hosting is also pending.
+
 ### 2026-11-07 5:33 PM PT · Noel · Claude Code · main
 - **What:** Market research on every outreach cycle. Each chart pass now reads up to 20 games and saves the totals to `biz_market_research` (games, reviews, too hard, too easy, wants more levels, repetitive, games with a clear problem, the strongest one). It also logs a line the console shows. There's a public `GET /market-research` (counts only), and `/public-stats` gains `reviewsRead`. The watchdog now also catches a dead tunnel: 3 failed public health checks → reruns `live.sh`. The tunnel had died silently and taken levelai.vercel.app's API down for a few minutes; restored.
 - **Why:** Real, growing numbers for the demo; the site should never silently lose its backend overnight.
