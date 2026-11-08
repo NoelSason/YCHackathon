@@ -16,8 +16,10 @@ export const PlanSchema = z.object({
   planId: z.string().min(1),
   app: z.object({
     platform: z.enum(["ios", "android"]),
-    /** Android package name, or "safari" / "chrome" for a web game. */
+    /** Android package name, iOS bundle id, or "safari" / "chrome" for a web game. */
     package: z.string().min(1),
+    /** The app's name as shown on the home screen, for installed apps. */
+    label: z.string().optional(),
     build: z.string().optional(),
   }),
   goal: z.string().min(1),
@@ -59,7 +61,7 @@ export function planToTask(plan: Plan): string {
   const opener =
     plan.app.package === "safari" || plan.app.package === "chrome"
       ? `Use the ${plan.app.package === "safari" ? "Safari" : "Chrome"} browser. To open a URL, tap the address bar, type it, and press Go.`
-      : `Use the app ${plan.app.package}.`;
+      : `Use the app ${plan.app.label ? `"${plan.app.label}" (on the home screen; tap its icon to open it)` : plan.app.package}.`;
   return [
     `Goal: ${plan.goal}`,
     opener,

@@ -80,6 +80,21 @@ human-bot win rates that respond smoothly to one knob each.
 - **Pinara:** restart the solver worker (Ctrl-C, `caffeinate -i npm run worker`), so it loads the
   new registry with match3, platformer, watersort, and racer.
 
+### 2026-11-07 17:05 PT · Noel (Claude Code) · branch `main`
+
+**What:** **App Store playtests: built, but installs fail on our cloud iPhone.** A playtest order with an App Store link
+(`apps.apple.com/…/id123`) now installs the app on the phone through Mobilerun (`devices.apps.install` with the
+numeric App Store id), finds it by diffing the app list, and plays it by its home-screen label. It fails fast if the
+install fails. **Live test on Nov 7, 4:57 PM:** installing Ketchapp's "2048" (840919914) failed immediately (install log:
+`status: failed`, no reason given). The likely cause is that the cloud iPhone isn't signed in to an App Store account
+(unverified). Until that's solved, App Store orders get an honest "couldn't install" report, and web links work as before.
+**Files:** `business/src/mobile/install.ts`, `business/src/mobile/plan.ts`, `business/src/leads/playtest-offer.ts`.
+**State:** 71 tests pass. The failure path was verified live.
+**Next / heads-up:** **Noel:** ask Mobilerun how to enable App Store installs on the cloud iPhone (is an Apple ID
+required?). Android playtests need an APK uploaded to the Mobilerun app library.
+
+---
+
 ### 2026-11-07 17:00 PT · Noel (Claude Code) · branch `main`
 
 **What:**
