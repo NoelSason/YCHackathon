@@ -29,7 +29,7 @@ export class MonidCli implements MonidRunner {
     if (args.query !== undefined) argv.push("--query", JSON.stringify(args.query));
     try {
       await run(this.bin, argv, { env: { ...process.env, NO_COLOR: "1" }, maxBuffer: 32 * 1024 * 1024 });
-      return JSON.parse(await readFile(out, "utf8"));
+      return await resolveDownload(JSON.parse(await readFile(out, "utf8")));
     } catch (err) {
       const stdout = (err as { stdout?: string }).stdout ?? "";
       throw new Error(`monid run ${args.provider}${args.endpoint} failed: ${stdout.slice(0, 500) || String(err)}`);
@@ -37,6 +37,18 @@ export class MonidCli implements MonidRunner {
       await rm(dir, { recursive: true, force: true });
     }
   }
+}
+
+/**
+ * Large results come back as `{ data: { download_link, content_type } }` instead of inline (seen
+ * Nov 7 on the GAME_BOARD chart), so fetch the file. The link is signed, so it's never logged.
+ */
+export async function resolveDownload(raw: unknown, fetchImpl: typeof fetch = fetch): Promise<unknown> {
+  const link = (raw as { data?: { download_link?: unknown } })?.data?.download_link;
+  if (typeof link !== "string" || !link.startsWith("https://")) return raw;
+  const r = await fetchImpl(link, { signal: AbortSignal.timeout(60_000) });
+  if (!r.ok) throw new Error(`couldn't download the large result (HTTP ${r.status})`);
+  return r.json();
 }
 
 export interface StoreGame {

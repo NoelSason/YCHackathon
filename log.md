@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:25 PM PT · Noel · Claude Code · main
+- **What:** The Monid wrapper follows `data.download_link` when a result is too big to return inline. Board and word charts went from 0 games to 50 each, and large review pages are covered too.
+- **Why:** The board-games outreach cycle "found 0" in 7 s because the chart came back as a download link.
+- **Files:** `business/src/research/monid.ts`, `business/test/research.test.ts`
+- **State:** works; 84 tests pass, checked live (Vita Mahjong, Wordscapes, and others).
+- **Next / heads-up:** none.
+
 ### 2026-11-07 5:24 PM PT · Noel · Claude Code (demo subagent + main) · main
 - **What:** Console redesign in the site's look, now interactive: click an agent to filter the feed, click a row for full text, click a number for the rows behind it, click a studio stage for that stage's studios, click the phone to enlarge it with the latest playtest steps. It scrolls on short screens, with each panel scrolling on its own. Presenter keys F/O/Q/P/D/?/Esc. Moments fire only from real log rows. `./demo.sh --rehearsal` plays an invented story under a permanent REHEARSAL DATA banner. Live mode hides team test studios and setup rows (probe, approval_test, and now the CEO's smoke-test decisions). Outreach loop rotation now starts from the clock, so a restart moves to a new chart.
 - **Why:** Noel: make the console useful and show what's happening; the Decisions count was 3 smoke-test rows.

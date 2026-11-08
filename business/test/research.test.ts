@@ -133,3 +133,12 @@ describe("findTargets", () => {
     expect(parseDownloads(null)).toBeNull();
   });
 });
+
+describe("large results", () => {
+  it("follows a download link to the real data", async () => {
+    const { resolveDownload } = await import("../src/research/monid.js");
+    const fake = (async () => new Response(JSON.stringify({ organic_results: [] }))) as unknown as typeof fetch;
+    expect(await resolveDownload({ data: { download_link: "https://example.com/x", content_type: "application/json" } }, fake)).toEqual({ organic_results: [] });
+    expect(await resolveDownload({ organic_results: [1] }, fake)).toEqual({ organic_results: [1] });
+  });
+});
