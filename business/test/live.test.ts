@@ -42,7 +42,7 @@ describe("live signup", () => {
     const mail = sent[0]!;
     expect(mail.to).toBe("ada@studio.example");
     expect(mail.subject).toBe("What Parking Loop's players are saying");
-    expect(mail.text).toMatch(/We just read the 86 newest Google Play reviews of Parking Loop\. \d+ of them say the levels are too easy/);
+    expect(mail.text).toMatch(/We read the 86 newest Google Play reviews of Parking Loop\. \d+ of them say the levels are too easy/);
     expect(mail.text).toContain("https://play.levelai.example/match3?level=7");
     expect(mail.text).toContain("You're getting it because you signed up at our table.");
     expect(mail.text).toContain('Reply "stop"');

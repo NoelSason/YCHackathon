@@ -52,7 +52,7 @@ export function composeWelcome(args: {
   const evidence =
     kind && target
       ? [
-          `We just read the ${target.reviewsAnalyzed} newest ${storeName(target.appId)} reviews of ${game}. ${n} of them ${signalPhrase(kind, n)}.`,
+          `We read the ${target.reviewsAnalyzed} newest ${storeName(target.appId)} reviews of ${game}. ${n} of them ${signalPhrase(kind, n)}.`,
           ...(quote ? ["", `One player put it this way: "${quote}"`] : []),
           "",
           "That's exactly what we fix. We make puzzle levels and tune each one by having test players play it hundreds of times before it ships.",
@@ -356,7 +356,8 @@ async function welcome(
 ): Promise<LiveOutcome> {
   const appId = opts.appId === undefined ? lead.appId : opts.appId;
   const { target, title } = await research(
-    ctx, lead, gameTitle, appId, opts.researchBudgetMs ?? RESEARCH_BUDGET_MS, opts.teamTest ? "a team test signup" : "a studio signed up",
+    ctx, lead, gameTitle, appId, opts.researchBudgetMs ?? RESEARCH_BUDGET_MS,
+    opts.replyToMessageId ? (opts.teamTest ? "a team test email" : "a studio emailed us") : opts.teamTest ? "a team test signup" : "a studio signed up",
   );
 
   step(lead.id, "Writing your email");

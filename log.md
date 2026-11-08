@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 11:03 PM PT · Noel · Claude Code (Sentinel 14 judge-flow) · main
+- **What:** Final pre-midnight check after the 10:53 PM restart. `/join` reached "Email sent" in 6.1 s (cached reviews, real quote). An "Audit:" email got an in-thread reply in 36 s (real fetch, $0.0018). Fixed wording: "We read" instead of "We just read" (reviews can be 6 hours old), and email-in audits no longer log as a signup.
+- **Why:** The new cache and cap must not break the judge flow.
+- **Files:** `business/src/leads/live.ts`, `business/test/live.test.ts`
+- **State:** works; the two wording fixes load on the next :8787 restart.
+- **Next / heads-up:** On stage, don't compare complaint counts between an audit and an outreach pass (5 vs 4, 10 vs 4 for the same game; different recall settings). Audit rows log $0 (about $0.002 under-reported each). Tell judges to check Promotions: the form email landed there, the email-in reply in Primary.
+
 ### 2026-11-07 11:02 PM PT · Noel · Claude Code (Sentinel 10 ops, second pass) · main
 - **What:** The monitor now logs a WARN after 90 minutes with no CEO row (other agents' rows had kept the activity check green). Slow-failure check: logs under 250 KB, solver and console memory flat, Neon 2,459 rows with no tight loop, snapshots will fire at 8:00 and 10:30 AM. Projected at 11 AM: Naïve about $204 left, Monid about $15, Mobilerun at most 36 of 72 device-hours.
 - **Why:** The CEO had stopped unnoticed.
