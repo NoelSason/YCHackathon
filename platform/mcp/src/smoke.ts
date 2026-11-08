@@ -29,5 +29,7 @@ await call("get_solver_run", { run_id: run.run_id });
 const d = await call("log_decision", { saw: "smoke", options: ["a", "b"], chose: "a", why: "smoke", expected: "nothing" });
 await call("resolve_decision", { decision_id: d.id, result: "nothing happened", matched_expectation: true });
 await call("get_company_metrics");
+// Leave nothing behind in 'solving': the stub level is test data.
+await call("reject_level", { level_id: saved.level_id, reason: "smoke test level", agent: "platform" });
 await client.close();
 console.log("smoke ok");

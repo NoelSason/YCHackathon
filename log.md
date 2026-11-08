@@ -20,6 +20,23 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 18:50 PT · Abhinav (Claude) · branch `main`
+
+**What:** (1) `docs/demo-inbound.md`: the customer-side demo scenario (a studio scans, replies,
+pays in the Stripe sandbox, gets delivery) with the exact test-mode procedure (test card
+4242…, CLI trigger, what rows to expect, what can break). (2) `platform/checks` gains the
+`billing` check (Stripe payment recorded → delivery fulfilled, test mode counts). (3) The
+platform smoke test now rejects its own stub level at the end so nothing sits in `solving`
+(Pinara's 18:02 ask).
+**Why:** Rehearse the payment path without real money; close one of the owed checks.
+**Files:** `docs/demo-inbound.md`, `platform/checks/src/checks/12-billing.ts`, `platform/mcp/src/smoke.ts`.
+**State:** Typechecks. The Stripe procedure is written from `business/src/billing/stripe.ts` and
+Noel's README; not yet rehearsed. A full product audit is in progress (`docs/audit.md` next).
+**Next / heads-up:** **Noel:** `docs/demo-inbound.md` is a proposal for 1:50–2:45 of your run of
+show; the Stripe webhook endpoint must point at `levelai.vercel.app/webhooks/stripe`. **Abhinav:**
+the Designer cron (`dep_pf9e3h9p…`) was created after the 16:45 switch-on, so it is still
+disabled: run `npm run kill -- on "enable designer cron"`.
+
 ### 2026-11-07 6:52 PM PT · Noel · Claude Code · main
 - **What:** Social posting now waits for the network's real answer. A post that comes back "failed" after being "scheduled" is logged as "couldn't post on x", not "posted".
 - **Why:** All four X posts (6:11–6:28 PM) were accepted, then failed within ~4 s with no error. The log had called them posted.
