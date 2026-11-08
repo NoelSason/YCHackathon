@@ -273,8 +273,10 @@
   .testing.open small { color: #4a3a07; }
   .phone-wrap { flex: 1 1 0; min-height: 0; position: relative; }
   .phone-wrap .phone { position: absolute; top: 0.2rem; bottom: 1.1rem; left: 50%; transform: translateX(-50%); height: auto; max-width: calc(100% - 2rem); }
+  /* Screenshots are 393x852 points (the phone API has no higher-resolution option). content-box makes the
+     ratio apply to the screen inside the bezel, so the image fills it exactly: contain, no crop, no bars. */
   .phone {
-    height: 100%; aspect-ratio: 9 / 19.5; border-radius: 2.3rem; padding: 0.55rem;
+    box-sizing: content-box; height: calc(100% - 1.1rem); aspect-ratio: 393 / 852; border-radius: 2.3rem; padding: 0.55rem;
     background: #05060f; box-shadow: 0 0 0 3px var(--ink-3), 0 0.5rem 0 #000;
     position: relative; overflow: hidden;
   }
@@ -389,7 +391,7 @@
 
   #phone-big { background: rgba(12, 14, 34, 0.97); color: #fff; place-items: center; padding: 2rem; }
   #phone-big .pb { display: grid; grid-template-columns: auto minmax(0, 30rem); gap: 3.5rem; align-items: center; height: 100%; }
-  #phone-big .phone { height: 88vh; border-radius: 3.4rem; padding: 0.8rem; box-shadow: 0 0 0 4px var(--sun), 0 0 6rem 1rem rgba(255, 197, 61, 0.35); }
+  #phone-big .phone { height: calc(88vh - 1.6rem); max-height: 960px; border-radius: 3.4rem; padding: 0.8rem; box-shadow: 0 0 0 4px var(--sun), 0 0 6rem 1rem rgba(255, 197, 61, 0.35); }
   #phone-big .phone img, #phone-big .phone .off { border-radius: 2.7rem; }
   #phone-big .pb-kick { display: flex; align-items: center; gap: 0.8rem; font: 800 1.5rem/1.1 var(--body); color: var(--sun); }
   #phone-big h2 { margin: 0.7rem 0 0.8rem; font: 800 3.2rem/1.05 var(--display); letter-spacing: -0.045em; white-space: nowrap; overflow: hidden; }
@@ -474,7 +476,7 @@
     .pipe { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr)); }
     #qr-big .qb, #phone-big .pb { grid-template-columns: 1fr; justify-items: center; text-align: center; }
     #qr-big img { width: min(80vw, 60vh); height: min(80vw, 60vh); }
-    #phone-big .phone { height: 70vh; }
+    #phone-big .phone { height: calc(70vh - 1.6rem); }
     .banner.sample b { font-size: 1.4rem; }
   }
   @media (prefers-reduced-motion: reduce) {

@@ -71,7 +71,7 @@ describe("developer keys and the studio MCP", () => {
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
     }));
     const text = await ok.text();
-    for (const t of ["request_playtest", "audit_reviews", "request_free_levels", "get_status"]) expect(text).toContain(`"name":"${t}"`);
+    for (const t of ["request_playtest", "audit_reviews", "request_free_levels", "get_status", "list_my_levels"]) expect(text).toContain(`"name":"${t}"`);
   });
 
   it("answers /offer and /signup-status for the new pages", async () => {

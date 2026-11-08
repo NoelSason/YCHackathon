@@ -97,3 +97,38 @@ export interface ActivityEntry {
   costUsd: number | null;
   human: boolean;
 }
+
+/** What the customer's live watch page shows about one playtest order. */
+export type WatchState = "queued" | "testing" | "finished" | "failed";
+
+/** The finished playtest's findings, shown on the watch page (the same facts as the report email). */
+export interface WatchSummary {
+  loaded: boolean;
+  touchOk: boolean;
+  visualIssues: string[];
+  stuckReason: string | null;
+  notes: string | null;
+}
+
+/**
+ * One playtest order, with the unguessable token that its live watch link carries
+ * (`/watch?o=<token>`). The token is the only key the public watch endpoints accept.
+ */
+export interface WatchOrder {
+  id: string;
+  token: string;
+  leadId: string;
+  appUrl: string;
+  gameName: string;
+  state: WatchState;
+  /** True when a test payment (no money moved) started it. */
+  test: boolean;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  summary: WatchSummary | null;
+  /** The payment that started it, once paid; unpaid orders have none. Used to resume after a restart. */
+  paymentId?: string | null;
+  /** What the customer asked us to focus on. */
+  focus?: string | null;
+}

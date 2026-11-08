@@ -55,6 +55,35 @@ export function reshuffleTransition(state: GameState): Transition {
     !findMatches(state.board, state.settings).length;
   if (state.mode !== "relaxed" || (!onReady(state) && !finishedRelaxed) || state.selectedTool)
     return rejected(state, "reshuffle-unavailable");
+  const shuffled = shuffledBoard(state);
+  if (shuffled) {
+    return {
+      state: Object.freeze({
+        ...state,
+        board: shuffled.board,
+        randomState: shuffled.randomState,
+        assisted: true,
+        phase: "ready",
+        outcome: null,
+        selectedTool: null,
+        toolTarget: null,
+        toolPreview: Object.freeze([]),
+      }),
+      events: Object.freeze([{ type: "board-reshuffled", attempts: shuffled.attempts, assisted: true }]),
+      accepted: true,
+    };
+  }
+  return rejected(state, "reshuffle-failed");
+}
+
+/**
+ * Level AI change (not upstream): the shuffle loop from reshuffleTransition, split out so
+ * engine-ticks can also reshuffle a dead Challenge board automatically. Same algorithm and random
+ * stream as before, so explicit Relaxed reshuffles are unchanged. Returns null if 128 attempts fail.
+ */
+export function shuffledBoard(
+  state: GameState,
+): { readonly board: readonly (Gem | null)[]; readonly randomState: number; readonly attempts: number } | null {
   const gems = state.board.filter((item, index): item is Gem => item !== null && index !== state.blackHole?.cell);
   let randomState = state.randomState;
   for (let attempt = 0; attempt < 128; attempt++) {
@@ -68,23 +97,8 @@ export function reshuffleTransition(state: GameState): Transition {
     let at = 0;
     for (let index = 0; index < board.length; index++)
       if (state.settings.mask[index] && index !== state.blackHole?.cell) board[index] = shuffled[at++]!;
-    if (!findMatches(board, state.settings).length && listLegalSwaps({ ...state, board }).length) {
-      return {
-        state: Object.freeze({
-          ...state,
-          board: Object.freeze(board),
-          randomState,
-          assisted: true,
-          phase: "ready",
-          outcome: null,
-          selectedTool: null,
-          toolTarget: null,
-          toolPreview: Object.freeze([]),
-        }),
-        events: Object.freeze([{ type: "board-reshuffled", attempts: attempt + 1, assisted: true }]),
-        accepted: true,
-      };
-    }
+    if (!findMatches(board, state.settings).length && listLegalSwaps({ ...state, board }).length)
+      return { board: Object.freeze(board), randomState, attempts: attempt + 1 };
   }
-  return rejected(state, "reshuffle-failed");
+  return null;
 }

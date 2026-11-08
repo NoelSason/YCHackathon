@@ -8,6 +8,8 @@ import { appIdFromStoreUrl } from "../leads/intake.js";
 import { fetchRecentReviews, storeName } from "../research/monid.js";
 import { buildTarget } from "../research/targets.js";
 import { status as progressStatus, step } from "../leads/progress.js";
+import { levelsQuery, studioLevels } from "../levels/public.js";
+import type { Query } from "../store.js";
 
 /**
  * The studio MCP: what a studio's own coding agent can ask Level AI to do, authenticated by that
@@ -15,7 +17,7 @@ import { status as progressStatus, step } from "../leads/progress.js";
  */
 const json = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] });
 
-export function buildStudioMcp(ctx: ToolContext, studio: Lead): McpServer {
+export function buildStudioMcp(ctx: ToolContext, studio: Lead, levelsDb: Query | null = levelsQuery(ctx.config.DATABASE_URL)): McpServer {
   const server = new McpServer({ name: "levelai", version: "0.1.0" });
   const log = (action: string, why: string | null) =>
     ctx.store.logActivity({ at: new Date().toISOString(), agent: "studio-api", action: `${studio.company}: ${action}`, why, result: null, costUsd: null, human: false });
@@ -74,6 +76,15 @@ export function buildStudioMcp(ctx: ToolContext, studio: Lead): McpServer {
       inputSchema: { requestId: z.string() },
     },
     async (args) => json(progressStatus(args.requestId)),
+  );
+
+  server.registerTool(
+    "list_my_levels",
+    {
+      description: "List the levels we've sent your studio, with each level's JSON, target win rate, and measured win rate. The same data as GET /api/studio/levels. Levels aren't linked to studio accounts yet, so this shows only the sample levels we sent you; the note in the result explains.",
+      inputSchema: {},
+    },
+    async () => json(await studioLevels(levelsDb, studio)),
   );
 
   return server;

@@ -1,6 +1,7 @@
 import { consumePortal, contactCells } from "./black-hole.js";
 import { findMatches, listLegalSwaps } from "./board.js";
 import { gem } from "./engine-create.js";
+import { shuffledBoard } from "./practice.js";
 import { drawColour } from "./random.js";
 import { materializeSpecials, planWave } from "./specials.js";
 import type { GameEvent, GameState, Gem, Goal, OrdinaryToolKind, ReplayOperation, Transition } from "./types.js";
@@ -346,6 +347,21 @@ export function advanceTicksBase(state: GameState, ticks: number): Transition {
           stable.challenge?.moveLimit !== undefined &&
           stable.swapCount >= stable.challenge.moveLimit);
       const noActions = legal.length === 0 && !hasUsableTool(stable);
+      // Level AI change (not upstream): a dead Challenge board with moves left is reshuffled
+      // automatically, as is standard for the genre, instead of ending the run as lost. The run is
+      // not marked assisted. It still ends if no playable arrangement exists.
+      const autoShuffle =
+        stable.mode === "challenge" && noActions && !goalWon && !moveExpired ? shuffledBoard(stable) : null;
+      if (autoShuffle) {
+        current = Object.freeze({ ...stable, board: autoShuffle.board, randomState: autoShuffle.randomState });
+        events.push(...refillEvents, {
+          type: "board-reshuffled",
+          attempts: autoShuffle.attempts,
+          assisted: false,
+          automatic: true,
+        });
+        continue;
+      }
       if (goalWon) current = Object.freeze({ ...stable, phase: "finished" as const, outcome: "won" as const });
       else if (timedOut || moveExpired || noActions)
         current = Object.freeze({

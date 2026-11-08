@@ -41,6 +41,7 @@
   font: 800 clamp(26px, 5vw, 48px)/1.05 var(--display);
   letter-spacing: -0.03em; margin: 0 0 10px; text-wrap: balance;
 }
+.play-tuned.practice { background: var(--sun); }
 .play-tuned {
   display: inline-block; font-size: 14px; font-weight: 600; line-height: 1.4;
   background: var(--white); border: 2px solid var(--ink); border-radius: 10px;
@@ -72,19 +73,20 @@
 .play-rig {
   position: relative; margin: 0 auto;
   width: min(100%, calc((100svh - 230px) * var(--ratio, 1)), 600px);
-  background: var(--ink); border-radius: 26px; padding: 10px;
+  background: var(--ink); border-radius: 26px; padding: 14px;
   box-shadow: 0 7px 0 #0c0e22, 0 30px 60px -20px rgba(26, 29, 58, 0.45);
 }
 @media (max-width: 899px) { .play-rig { width: min(100%, calc((100svh - 300px) * var(--ratio, 1)), 600px); min-width: min(100%, 300px); } }
 .play-board {
   position: relative; width: 100%;
   aspect-ratio: var(--w, 8) / var(--h, 8);
-  background: var(--ink-2); border-radius: 18px;
+  background: var(--ink-2); border-radius: 12px;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
   overflow: hidden; cursor: pointer;
 }
 .play-board:focus-visible { outline: 3px solid var(--sun); outline-offset: 4px; border-radius: 18px; }
-.layer { position: absolute; inset: 6px; }
+/* Layers fill the board exactly, so every cell is a square: the board's aspect ratio is w:h. */
+.layer { position: absolute; inset: 0; }
 .slot, .gem, .seal, .kb-ring {
   position: absolute; left: 0; top: 0;
   width: calc(100% / var(--w, 8)); height: calc(100% / var(--h, 8));
@@ -93,7 +95,7 @@
   content: ""; position: absolute; inset: 3px; border-radius: 9px;
   background: rgba(255, 255, 255, 0.05);
 }
-.gem { transition: transform 0.17s ease-in; will-change: transform; }
+.gem { transition: transform 0.17s ease-in-out; will-change: transform; }
 .gem.still { transition: none; }
 .gem::before {
   content: ""; position: absolute; inset: 3px; border-radius: 10px;
@@ -124,7 +126,23 @@
 .gem[data-s="colour-burst"]::before { background: conic-gradient(var(--tomato), var(--sun), var(--mint), var(--cobalt), var(--grape), var(--tomato)); }
 .gem[data-s="colour-burst"] i { inset: 30%; border-radius: 50%; clip-path: none; background: var(--white); }
 
-.gem.sel::before { box-shadow: 0 0 0 3px var(--white), inset 0 -4px 0 var(--edge); transform: scale(1.06); }
+/* selected tile: a thick white ring drawn inside the cell (the board clips anything outside it),
+   plus a bigger icon, so it reads at a glance on a phone */
+.gem.sel { z-index: 2; }
+.gem.sel::before {
+  inset: 1px;
+  box-shadow: inset 0 0 0 4px var(--white), inset 0 0 0 7px var(--ink), inset 0 -4px 0 var(--edge);
+  filter: brightness(1.12);
+}
+.gem.sel i { transform: scale(1.2); }
+/* idle hint: the two tiles of one possible swap pulse */
+.gem.hint::before { animation: hint-pulse 1s ease-in-out infinite; }
+@keyframes hint-pulse { 50% { box-shadow: inset 0 0 0 4px var(--sun), inset 0 -4px 0 var(--edge); filter: brightness(1.15); } }
+.gem.hint i { animation: hint-bob 1s ease-in-out infinite; }
+@keyframes hint-bob { 50% { transform: scale(1.18); } }
+/* reduced motion: an invalid swap flashes instead of sliding back */
+.gem.shake::before { animation: nope-flash 0.4s ease-out; }
+@keyframes nope-flash { 30% { box-shadow: inset 0 0 0 4px var(--tomato), inset 0 -4px 0 var(--edge); } }
 .gem.marked::before { transform: scale(1.12); box-shadow: 0 0 0 3px var(--white), 0 0 18px rgba(255, 255, 255, 0.7); }
 .gem.pop { transition: transform 0.2s ease, opacity 0.2s ease; opacity: 0; }
 .gem.pop::before { transform: scale(0.2); }
@@ -221,15 +239,16 @@
   .hud-card { padding: 8px 12px; border-radius: 14px; }
   .hud-card.moves { min-width: 86px; }
   .hud-card.moves strong { font-size: 28px; }
-  .play-rig { padding: 7px; border-radius: 20px; }
-  .play-board { border-radius: 14px; }
-  .layer { inset: 4px; }
+  .play-rig { padding: 8px; border-radius: 20px; }
+  .play-board { border-radius: 10px; }
   .gem::before, .slot::before { inset: 2px; border-radius: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .gem, .gem::before, .kb-ring, .goal-bar span { transition: none !important; }
   .play-board.intro #gems, .play-result, .result-card { animation: none !important; }
+  .gem.hint::before, .gem.hint i { animation: none; }
+  .gem.hint::before { box-shadow: inset 0 0 0 4px var(--sun), inset 0 -4px 0 var(--edge); }
 }
 
 /* `hidden` must win over the display rules above (shell, chip, buttons, overlay). */

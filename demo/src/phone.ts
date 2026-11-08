@@ -4,6 +4,8 @@
  *
  * It only reads screenshots of an existing device. It never provisions, resets, or releases one.
  * Docs: https://docs.mobilerun.ai/api-reference/screenshots/capture-a-device-screenshot.md
+ * The API has no scale or resolution option (checked Nov 7): frames are 393x852 points, so the page
+ * shows them at that ratio and close to native size.
  */
 const API = "https://api.mobilerun.ai/v1";
 const MIN_INTERVAL_MS = 900;

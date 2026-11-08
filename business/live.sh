@@ -39,7 +39,8 @@ done
 
 # Permanent public addresses: levelai.vercel.app forwards the live pages to this tunnel, so links in
 # emails, posts, QR codes, and the agents' tool address (/mcp, stored once in Naïve's vault) keep
-# working across restarts.
+# working across restarts. The developer API is under /api (docs/developers.md); /api/games is not /games
+# because site/games/ holds the game pages, and a static page wins over a rewrite.
 SITE="${SITE_URL:-https://levelai.vercel.app}"
 cat > "$ROOT/site/vercel.json" <<JSON
 {
@@ -54,9 +55,17 @@ cat > "$ROOT/site/vercel.json" <<JSON
     { "source": "/levels/:id", "destination": "$URL/levels/:id" },
     { "source": "/packs/:id", "destination": "$URL/packs/:id" },
     { "source": "/levels-latest", "destination": "$URL/levels-latest" },
+    { "source": "/api/games", "destination": "$URL/games" },
+    { "source": "/api/levels", "destination": "$URL/levels" },
+    { "source": "/api/levels/:id", "destination": "$URL/levels/:id" },
+    { "source": "/api/packs/:id", "destination": "$URL/packs/:id" },
+    { "source": "/api/levels-latest", "destination": "$URL/levels-latest" },
+    { "source": "/api/studio/levels", "destination": "$URL/studio/levels" },
     { "source": "/match3", "destination": "/play" },
     { "source": "/match3/", "destination": "/play" },
     { "source": "/playtest-orders", "destination": "$URL/playtest-orders" },
+    { "source": "/watch-status", "destination": "$URL/watch-status" },
+    { "source": "/watch-frame", "destination": "$URL/watch-frame" },
     { "source": "/developer-keys", "destination": "$URL/developer-keys" },
     { "source": "/studio-mcp", "destination": "$URL/studio-mcp" },
     { "source": "/webhooks/:path*", "destination": "$URL/webhooks/:path*" },

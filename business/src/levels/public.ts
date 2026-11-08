@@ -1,21 +1,38 @@
 import { neonQuery, type Query } from "../store.js";
 
 /**
- * Public, read-only level API for the web player at levelai.vercel.app/play (site/play.html,
- * built from player/). The site forwards these paths to this server (see business/live.sh):
+ * Public, read-only level API, for the web player at levelai.vercel.app/play (site/play.html,
+ * built from player/) and for studios' own tools (documented in docs/developers.md). The site
+ * forwards these paths to this server (see business/live.sh), at the root and under /api:
  *
- *   GET /levels/:id                          one playable level
- *   GET /packs/:id                           a published pack, levels in pack order
- *   GET /levels-latest?game=match3&limit=10  the newest pack, or the newest accepted levels
+ *   GET /games                                every public game and how many levels it has
+ *   GET /levels?game=<id>&limit=20&since=iso  the newest accepted levels (all games without `game`)
+ *   GET /levels/:id                           one level
+ *   GET /packs/:id                            a published pack, levels in pack order
+ *   GET /levels-latest?game=match3&limit=10   the newest pack, or the newest accepted levels
  *
- * Only levels the Tuner accepted (or the CEO published) are served, and only for match3, the one
- * game the web player runs. Drafts, rejected levels, notes, and who made them stay private.
+ * Only levels the Tuner accepted (or the CEO published) are served, for any game in the platform's
+ * games table except the internal `stub` test game. Drafts, rejected levels, notes, and which agent
+ * made them stay private. The key-authenticated studio view (`studioLevels`) lives here too.
  */
 
+/** The one game the web player at /play runs. /levels-latest defaults to it. */
 export const PLAYABLE_GAMES = ["match3"] as const;
+/** In the games table for smoke tests only; never public. */
+const HIDDEN_GAMES = ["stub"];
 const PLAYABLE_STATUSES = ["accepted", "published"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_LIMIT = 30;
+const MAX_LIST_LIMIT = 100;
+
+/** The genre of each game, for GET /games. The games table has no genre column; unknown is null. */
+const GENRES: Record<string, string> = {
+  match3: "match-3",
+  platformer: "platformer",
+  racer: "lane racer",
+  watersort: "sort puzzle",
+  lotescape: "sliding-block puzzle",
+};
 
 export interface PublicLevel {
   level_id: string;
@@ -23,6 +40,23 @@ export interface PublicLevel {
   level: Record<string, unknown>;
   target_win_rate: number;
   measured_win_rate: number | null;
+  status: "accepted" | "published";
+  created_at: string;
+  /** When the level was last accepted or published. */
+  updated_at: string;
+}
+
+export interface PublicGame {
+  game_id: string;
+  name: string;
+  genre: string | null;
+  /** Accepted or published levels this API serves for the game. */
+  levels_available: number;
+}
+
+export interface LevelList {
+  game_id: string | null;
+  levels: PublicLevel[];
 }
 
 export interface PublicPack {
@@ -53,16 +87,19 @@ function toLevel(r: Row): PublicLevel {
     level: levelJson(r.level),
     target_win_rate: Number(r.target_win_rate),
     measured_win_rate: num(r.measured_win_rate),
+    status: String(r.status) as PublicLevel["status"],
+    created_at: iso(r.created_at),
+    updated_at: iso(r.updated_at),
   };
 }
 
-const LEVEL_COLUMNS = "level_id, game_id, level, target_win_rate, measured_win_rate";
+const LEVEL_COLUMNS = "level_id, game_id, level, target_win_rate, measured_win_rate, status, created_at, updated_at";
 
 export async function getPublicLevel(q: Query, id: string): Promise<PublicLevel | null> {
   if (!UUID.test(id)) return null;
   const rows = await q(
-    `select ${LEVEL_COLUMNS} from levels where level_id = $1 and game_id = any($2::text[]) and status = any($3::text[])`,
-    [id, [...PLAYABLE_GAMES], PLAYABLE_STATUSES],
+    `select ${LEVEL_COLUMNS} from levels where level_id = $1 and game_id <> all($2::text[]) and status = any($3::text[])`,
+    [id, HIDDEN_GAMES, PLAYABLE_STATUSES],
   );
   return rows[0] ? toLevel(rows[0]) : null;
 }
@@ -84,12 +121,12 @@ function packIds(v: unknown): string[] {
   return Array.isArray(ids) ? ids.map(String) : [];
 }
 
-/** A published match3 pack with at least one playable level, or null. */
+/** A published pack with at least one servable level, or null. */
 export async function getPublicPack(q: Query, id: string): Promise<PublicPack | null> {
   if (!UUID.test(id)) return null;
   const rows = await q(
-    `select pack_id, game_id, name, level_ids, published_at from packs where pack_id = $1 and game_id = any($2::text[])`,
-    [id, [...PLAYABLE_GAMES]],
+    `select pack_id, game_id, name, level_ids, published_at from packs where pack_id = $1 and game_id <> all($2::text[])`,
+    [id, HIDDEN_GAMES],
   );
   const p = rows[0];
   if (!p) return null;
@@ -115,13 +152,89 @@ export async function latestLevels(q: Query, gameId: string, limit = 10): Promis
   }
   const rows = await q(
     `select * from (
-       select ${LEVEL_COLUMNS}, created_at from levels
+       select ${LEVEL_COLUMNS} from levels
        where game_id = $1 and status = any($2::text[])
        order by created_at desc limit $3
      ) newest order by measured_win_rate desc nulls last, created_at desc`,
     [gameId, PLAYABLE_STATUSES, n],
   );
   return { game_id: gameId, pack: null, levels: rows.map(toLevel) };
+}
+
+/** Every public game, with how many accepted or published levels it has. */
+export async function listGames(q: Query): Promise<PublicGame[]> {
+  const rows = await q(
+    `select g.game_id, g.name, count(l.level_id)::int as levels_available
+       from games g left join levels l on l.game_id = g.game_id and l.status = any($2::text[])
+      where g.game_id <> all($1::text[])
+      group by g.game_id, g.name order by g.game_id`,
+    [HIDDEN_GAMES, PLAYABLE_STATUSES],
+  );
+  return rows.map((r) => ({ game_id: String(r.game_id), name: String(r.name), genre: GENRES[String(r.game_id)] ?? null, levels_available: Number(r.levels_available) }));
+}
+
+/** Whether a game is public (in the games table and not hidden). */
+export async function isPublicGame(q: Query, gameId: string): Promise<boolean> {
+  if (HIDDEN_GAMES.includes(gameId) || !/^[a-z0-9_-]{1,40}$/.test(gameId)) return false;
+  return (await q(`select 1 from games where game_id = $1`, [gameId])).length > 0;
+}
+
+/**
+ * Accepted and published levels, newest first (by when they were last accepted or published).
+ * With `since`, only levels updated after it, oldest first, so a client can page forward by passing
+ * the last `updated_at` it saw.
+ */
+export async function listLevels(q: Query, opts: { gameId?: string | null; limit?: number; since?: string | null } = {}): Promise<LevelList> {
+  const raw = Math.floor(opts.limit ?? 20);
+  const n = Number.isFinite(raw) ? Math.max(1, Math.min(MAX_LIST_LIMIT, raw)) : 20;
+  const rows = await q(
+    `select ${LEVEL_COLUMNS} from levels
+      where status = any($1::text[]) and game_id <> all($2::text[])
+        and ($3::text is null or game_id = $3) and ($4::timestamptz is null or updated_at > $4)
+      order by ${opts.since ? "updated_at asc" : "updated_at desc"}, level_id limit $5`,
+    [PLAYABLE_STATUSES, HIDDEN_GAMES, opts.gameId ?? null, opts.since ?? null, n],
+  );
+  return { game_id: opts.gameId ?? null, levels: rows.map(toLevel) };
+}
+
+/** What GET /studio/levels and the studio MCP's list_my_levels return. */
+export interface StudioLevels {
+  studio: string;
+  /** The sample pack or level we sent this studio, when its record links one; otherwise null. */
+  sample: { pack_id: string | null; name: string | null; url: string } | null;
+  levels: PublicLevel[];
+  note: string;
+}
+
+export const STUDIO_LEVELS_NOTE =
+  "Levels aren't linked to studio accounts yet: our agents design levels for our own games, not for yours. " +
+  "This lists the sample levels we've sent you, if any. Every public level is also at GET /api/levels.";
+
+/**
+ * The levels a studio can see with its key. Levels and packs have no studio column, so the only
+ * real link is the studio's own record: the sample link an agent set on it (`/play?pack=<id>` or
+ * `/play?level=<id>`). Without one, the list is empty and the note says why.
+ */
+export async function studioLevels(q: Query | null, studio: { company: string; sampleUrl: string | null }): Promise<StudioLevels> {
+  const out: StudioLevels = { studio: studio.company, sample: null, levels: [], note: STUDIO_LEVELS_NOTE };
+  if (!studio.sampleUrl) return out;
+  let params: URLSearchParams;
+  try {
+    params = new URL(studio.sampleUrl).searchParams;
+  } catch {
+    return out;
+  }
+  const packId = params.get("pack");
+  const levelId = params.get("level");
+  if (q && packId && UUID.test(packId)) {
+    const pack = await getPublicPack(q, packId);
+    if (pack) return { ...out, sample: { pack_id: pack.pack_id, name: pack.name, url: studio.sampleUrl }, levels: pack.levels };
+  }
+  if (q && levelId && UUID.test(levelId)) {
+    const level = await getPublicLevel(q, levelId);
+    if (level) return { ...out, sample: { pack_id: null, name: null, url: studio.sampleUrl }, levels: [level] };
+  }
+  return { ...out, sample: { pack_id: null, name: null, url: studio.sampleUrl } };
 }
 
 /**
@@ -161,9 +274,22 @@ export function publicLevelRoutes(q: Query | null): (request: Request, url: URL)
     const level = url.pathname.match(/^\/levels\/([^/]+)\/?$/);
     const pack = url.pathname.match(/^\/packs\/([^/]+)\/?$/);
     const latest = url.pathname === "/levels-latest";
-    if (!level && !pack && !latest) return null;
+    const games = url.pathname === "/games";
+    const list = url.pathname === "/levels" || url.pathname === "/levels/";
+    if (!level && !pack && !latest && !games && !list) return null;
     if (request.method !== "GET") return respond(405, { error: "method not allowed" });
     if (!q) return respond(503, { error: "levels unavailable" });
+
+    if (games) return respond(200, { games: await listGames(q) }, 60);
+    if (list) {
+      const game = url.searchParams.get("game");
+      if (game !== null && !(await isPublicGame(q, game))) return respond(404, { error: "game not found" });
+      const since = url.searchParams.get("since");
+      if (since !== null && Number.isNaN(Date.parse(since))) return respond(400, { error: "since must be an ISO 8601 time" });
+      const limit = url.searchParams.get("limit");
+      if (limit !== null && !/^\d{1,3}$/.test(limit)) return respond(400, { error: `limit must be a whole number from 1 to ${MAX_LIST_LIMIT}` });
+      return respond(200, await listLevels(q, { gameId: game, limit: limit === null ? 20 : Number(limit), since: since && new Date(since).toISOString() }));
+    }
 
     if (level) {
       if (!UUID.test(level[1]!)) return respond(400, { error: "invalid level id" });
@@ -176,7 +302,7 @@ export function publicLevelRoutes(q: Query | null): (request: Request, url: URL)
       return found ? respond(200, found, 300) : respond(404, { error: "pack not found" });
     }
     const game = url.searchParams.get("game") ?? "match3";
-    if (!(PLAYABLE_GAMES as readonly string[]).includes(game)) return respond(400, { error: "only match3 levels are playable on the web" });
+    if (!(await isPublicGame(q, game))) return respond(404, { error: "game not found" });
     return respond(200, await latestLevels(q, game, Number(url.searchParams.get("limit") ?? 10)));
   };
 }

@@ -2,20 +2,10 @@ import type { Adapter } from "../../../platform/mcp/src/adapters.js";
 import { advanceTicks, applyAction, createGame, legalActions, statusOf } from "../engine/houseki-gem-swap/gem-swap/engine.js";
 import type { Action } from "../engine/houseki-gem-swap/gem-swap/types-actions.js";
 import type { GameState } from "../engine/houseki-gem-swap/gem-swap/types-state.js";
-import type { CreateOptions } from "../engine/houseki-gem-swap/gem-swap/types.js";
 import type { GemColour } from "../engine/houseki-gem-swap/gem-swap/types-pieces.js";
+import { levelOptions, type MatchLevel } from "./levels.js";
 
-type MatchLevel = {
-  name: string;
-  width: number;
-  height: number;
-  colour_count: 4 | 5 | 6;
-  seed: number | string;
-  mask?: boolean[];
-  seals?: { cell: number; layers: number }[];
-  goal: { colour: GemColour; target: number };
-  move_limit: number;
-};
+export { levelOptions, PRACTICE_LEVELS, type MatchLevel } from "./levels.js";
 
 const BASE_URL = process.env.GAMES_BASE_URL ?? "http://localhost:3000";
 const COLOURS: readonly GemColour[] = ["red", "blue", "green", "gold", "purple", "teal"];
@@ -39,26 +29,6 @@ const schema = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function options(level: MatchLevel, runSeed: number): CreateOptions {
-  return {
-    width: level.width,
-    height: level.height,
-    colourCount: level.colour_count,
-    seed: `${String(level.seed)}:${runSeed >>> 0}`,
-    tools: false,
-    mode: "challenge",
-    challenge: {
-      goals: [
-        { kind: "collect", colour: level.goal.colour, target: level.goal.target },
-        ...(level.seals?.length ? [{ kind: "seals" as const }] : []),
-      ],
-      moveLimit: level.move_limit,
-      ...(level.seals ? { seals: level.seals } : {}),
-    },
-    ...(level.mask ? { mask: level.mask } : {}),
-  };
 }
 
 function settle(state: GameState): GameState {
@@ -126,7 +96,7 @@ export const adapter: Adapter = {
     else if (COLOURS.indexOf(goal.colour) >= (l.colour_count ?? 0)) errors.push("goal colour must be included by colour_count");
     if (!Number.isInteger(l.move_limit) || (l.move_limit ?? 0) < 1 || (l.move_limit ?? 0) > 200) errors.push("move_limit must be an integer from 1 to 200");
     if (!errors.length) {
-      try { createGame(options(l as MatchLevel, 0)); }
+      try { createGame(levelOptions(l as MatchLevel, 0)); }
       catch (error) { errors.push(error instanceof Error ? error.message : "level settings are not accepted by the game engine"); }
     }
     return errors.length ? { ok: false, errors } : { ok: true };
@@ -137,7 +107,7 @@ export const adapter: Adapter = {
     if (!adapter.bots.includes(bot)) throw new Error(`unknown bot: ${bot}`);
     const level = value as MatchLevel;
     const random = randomFor(seed);
-    let state = settle(createGame(options(level, seed)));
+    let state = settle(createGame(levelOptions(level, seed)));
     while (state.phase !== "finished") {
       const swaps = legalActions(state).filter(isSwap);
       if (!swaps.length) break;

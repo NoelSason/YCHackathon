@@ -85,4 +85,23 @@ describe("PlatformStore on the platform schema", () => {
     await store.suppress("Stop@X.example", "replied stop");
     expect(await store.isSuppressed("stop@x.example")).toBe(true);
   });
+
+  it("stores playtest watch orders, finds them by token, and updates state and summary", async () => {
+    const l = await store.upsertLead({ ...baseLead, email: "w@x.example", source: "inbound_form" });
+    const token = "a".repeat(43);
+    const o = await store.addWatchOrder({ leadId: l.id, token, appUrl: "https://play2048.co/", gameName: "play2048.co" });
+    expect(o).toMatchObject({ leadId: l.id, token, state: "queued", test: false, startedAt: null, finishedAt: null, summary: null });
+    expect((await store.getWatchOrderByToken(token))!.id).toBe(o.id);
+    expect(await store.getWatchOrderByToken("b".repeat(43))).toBeNull();
+    const started = await store.updateWatchOrder(o.id, { state: "testing", test: true, startedAt: "2026-11-08T03:00:00.000Z" });
+    expect(started).toMatchObject({ state: "testing", test: true, startedAt: "2026-11-08T03:00:00.000Z" });
+    const summary = { loaded: true, touchOk: true, visualIssues: ["x"], stuckReason: null, notes: "ok" };
+    const done = await store.updateWatchOrder(o.id, { state: "finished", finishedAt: "2026-11-08T03:05:00.000Z", summary });
+    expect(done).toMatchObject({ state: "finished", summary });
+    await expect(q(`update biz_playtest_orders set state = 'paused' where id = $1`, [o.id])).rejects.toThrow();
+    await store.logActivity({ at: "2026-11-08T03:01:00.000Z", agent: "playtest-lead", action: "a", why: null, result: null, costUsd: null, human: false });
+    await store.logActivity({ at: "2026-11-08T04:00:00.000Z", agent: "playtest-lead", action: "b", why: null, result: null, costUsd: null, human: false });
+    expect((await store.listActivityBetween("2026-11-08T02:59:00.000Z", "2026-11-08T03:30:00.000Z")).map((a) => a.action)).toEqual(["a"]);
+    expect((await store.listActivityBetween("2026-11-08T02:59:00.000Z", null)).map((a) => a.action)).toEqual(["a", "b"]);
+  });
 });

@@ -1,18 +1,19 @@
 import { timingSafeEqual } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { integrationStatus, type Config } from "./config.js";
-import { createStore } from "./store.js";
+import { createStore, type Query } from "./store.js";
 import { MonidCli } from "./research/monid.js";
 import { AgentMailSender } from "./outreach/send.js";
 import { answerReply, handleInboundReply, parseAgentMailEvent, setReplyResponder, verifySvixSignature } from "./outreach/inbound.js";
 import { handleStripeWebhook, stripeClient } from "./billing/stripe.js";
 import { intakeLead } from "./leads/intake.js";
 import { runLiveSignup } from "./leads/live.js";
-import { levelsQuery, publicLevelRoutes } from "./levels/public.js";
+import { levelsQuery, publicLevelRoutes, studioLevels } from "./levels/public.js";
 import { joinPage } from "./leads/join-page.js";
 import { playtestPage } from "./leads/playtest-page.js";
 import { createPlaytestOrder, enqueue, runPlaytestOrder } from "./leads/playtest-offer.js";
 import { status as progressStatus, step as progressStep } from "./leads/progress.js";
+import { watchRoutes } from "./leads/watch.js";
 import { mobilerunClient } from "./mobile/playtest.js";
 import { naiveClient, startSession } from "./naive.js";
 import { buildMcpServer } from "./mcp/server.js";
@@ -30,6 +31,9 @@ import type { PaymentRecord } from "./types.js";
  *   GET  /join                the QR signup page
  *   POST /leads               the table QR form; starts the live audit and welcome email
  *   GET  /health              which integrations are configured (booleans only)
+ *   GET  /games, /levels, /levels/:id, /packs/:id, /levels-latest   public levels (levels/public.ts)
+ *   GET  /studio/levels       a studio's levels (Bearer lvl_ developer key)
+ *   POST /studio-mcp          the studio MCP server (Bearer lvl_ developer key)
  */
 export type Handler = (request: Request) => Promise<Response>;
 
@@ -64,9 +68,16 @@ function bearerOk(token: string | undefined, authorization: string | null): bool
   return given.length === want.length && timingSafeEqual(given, want);
 }
 
-export function createHandler(config: Config, ctx: ToolContext = buildContext(config)): Handler {
+export function createHandler(config: Config, ctx: ToolContext = buildContext(config), levelsDb: Query | null = levelsQuery(config.DATABASE_URL)): Handler {
   const header = (request: Request, name: string): string | undefined => request.headers.get(name) ?? undefined;
-  const levelRoutes = publicLevelRoutes(levelsQuery(config.DATABASE_URL));
+  const levelRoutes = publicLevelRoutes(levelsDb);
+  const watch = watchRoutes(ctx.store); // GET /watch-status, /watch-frame (leads/watch.ts)
+
+  /** The studio a developer key belongs to, or null for a missing, malformed, or unknown key. */
+  async function studioForKey(request: Request) {
+    const key = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+    return /^lvl_[0-9a-f]{48}$/.test(key) ? ctx.store.leadForApiKey(hashKey(key)) : null;
+  }
 
   // Replies that arrive by webhook or by the inbox poll: answer plainly interested ones right away.
   setReplyResponder((o) => answerReply(ctx, o));
@@ -90,7 +101,11 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       return;
     }
     await log(`playtest queued after payment: ${lead.company}`, metadata.app_url, `payment ${payment.id}${mode}`);
-    void enqueue(() => runPlaytestOrder(ctx, lead, metadata.app_url!, metadata.focus || null, { id: payment.id, livemode: payment.livemode })).catch((err) =>
+    // Mark the order paid, so a restart before it runs can pick it back up (resumePaidOrders).
+    if (metadata.order_id) {
+      await ctx.store.updateWatchOrder(metadata.order_id, { paymentId: payment.id, focus: metadata.focus || null, test: !payment.livemode }).catch(() => null);
+    }
+    void enqueue(() => runPlaytestOrder(ctx, lead, metadata.app_url!, metadata.focus || null, { id: payment.id, livemode: payment.livemode }, metadata.order_id || null)).catch((err) =>
       log(`playtest order needs a person: ${lead.company}`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", `left for a person${mode}`).catch(() => undefined),
     );
   }
@@ -100,12 +115,20 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
 
     if (request.method === "GET" && url.pathname === "/health") return json(200, { ok: true, integrations: integrationStatus(config) });
 
+    if (url.pathname === "/studio/levels") {
+      if (request.method !== "GET") return json(405, { error: "method not allowed" });
+      const studio = await studioForKey(request);
+      if (!studio) return json(401, { error: "unauthorized: get a key at /developers" });
+      return new Response(JSON.stringify(await studioLevels(levelsDb, studio)), {
+        status: 200, headers: { "content-type": "application/json", "cache-control": "no-store" },
+      });
+    }
+
     if (url.pathname === "/studio-mcp") {
-      const key = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-      const studio = /^lvl_[0-9a-f]{48}$/.test(key) ? await ctx.store.leadForApiKey(hashKey(key)) : null;
+      const studio = await studioForKey(request);
       if (!studio) return json(401, { error: "unauthorized: get a key at /developers" });
       const parsedBody: unknown = request.method === "POST" ? JSON.parse(await readBody(request)) : undefined;
-      const mcp = buildStudioMcp(ctx, studio);
+      const mcp = buildStudioMcp(ctx, studio, levelsDb);
       const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
       await mcp.connect(transport);
       try {
@@ -206,7 +229,10 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       return json(200, progressStatus(id));
     }
 
-    // Public read-only levels for the web player: /levels/:id, /packs/:id, /levels-latest.
+    // Public read-only levels: /games, /levels, /levels/:id, /packs/:id, /levels-latest.
+    const watchRoute = await watch(request, url);
+    if (watchRoute) return watchRoute;
+
     const levelRoute = await levelRoutes(request, url);
     if (levelRoute) return levelRoute;
 

@@ -60,3 +60,23 @@ create table if not exists biz_market_research (
   top_game            text,
   top_reason          text
 );
+
+-- Playtest orders and their live watch links (/watch?o=<token>). The token is random (32 bytes,
+-- base64url) and is the only key the public /watch-status and /watch-frame endpoints accept.
+create table if not exists biz_playtest_orders (
+  id          uuid primary key default gen_random_uuid(),
+  watch_token text not null unique,
+  studio_id   uuid not null references studios (studio_id),
+  app_url     text not null,
+  game_name   text not null,
+  state       text not null default 'queued' check (state in ('queued', 'testing', 'finished', 'failed')),
+  test_order  boolean not null default false,
+  summary     jsonb,
+  created_at  timestamptz not null default now(),
+  started_at  timestamptz,
+  finished_at timestamptz
+);
+
+-- Resume paid playtests after a restart (the run queue is in memory).
+alter table biz_playtest_orders add column if not exists payment_id uuid;
+alter table biz_playtest_orders add column if not exists focus text;

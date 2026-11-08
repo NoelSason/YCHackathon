@@ -1,4 +1,5 @@
 import { advanceTicks, applyAction, createGame, legalActions, statusOf } from "../../games/match3/engine/houseki-gem-swap/gem-swap/engine.js";
+import type { Action } from "../../games/match3/engine/houseki-gem-swap/gem-swap/types-actions.js";
 import type { GameState } from "../../games/match3/engine/houseki-gem-swap/gem-swap/types-state.js";
 import type { Gem, GemColour } from "../../games/match3/engine/houseki-gem-swap/gem-swap/types-pieces.js";
 import { toCreateOptions } from "./level.js";
@@ -12,7 +13,9 @@ import { Attempt } from "./events.js";
 
 const COLOUR_NAMES: Record<GemColour, string> = { red: "red", blue: "blue", green: "green", gold: "yellow", purple: "purple", teal: "teal" };
 const TICK_MS = 26; // engine ticks are 60 Hz; slightly slower reads better on a phone
-const SWAP_MS = 150;
+const SWAP_MS = 180; // one leg of a swap; matches the .gem transform transition in play.css
+const SHUFFLE_MS = 450;
+const HINT_MS = 9000; // idle time before the board points out a possible swap
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
@@ -45,6 +48,7 @@ let selected = -1;
 let cursor = -1;
 let timer = 0;
 let lastSeals = "";
+let hintTimer = 0;
 const gems = new Map<number, HTMLElement>();
 
 // ---------- helpers ----------
@@ -69,10 +73,18 @@ function neighbour(i: number, dx: number, dy: number): number {
 const adjacent = (a: number, b: number) =>
   [neighbour(a, 1, 0), neighbour(a, -1, 0), neighbour(a, 0, 1), neighbour(a, 0, -1)].includes(b);
 
-function settle(s: GameState): GameState {
-  for (let i = 0; i < 3600 && s.phase !== "ready" && s.phase !== "finished"; i++) s = advanceTicks(s, 1).state;
-  return s;
+/** Runs the engine until the board is stable. `shuffled` is true if it reshuffled a dead board. */
+function settle(s: GameState): { state: GameState; shuffled: boolean } {
+  let shuffled = false;
+  for (let i = 0; i < 3600 && s.phase !== "ready" && s.phase !== "finished"; i++) {
+    const t = advanceTicks(s, 1);
+    shuffled ||= t.events.some((e) => e.type === "board-reshuffled");
+    s = t.state;
+  }
+  return { state: s, shuffled };
 }
+
+const isSwap = (a: Action): a is Extract<Action, { kind: "swap" }> => a.kind === "swap";
 
 function randomSeed(): number {
   const a = new Uint32Array(1);
@@ -200,7 +212,7 @@ function renderHud() {
       const icon = g.kind === "collect" ? makeTile("mini", g.colour) : makeTile("mini seal-mini");
       const label = document.createElement("span");
       label.className = "goal-label";
-      label.textContent = g.kind === "collect" ? `${COLOUR_NAMES[g.colour ?? "red"]} tiles` : "locks";
+      label.textContent = g.kind === "collect" ? `${COLOUR_NAMES[g.colour ?? "red"]} tiles` : "ice";
       const count = document.createElement("strong");
       count.textContent = `${Math.min(g.current, g.target)}/${g.target}`;
       const bar = document.createElement("span");
@@ -223,12 +235,13 @@ function startLevel(i: number) {
   level = playlist.levels[i] ?? null;
   if (!level) return;
   try {
-    state = settle(createGame(toCreateOptions(level.level, randomSeed())));
+    state = settle(createGame(toCreateOptions(level.level, randomSeed()))).state;
   } catch {
     showMissing("This level can't be played right now", "Try the newest levels instead.");
     return;
   }
-  attempt = new Attempt(eventsUrl, level.level_id);
+  // Practice levels aren't agent-made, so their plays aren't reported as player data.
+  attempt = new Attempt(playlist.practice ? null : eventsUrl, level.level_id);
   busy = false;
   ended = false;
   selected = -1;
@@ -236,11 +249,17 @@ function startLevel(i: number) {
   boardEl.classList.remove("finished");
 
   const n = playlist.levels.length;
-  $("lvl-pos").textContent = playlist.title && n > 1 ? `${playlist.title} · Level ${i + 1} of ${n}` : playlist.title ?? "Free level";
+  $("lvl-pos").textContent = playlist.practice
+    ? `Practice level ${i + 1} of ${n}`
+    : playlist.title && n > 1 ? `${playlist.title} · Level ${i + 1} of ${n}` : playlist.title ?? "Free level";
   $("lvl-name").textContent = level.level.name;
   document.title = `${level.level.name} · Level AI`;
   const tuned = $("lvl-tuned");
-  if (level.measured_win_rate !== null) {
+  tuned.classList.toggle("practice", !!playlist.practice);
+  if (playlist.practice) {
+    tuned.textContent = "A warm-up level while our agents finish the next set. New levels appear here first.";
+    tuned.hidden = false;
+  } else if (level.measured_win_rate !== null) {
     tuned.textContent = `Tuned to ${pct(level.target_win_rate)}% wins. Our test players won ${pct(level.measured_win_rate)}%.`;
     tuned.hidden = false;
   } else tuned.hidden = true;
@@ -252,17 +271,19 @@ function startLevel(i: number) {
   void boardEl.offsetWidth;
   boardEl.classList.add("intro");
   say("Swap two neighboring tiles to line up three or more of a kind.");
+  armHint();
 }
 
 function trySwap(from: number, to: number) {
-  if (busy || ended || !state || !active(from) || !active(to)) return;
+  if (busy || ended || !state || !active(from) || !active(to) || !adjacent(from, to)) return;
   attempt?.start();
+  clearHint();
   const t = applyAction(state, { kind: "swap", from, to });
   selected = -1;
   if (!t.accepted) {
-    nope(from, to);
-    say(t.reason === "swap-makes-no-match" ? "No match there. Try another pair." : "Those two can't swap.");
+    say(t.reason === "identical-gems" ? "Those two are the same. Try another pair." : "No match there, so the tiles swap back.");
     render();
+    nope(from, to);
     return;
   }
   state = t.state;
@@ -271,12 +292,21 @@ function trySwap(from: number, to: number) {
   resolve();
 }
 
+/** An invalid swap: the two tiles trade places, then slide back. The move isn't counted. */
 function nope(a: number, b: number) {
   const ga = state!.board[a];
   const gb = state!.board[b];
   const ea = ga ? gems.get(ga.id) : undefined;
   const eb = gb ? gems.get(gb.id) : undefined;
-  if (!ea || !eb || reduceMotion) return;
+  if (!ea || !eb) return;
+  if (reduceMotion) {
+    for (const el of [ea, eb]) {
+      el.classList.remove("shake");
+      void el.offsetWidth;
+      el.classList.add("shake");
+    }
+    return;
+  }
   const ta = ea.style.transform;
   const tb = eb.style.transform;
   ea.style.transform = tb;
@@ -285,15 +315,20 @@ function nope(a: number, b: number) {
   window.setTimeout(() => {
     ea.style.transform = ta;
     eb.style.transform = tb;
-    busy = false;
+    window.setTimeout(() => {
+      busy = false;
+      armHint();
+    }, SWAP_MS);
   }, SWAP_MS);
 }
 
 function resolve() {
   busy = true;
   if (reduceMotion) {
-    state = settle(state!);
+    const settled = settle(state!);
+    state = settled.state;
     render();
+    if (settled.shuffled) say("No moves were left, so the board was shuffled.");
     busy = false;
     afterMove();
     return;
@@ -305,8 +340,15 @@ function resolve() {
       afterMove();
       return;
     }
-    state = advanceTicks(state!, 1).state;
+    const t = advanceTicks(state!, 1);
+    state = t.state;
     render();
+    if (t.events.some((e) => e.type === "board-reshuffled")) {
+      // The engine found no possible swap and shuffled the tiles. Let the tiles slide to their new places.
+      say("No moves left. Shuffling the board.");
+      timer = window.setTimeout(step, SHUFFLE_MS);
+      return;
+    }
     timer = window.setTimeout(step, TICK_MS);
   };
   timer = window.setTimeout(step, SWAP_MS);
@@ -315,14 +357,37 @@ function resolve() {
 function afterMove() {
   const s = state!;
   if (s.outcome === "won") return finish("won");
-  if (s.outcome === "lost" || s.outcome === "finished") return finish("lost");
-  // The adapter's bots count a board with no swaps left as a loss; so do we.
-  if (!legalActions(s).some((a) => a.kind === "swap")) return finish("stuck");
+  // The engine reshuffles a dead board, so a loss with moves left means no playable shuffle existed.
+  if (s.outcome === "lost" || s.outcome === "finished") return finish((statusOf(s).remainingMoves ?? 0) > 0 ? "stuck" : "lost");
+  // Same rule as the adapter's bots: a board with no swaps left ends the level.
+  if (!legalActions(s).some(isSwap)) return finish("stuck");
+  armHint();
+}
+
+// ---------- idle hint: after a pause, point out one possible swap ----------
+
+function clearHint() {
+  window.clearTimeout(hintTimer);
+  for (const el of gemsEl.querySelectorAll(".hint")) el.classList.remove("hint");
+}
+
+function armHint() {
+  clearHint();
+  hintTimer = window.setTimeout(() => {
+    if (!state || busy || ended || state.phase !== "ready") return;
+    const swap = legalActions(state).find(isSwap);
+    if (!swap) return;
+    for (const cell of [swap.from, swap.to]) {
+      const g = state.board[cell];
+      if (g) gems.get(g.id)?.classList.add("hint");
+    }
+  }, HINT_MS);
 }
 
 function finish(kind: "won" | "lost" | "stuck") {
   const s = state!;
   ended = true;
+  clearHint();
   attempt?.end(kind === "won" ? "win" : "loss", s.swapCount);
   boardEl.classList.add("finished");
   renderHud();
@@ -356,6 +421,10 @@ function finish(kind: "won" | "lost" | "stuck") {
     if (hasNext) {
       button("Next level", "btn", () => startLevel(index + 1));
       button("Play again", "btn small ink", () => startLevel(index));
+    } else if (playlist.practice) {
+      text += " That was the last practice level.";
+      link("Get levels for your game", "btn", "/join");
+      button("Play again", "btn small ink", () => startLevel(0));
     } else if (mode === "level") {
       link("Play more free levels", "btn", "/play");
       button("Play again", "btn small ink", () => startLevel(index));
@@ -395,6 +464,7 @@ function cellAt(e: PointerEvent): number {
 
 function tap(cell: number) {
   if (busy || ended) return;
+  armHint();
   if (selected < 0 || selected === cell) selected = selected === cell ? -1 : cell;
   else if (adjacent(selected, cell)) return trySwap(selected, cell);
   else selected = cell;

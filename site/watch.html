@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watch your playtest | Level AI</title>
+<meta name="description" content="Watch your playtest live on a real iPhone in the cloud.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#1a1d3a">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 528 528'%3E%3Crect width='528' height='528' rx='112' fill='%231a1d3a'/%3E%3Crect x='64' y='316' width='132' height='132' rx='30' fill='%2322b893'/%3E%3Crect x='200' y='200' width='132' height='132' rx='30' fill='%23ffc53d'/%3E%3Crect x='332' y='84' width='132' height='132' rx='30' fill='%23ff5b4f'/%3E%3Ccircle cx='88' cy='330' r='32' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='99' cy='318' r='13' fill='%231a1d3a'/%3E%3Ccircle cx='150' cy='338' r='25' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='158' cy='344' r='11' fill='%231a1d3a'/%3E%3Ccircle cx='234' cy='216' r='31' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='222' cy='222' r='13' fill='%231a1d3a'/%3E%3Ccircle cx='296' cy='214' r='31' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='297' cy='223' r='15' fill='%231a1d3a'/%3E%3Ccircle cx='356' cy='98' r='24' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='363' cy='94' r='11' fill='%231a1d3a'/%3E%3Ccircle cx='422' cy='92' r='33' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='411' cy='97' r='17' fill='%231a1d3a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Watch page only. Tokens come from styles.css. */
+  .watch-grid { display: grid; gap: 28px; grid-template-areas: "intro" "phone" "side"; }
+  .watch-grid > * { min-width: 0; }
+  .watch-intro { grid-area: intro; }
+  .watch-phone { grid-area: phone; display: flex; justify-content: center; }
+  .watch-side { grid-area: side; display: grid; gap: 22px; align-content: start; }
+  @media (min-width: 960px) {
+    .watch-grid { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); grid-template-areas: "phone intro" "phone side"; column-gap: 64px; row-gap: 26px; align-items: start; }
+    .watch-phone { position: sticky; top: calc(var(--header-h) + 24px); }
+  }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 9px; margin-bottom: 16px;
+    padding: 7px 14px; border: 2px solid var(--ink); border-radius: 999px;
+    background: var(--white); font-weight: 700; font-size: 15px; box-shadow: 0 3px 0 var(--ink);
+  }
+  .pill i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); flex: none; }
+  .pill[data-state="queued"] { background: var(--sun); }
+  .pill[data-state="queued"] i { background: var(--ink); }
+  .pill[data-state="testing"] { background: var(--tomato); color: var(--white); }
+  .pill[data-state="testing"] i { background: var(--white); animation: pill-pulse 1.4s ease-in-out infinite; }
+  .pill[data-state="finished"] { background: var(--mint); }
+  .pill[data-state="finished"] i { background: var(--ink); }
+  .pill[data-state="failed"] { background: var(--paper-2); }
+  .pill[data-state="failed"] i { background: var(--tomato); }
+  @keyframes pill-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
+
+  .watch-intro h1 { overflow-wrap: anywhere; }
+  .watch-meta { display: flex; flex-wrap: wrap; gap: 10px 26px; margin: 18px 0 0; font-size: 15.5px; }
+  .watch-meta div { display: flex; gap: 7px; }
+  .watch-meta[hidden], .watch-meta div[hidden] { display: none; }
+  .watch-meta dt { color: var(--ink-soft); }
+  .watch-meta dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+  .test-chip { display: inline-block; margin-top: 14px; padding: 4px 11px; border-radius: 999px; background: var(--paper-2); border: 1.5px dashed var(--ink-soft); font-size: 13.5px; font-weight: 700; color: var(--ink-soft); }
+  .test-chip[hidden] { display: none; }
+
+  /* The phone */
+  /* The phone's screenshots are 393x852 points, the most the lab returns. The frame keeps that ratio,
+     never crops (contain), and stays near native width so the image isn't upscaled into blur. */
+  .device {
+    position: relative; width: min(380px, 86vw);
+    padding: 10px; border-radius: 54px; background: #0c0e22;
+    border: 2px solid var(--ink); box-shadow: 0 10px 0 var(--ink), 0 40px 70px -30px rgba(26, 29, 58, 0.6);
+  }
+  .device::before { /* side button */
+    content: ""; position: absolute; right: -6px; top: 22%; width: 4px; height: 13%; border-radius: 0 3px 3px 0; background: var(--ink);
+  }
+  .screen { position: relative; width: 100%; aspect-ratio: 393 / 852; border-radius: 44px; overflow: hidden; background: var(--ink-2); }
+  .screen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+  .screen img[hidden] { display: none; }
+  .screen-empty {
+    position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 18px;
+    padding: 40px 28px; text-align: center; color: #c3c7e6; font-weight: 600; font-size: 15.5px; line-height: 1.45;
+  }
+  .screen-empty[hidden] { display: none; }
+  .screen-empty .rs-dots i { border-color: #0c0e22; }
+  .air-row { display: flex; justify-content: center; margin-top: 22px; min-height: 28px; }
+  .on-air {
+    display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px;
+    background: var(--ink); color: var(--white); font-size: 12.5px; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap;
+  }
+  .on-air i { width: 8px; height: 8px; border-radius: 50%; background: var(--tomato); animation: pill-pulse 1.4s ease-in-out infinite; }
+  .on-air[hidden] { display: none; }
+  .on-air.is-final i { background: var(--mint); animation: none; }
+  .phone-note { margin-top: 10px; text-align: center; font-size: 14px; color: var(--ink-soft); }
+
+  /* Findings, in the report panel */
+  .sum { list-style: none; margin: 6px 0 0; padding: 0; }
+  .sum li { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 2px; border-top: 1px solid #30356a; }
+  .sum li:first-child { border-top: 0; }
+  .sum span { font-weight: 600; color: #e6e8ff; }
+  .sum b { flex: none; padding: 4px 12px; border-radius: 999px; font-size: 13.5px; }
+  .sum b.ok { background: var(--mint); color: var(--ink); box-shadow: inset 0 -3px 0 var(--mint-d); }
+  .sum b.bad { background: var(--tomato); color: var(--white); box-shadow: inset 0 -3px 0 var(--tomato-d); }
+  .sum-h { margin: 18px 2px 8px; font-weight: 700; color: var(--white); }
+  .sum-q { margin: 0 0 8px; padding: 10px 14px; border-left: 4px solid var(--grape); border-radius: 4px; background: var(--ink-2); color: #e6e8ff; font-size: 15.5px; overflow-wrap: anywhere; }
+  .sum-notes { color: #c3c7e6; font-size: 15.5px; overflow-wrap: anywhere; }
+  .gone { padding: 26px 24px; }
+  .gone h2 { font: 800 22px/1.2 var(--display); letter-spacing: -0.025em; margin: 0 0 8px; }
+  .gone p { color: var(--ink-soft); }
+  .gone .btn { margin-top: 20px; }
+  @media (prefers-reduced-motion: reduce) { .pill i, .on-air i { animation: none !important; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="Level AI home">
+      <svg viewBox="0 0 528 528" aria-hidden="true"><rect width="528" height="528" rx="112" fill="#1a1d3a"/><rect x="64" y="316" width="132" height="132" rx="30" fill="#22b893"/><rect x="200" y="200" width="132" height="132" rx="30" fill="#ffc53d"/><rect x="332" y="84" width="132" height="132" rx="30" fill="#ff5b4f"/><circle cx="88" cy="330" r="32" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="99" cy="318" r="13" fill="#1a1d3a"/><circle cx="150" cy="338" r="25" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="158" cy="344" r="11" fill="#1a1d3a"/><circle cx="234" cy="216" r="31" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="222" cy="222" r="13" fill="#1a1d3a"/><circle cx="296" cy="214" r="31" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="297" cy="223" r="15" fill="#1a1d3a"/><circle cx="356" cy="98" r="24" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="363" cy="94" r="11" fill="#1a1d3a"/><circle cx="422" cy="92" r="33" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="411" cy="97" r="17" fill="#1a1d3a"/></svg>
+      Level AI
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a class="nav-link" href="/#how">How it works</a>
+      <a class="nav-link" href="/#studios">For studios</a>
+      <a class="nav-link" href="/games">Games</a>
+      <a class="nav-link" href="/playtest" aria-current="page">Playtests</a>
+      <a class="nav-link" href="/developers">Developers</a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path class="l1" d="M3 4.5h14"/><path class="l3" d="M3 10h14"/><path class="l2" d="M3 15.5h14"/></svg>
+      </button>
+      <a class="btn small" href="/#contact">Contact</a>
+    </nav>
+  </div>
+  <div class="mobile-menu" id="mobile-menu" hidden>
+    <nav class="wrap" aria-label="Menu">
+      <a href="/#how">How it works</a>
+      <a href="/#studios">For studios</a>
+      <a href="/join">Free levels</a>
+      <a href="/games">Games</a>
+      <a href="/playtest" aria-current="page">Playtests</a>
+      <a href="/developers">Developers</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page-top">
+  <div class="wrap watch-grid" id="watch">
+    <div class="watch-intro">
+      <p class="pill" id="pill" data-state="loading" role="status"><i aria-hidden="true"></i><span id="pill-text">Checking…</span></p>
+      <h1 id="title">Your playtest</h1>
+      <p class="lede" id="lede">Finding your playtest…</p>
+      <dl class="watch-meta" id="meta" hidden>
+        <div><dt>Game</dt><dd id="meta-game"></dd></div>
+        <div id="meta-start-row" hidden><dt>Started</dt><dd id="meta-start"></dd></div>
+        <div id="meta-elapsed-row" hidden><dt>Time</dt><dd id="meta-elapsed"></dd></div>
+      </dl>
+      <p class="test-chip" id="test-chip" hidden>Test order: no money was charged</p>
+    </div>
+
+    <div class="watch-phone">
+      <div>
+        <div class="device" role="img" aria-label="The iPhone's screen" id="device">
+          <div class="screen">
+            <img id="frame" alt="" hidden>
+            <div class="screen-empty" id="screen-empty">
+              <span class="rs-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span id="screen-text">Connecting to the phone…</span>
+            </div>
+          </div>
+        </div>
+        <div class="air-row"><span class="on-air" id="on-air" hidden><i aria-hidden="true"></i><span id="on-air-text">LIVE</span></span></div>
+        <p class="phone-note">A real iPhone in the cloud. This view is read-only.</p>
+      </div>
+    </div>
+
+    <div class="watch-side">
+      <section class="progress" id="timeline" aria-labelledby="tl-title">
+        <div class="progress-top"><h2 id="tl-title">Step by step</h2><span class="elapsed" id="tl-elapsed" aria-hidden="true"></span></div>
+        <ol class="checklist" id="steps" aria-live="polite" aria-label="Progress"></ol>
+        <p class="progress-note" id="note">This page updates by itself. You can close it anytime; the report still comes to your inbox.</p>
+        <div id="summary" hidden></div>
+        <div class="progress-actions" id="actions" hidden>
+          <a class="btn" href="/playtest">Order another playtest</a>
+          <a class="text-link" href="/join">Get free levels for your game</a>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div class="footer-ink">
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <address>Level AI, 1752 Shattuck Avenue, Berkeley, CA 94704</address>
+        <p>&copy; 2026 Level AI</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/">Home</a>
+        <a href="/join">Free levels</a>
+        <a href="/developers">Developers</a>
+        <a href="mailto:levelai@agentmail.to">Email us</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+      </nav>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var token = null;
+  try { token = new URLSearchParams(window.location.search).get('o'); } catch (e) { /* old browser */ }
+
+  var STATUS_MS = 2000;
+  var FRAME_MS = 1000;
+  var state = null;
+  var startedAt = null;
+  var finishedAt = null;
+  var frameUrl = null;
+  var frameBusy = false;
+  var stopped = false;
+  var gotFinalFrame = false;
+  var rows = [];
+
+  var COPY = {
+    queued: { pill: 'In line', title: 'Your playtest is in line', lede: 'It starts as soon as the iPhone is free. The phone’s screen shows up here the moment it does.', screen: 'Your playtest is next in line. The screen appears here when it starts.' },
+    testing: { pill: 'Live now', title: 'Your playtest is live', lede: 'You’re watching a real iPhone in the cloud play your game, about once a second.', screen: 'Connecting to the phone…' },
+    finished: { pill: 'Finished', title: 'Your report is in your inbox', lede: 'The playtest is done, and we emailed you the full report. Here’s the short version.', screen: 'The playtest is done.' },
+    failed: { pill: 'Didn’t finish', title: 'This playtest didn’t finish', lede: 'Check your inbox for an update from us. A person on our team will follow up.', screen: 'The playtest stopped.' }
+  };
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function svg(cls, d) {
+    var ns = 'http://www.w3.org/2000/svg';
+    var s = document.createElementNS(ns, 'svg');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); s.setAttribute('class', cls);
+    var p = document.createElementNS(ns, 'path'); p.setAttribute('d', d); s.appendChild(p);
+    return s;
+  }
+  function timeOf(iso) {
+    var t = Date.parse(iso);
+    if (isNaN(t)) return '';
+    try { return new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; }
+  }
+  function clock(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000)), m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function notFound() {
+    stopped = true;
+    $('watch').innerHTML = '';
+    var box = el('section', 'panel gone');
+    box.setAttribute('aria-labelledby', 'gone-title');
+    var h = el('h2', null, 'We couldn’t find this playtest');
+    h.id = 'gone-title';
+    box.appendChild(h);
+    box.appendChild(el('p', null, 'Check that you opened the whole link from your email. If it still doesn’t work, reply to that email and we’ll help.'));
+    var a = el('a', 'btn', 'Book a playtest'); a.href = '/playtest';
+    box.appendChild(a);
+    $('watch').appendChild(box);
+    document.title = 'Playtest not found | Level AI';
+  }
+
+  function renderSteps(steps) {
+    var list = $('steps');
+    if (!steps.length) {
+      steps = [{ text: state === 'queued' ? 'Waiting for the iPhone' : 'Getting started', state: 'active', at: '' }];
+    }
+    steps.forEach(function (s, i) {
+      var r = rows[i];
+      if (!r) {
+        var li = el('li', 'check-item is-new');
+        var tile = el('span', 'check-tile'); tile.setAttribute('aria-hidden', 'true');
+        tile.appendChild(svg('i-done', 'M5.5 12.5l4.2 4.2L18.5 7.8'));
+        tile.appendChild(svg('i-failed', 'M7 7l10 10M17 7L7 17'));
+        var label = el('span', 'check-text');
+        var sr = el('span', 'sr');
+        var txt = document.createTextNode('');
+        label.appendChild(sr); label.appendChild(txt);
+        var time = el('span', 'check-time'); time.setAttribute('aria-hidden', 'true');
+        li.appendChild(tile); li.appendChild(label); li.appendChild(time);
+        list.appendChild(li);
+        r = rows[i] = { li: li, sr: sr, txt: txt, time: time, key: '' };
+      }
+      var st = s.state === 'done' || s.state === 'failed' ? s.state : 'active';
+      var key = s.text + '|' + st + '|' + s.at;
+      if (r.key === key) return;
+      r.key = key;
+      r.txt.nodeValue = s.text;
+      r.li.classList.remove('is-done', 'is-active', 'is-failed');
+      r.li.classList.add('is-' + st);
+      r.sr.textContent = st === 'done' ? 'Done: ' : st === 'failed' ? 'Didn’t work: ' : 'In progress: ';
+      r.time.textContent = timeOf(s.at);
+    });
+    while (rows.length > steps.length) rows.pop().li.remove();
+  }
+
+  function renderSummary(sum) {
+    var box = $('summary');
+    if (!sum) { box.hidden = true; return; }
+    box.innerHTML = '';
+    var ul = el('ul', 'sum');
+    function row(label, good, value) {
+      var li = el('li');
+      li.appendChild(el('span', null, label));
+      li.appendChild(el('b', good ? 'ok' : 'bad', value));
+      ul.appendChild(li);
+    }
+    var issues = Array.isArray(sum.visualIssues) ? sum.visualIssues : [];
+    row('Loaded on iPhone', sum.loaded, sum.loaded ? 'Yes' : 'No');
+    row('Taps and swipes', sum.touchOk, sum.touchOk ? 'Worked' : 'Problems');
+    row('Visual problems', !issues.length, issues.length ? issues.length + ' found' : 'None seen');
+    if (sum.stuckReason) row('Got stuck', false, 'Yes');
+    box.appendChild(ul);
+    if (issues.length) {
+      box.appendChild(el('p', 'sum-h', 'What looked wrong'));
+      issues.forEach(function (v) { box.appendChild(el('p', 'sum-q', v)); });
+    }
+    if (sum.stuckReason) {
+      box.appendChild(el('p', 'sum-h', 'Where it got stuck'));
+      box.appendChild(el('p', 'sum-q', sum.stuckReason));
+    }
+    if (sum.notes) {
+      box.appendChild(el('p', 'sum-h', 'Notes from the playtest'));
+      box.appendChild(el('p', 'sum-notes', sum.notes));
+    }
+    box.hidden = false;
+  }
+
+  function showFrame(blob, isFinal) {
+    var url = URL.createObjectURL(blob);
+    var img = $('frame');
+    var old = frameUrl;
+    img.onload = function () { if (old) URL.revokeObjectURL(old); };
+    img.src = url;
+    frameUrl = url;
+    img.hidden = false;
+    img.alt = isFinal ? 'The iPhone’s last screen from your playtest' : 'The iPhone’s screen right now';
+    $('screen-empty').hidden = true;
+    $('on-air').hidden = false;
+    $('on-air').classList.toggle('is-final', isFinal);
+    $('on-air-text').textContent = isFinal ? 'LAST SCREEN' : 'LIVE';
+  }
+
+  function fetchFrame() {
+    if (frameBusy) return Promise.resolve();
+    frameBusy = true;
+    return fetch('/watch-frame?o=' + encodeURIComponent(token) + '&t=' + Date.now(), { cache: 'no-store' })
+      .then(function (res) {
+        if (res.status === 404) { notFound(); return; }
+        if (res.status !== 200) return;
+        var isFinal = res.headers.get('x-frame-kind') === 'final';
+        return res.blob().then(function (b) { if (b.size) { showFrame(b, isFinal); if (isFinal) gotFinalFrame = true; } });
+      })
+      .catch(function () { /* the next tick tries again */ })
+      .then(function () { frameBusy = false; });
+  }
+
+  function frameLoop() {
+    if (stopped) return;
+    if (state === 'testing' && !document.hidden) {
+      fetchFrame().then(function () { setTimeout(frameLoop, FRAME_MS); });
+    } else {
+      setTimeout(frameLoop, FRAME_MS);
+    }
+  }
+
+  function render(s) {
+    var prev = state;
+    state = s.state;
+    var c = COPY[state] || COPY.queued;
+    $('pill').setAttribute('data-state', state);
+    $('pill-text').textContent = c.pill;
+    $('title').textContent = c.title;
+    $('lede').textContent = c.lede;
+    $('meta').hidden = false;
+    $('meta-game').textContent = s.game || 'Your app';
+    startedAt = s.startedAt ? Date.parse(s.startedAt) : null;
+    finishedAt = s.finishedAt ? Date.parse(s.finishedAt) : null;
+    $('meta-start-row').hidden = !s.startedAt;
+    $('meta-start').textContent = s.startedAt ? timeOf(s.startedAt) : '';
+    $('test-chip').hidden = !s.test;
+    if (!frameUrl) { $('screen-empty').hidden = false; $('screen-text').textContent = c.screen; }
+    renderSteps(Array.isArray(s.steps) ? s.steps : []);
+
+    var over = state === 'finished' || state === 'failed';
+    var tl = $('timeline');
+    tl.classList.toggle('is-finished', over);
+    tl.classList.toggle('pg-ok', state === 'finished');
+    $('note').textContent = state === 'finished' ? 'Your report is in your inbox.'
+      : state === 'failed' ? 'We’re sorry this one didn’t finish. Check your inbox for an update.'
+      : 'This page updates by itself. You can close it anytime; the report still comes to your inbox.';
+    renderSummary(state === 'finished' ? s.summary : null);
+    $('actions').hidden = !over;
+    if (over) {
+      $('on-air').classList.add('is-final');
+      $('on-air-text').textContent = 'LAST SCREEN';
+      if (!gotFinalFrame) { gotFinalFrame = true; fetchFrame(); }
+    }
+    if (state === 'testing' && prev !== 'testing') fetchFrame();
+  }
+
+  var failures = 0;
+  function poll() {
+    if (stopped) return;
+    fetch('/watch-status?o=' + encodeURIComponent(token), { cache: 'no-store', headers: { Accept: 'application/json' } })
+      .then(function (res) {
+        if (res.status === 404) { notFound(); return null; }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (s) {
+        if (!s) return;
+        failures = 0;
+        render(s);
+        if (state === 'finished' || state === 'failed') { stopped = true; return; }
+        setTimeout(poll, STATUS_MS);
+      })
+      .catch(function () {
+        failures++;
+        if (failures === 3) $('lede').textContent = 'We’re having trouble reaching the phone. This page keeps trying.';
+        setTimeout(poll, Math.min(15000, STATUS_MS * Math.pow(2, failures)));
+      });
+  }
+
+  setInterval(function () {
+    var ok = startedAt && !isNaN(startedAt);
+    var end = state === 'testing' ? Date.now() : (finishedAt && !isNaN(finishedAt) ? finishedAt : null);
+    var show = ok && end && (state === 'testing' || state === 'finished' || state === 'failed');
+    $('meta-elapsed-row').hidden = !show;
+    if (show) $('meta-elapsed').textContent = clock(end - startedAt);
+  }, 1000);
+
+  if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) { notFound(); return; }
+  poll();
+  frameLoop();
+})();
+</script>
+<script src="site.js"></script>
+</body>
+</html>

@@ -7,6 +7,7 @@ import type {
   OutreachRecord,
   PaymentRecord,
   PipelineStage,
+  WatchOrder,
 } from "./types.js";
 
 /**
@@ -41,11 +42,23 @@ export interface Store {
 
   logActivity(entry: ActivityEntry): Promise<void>;
   listActivity(limit?: number): Promise<ActivityEntry[]>;
+  /** Activity in a time window, oldest first. `toIso` null means up to now. */
+  listActivityBetween(fromIso: string, toIso: string | null, limit?: number): Promise<ActivityEntry[]>;
+
+  /** Playtest orders and their live watch tokens (`/watch?o=<token>`). */
+  addWatchOrder(input: { leadId: string; token: string; appUrl: string; gameName: string }): Promise<WatchOrder>;
+  getWatchOrder(id: string): Promise<WatchOrder | null>;
+  getWatchOrderByToken(token: string): Promise<WatchOrder | null>;
+  updateWatchOrder(id: string, patch: WatchOrderPatch): Promise<WatchOrder | null>;
+  /** Paid orders from the last day that never finished (a restart dropped them from the in-memory queue). */
+  listUnfinishedPaidOrders(): Promise<WatchOrder[]>;
 
   /** One market-research pass over a store chart: what the players of its games say about levels. */
   addResearchRun(run: ResearchRun): Promise<void>;
   listResearchRuns(limit?: number): Promise<ResearchRun[]>;
 }
+
+export type WatchOrderPatch = Partial<Pick<WatchOrder, "state" | "test" | "gameName" | "startedAt" | "finishedAt" | "summary" | "paymentId" | "focus">>;
 
 export interface ResearchRun {
   at: string;
@@ -184,6 +197,41 @@ export class MemoryStore implements Store {
     return this.activity.slice(-limit).reverse();
   }
 
+  async listActivityBetween(fromIso: string, toIso: string | null, limit = 200): Promise<ActivityEntry[]> {
+    return this.activity.filter((a) => a.at >= fromIso && (toIso === null || a.at <= toIso)).slice(0, limit);
+  }
+
+  private watchOrders = new Map<string, WatchOrder>();
+
+  async addWatchOrder(input: { leadId: string; token: string; appUrl: string; gameName: string }): Promise<WatchOrder> {
+    const order: WatchOrder = { ...input, id: randomUUID(), state: "queued", test: false, createdAt: now(), startedAt: null, finishedAt: null, summary: null, paymentId: null, focus: null };
+    this.watchOrders.set(order.id, order);
+    return { ...order };
+  }
+
+  async getWatchOrder(id: string): Promise<WatchOrder | null> {
+    const o = this.watchOrders.get(id);
+    return o ? { ...o } : null;
+  }
+
+  async getWatchOrderByToken(token: string): Promise<WatchOrder | null> {
+    for (const o of this.watchOrders.values()) if (o.token === token) return { ...o };
+    return null;
+  }
+
+  async updateWatchOrder(id: string, patch: WatchOrderPatch): Promise<WatchOrder | null> {
+    const o = this.watchOrders.get(id);
+    if (!o) return null;
+    const updated = { ...o, ...patch };
+    this.watchOrders.set(id, updated);
+    return { ...updated };
+  }
+
+  async listUnfinishedPaidOrders(): Promise<WatchOrder[]> {
+    const since = Date.now() - 24 * 3600_000;
+    return [...this.watchOrders.values()].filter((o) => o.paymentId && (o.state === "queued" || o.state === "testing") && Date.parse(o.createdAt) >= since);
+  }
+
   private research: ResearchRun[] = [];
   async addResearchRun(run: ResearchRun): Promise<void> {
     this.research.push(run);
@@ -217,6 +265,25 @@ function rowToLead(r: Row): Lead {
     crmContactId: str(r.crm_contact_id),
     createdAt: iso(r.created_at),
     updatedAt: iso(r.updated_at),
+  };
+}
+
+function rowToWatchOrder(r: Row): WatchOrder {
+  const summary = typeof r.summary === "string" ? (JSON.parse(r.summary) as WatchOrder["summary"]) : ((r.summary ?? null) as WatchOrder["summary"]);
+  return {
+    id: String(r.id),
+    token: String(r.watch_token),
+    leadId: String(r.studio_id),
+    appUrl: String(r.app_url),
+    gameName: String(r.game_name),
+    state: r.state as WatchOrder["state"],
+    test: Boolean(r.test_order),
+    createdAt: iso(r.created_at),
+    startedAt: r.started_at === null || r.started_at === undefined ? null : iso(r.started_at),
+    finishedAt: r.finished_at === null || r.finished_at === undefined ? null : iso(r.finished_at),
+    summary,
+    paymentId: r.payment_id === null || r.payment_id === undefined ? null : String(r.payment_id),
+    focus: r.focus === null || r.focus === undefined ? null : String(r.focus),
   };
 }
 
@@ -383,6 +450,60 @@ export class PlatformStore implements Store {
       costUsd: row.cost_usd === null ? null : Number(row.cost_usd),
       human: false,
     }));
+  }
+
+  async listActivityBetween(fromIso: string, toIso: string | null, limit = 200): Promise<ActivityEntry[]> {
+    const r = await this.q(
+      `select * from activity_log where ts >= $1 and ($2::timestamptz is null or ts <= $2::timestamptz) order by ts asc limit $3`,
+      [fromIso, toIso, limit],
+    );
+    return r.map((row) => ({
+      at: iso(row.ts), agent: String(row.agent), action: String(row.action), why: str(row.reason), result: str(row.result),
+      costUsd: row.cost_usd === null ? null : Number(row.cost_usd), human: false,
+    }));
+  }
+
+  async addWatchOrder(input: { leadId: string; token: string; appUrl: string; gameName: string }): Promise<WatchOrder> {
+    const r = await this.q(
+      `insert into biz_playtest_orders (watch_token, studio_id, app_url, game_name) values ($1, $2, $3, $4) returning *`,
+      [input.token, input.leadId, input.appUrl, input.gameName],
+    );
+    return rowToWatchOrder(r[0]!);
+  }
+
+  async getWatchOrder(id: string): Promise<WatchOrder | null> {
+    const r = await this.q(`select * from biz_playtest_orders where id::text = $1`, [id]);
+    return r[0] ? rowToWatchOrder(r[0]) : null;
+  }
+
+  async getWatchOrderByToken(token: string): Promise<WatchOrder | null> {
+    const r = await this.q(`select * from biz_playtest_orders where watch_token = $1`, [token]);
+    return r[0] ? rowToWatchOrder(r[0]) : null;
+  }
+
+  async updateWatchOrder(id: string, patch: WatchOrderPatch): Promise<WatchOrder | null> {
+    const cols: Record<keyof WatchOrderPatch, string> = {
+      state: "state", test: "test_order", gameName: "game_name", startedAt: "started_at", finishedAt: "finished_at", summary: "summary",
+      paymentId: "payment_id", focus: "focus",
+    };
+    const sets: string[] = [];
+    const params: unknown[] = [id];
+    for (const [key, col] of Object.entries(cols) as Array<[keyof WatchOrderPatch, string]>) {
+      if (!(key in patch)) continue;
+      const v = patch[key];
+      params.push(key === "summary" ? (v === null ? null : JSON.stringify(v)) : v);
+      sets.push(`${col} = $${params.length}`);
+    }
+    if (!sets.length) return this.getWatchOrder(id);
+    const r = await this.q(`update biz_playtest_orders set ${sets.join(", ")} where id::text = $1 returning *`, params);
+    return r[0] ? rowToWatchOrder(r[0]) : null;
+  }
+
+  async listUnfinishedPaidOrders(): Promise<WatchOrder[]> {
+    const r = await this.q(
+      `select * from biz_playtest_orders where payment_id is not null and state in ('queued', 'testing') and created_at > now() - interval '24 hours' order by created_at`,
+    );
+    return r.map(rowToWatchOrder);
   }
 
   async addResearchRun(r: ResearchRun): Promise<void> {

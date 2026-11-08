@@ -7,3 +7,7 @@ seeded simulation. The upstream `LICENSE` is preserved alongside the code.
 
 The campaign content, demo UI, and bundled artwork were not copied. The adapter is our own
 integration layer and uses original level metadata and the `Gem Garden` name.
+
+Level AI changed one rule: a Challenge board with no legal swap left now reshuffles automatically
+instead of ending the run (`engine-ticks.ts`, with the shuffle moved into `shuffledBoard` in
+`practice.ts`). Both spots are marked "Level AI change (not upstream)". See `../RULES.md`.

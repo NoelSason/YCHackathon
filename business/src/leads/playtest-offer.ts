@@ -5,8 +5,9 @@ import { runPlan, type PlaytestOutcome } from "../mobile/playtest.js";
 import { installFromAppStore } from "../mobile/install.js";
 import { appIdFromStoreUrl } from "./intake.js";
 import { idempotencyKey } from "../outreach/send.js";
-import type { Lead } from "../types.js";
+import type { Lead, WatchOrder, WatchState, WatchSummary } from "../types.js";
 import { finish, step } from "./progress.js";
+import { composeWatchEmail, gameNameFromUrl, newWatchToken, phoneDone, phoneStart, watchUrl } from "./watch.js";
 import * as E from "../email/html.js";
 
 /**
@@ -46,6 +47,9 @@ export async function createPlaytestOrder(ctx: ToolContext, input: unknown): Pro
     company: o.team, appId: null, contactName: o.name, email: o.email, source: "inbound_form", stage: "found",
     reason: `Ordered a phone playtest of ${o.appUrl}${o.focus ? ` (focus: ${o.focus})` : ""}.`, sampleUrl: null, crmContactId: null,
   });
+  // The order's live watch link. If it can't be stored, the order still goes ahead without one.
+  const watch = await ctx.store.addWatchOrder({ leadId: lead.id, token: newWatchToken(), appUrl: o.appUrl, gameName: gameNameFromUrl(o.appUrl) })
+    .catch(() => null);
   await ctx.store.logActivity({
     at: new Date().toISOString(), agent: "sales", action: `playtest ordered by ${o.team}`, why: o.appUrl, result: `lead ${lead.id}`, costUsd: null, human: false,
   });
@@ -57,14 +61,15 @@ export async function createPlaytestOrder(ctx: ToolContext, input: unknown): Pro
       name: "Phone playtest: your app on a real iPhone, with a report",
       amountMinor: Math.round(price * 100),
       leadId: lead.id,
-      successUrl: `${ctx.config.PUBLIC_BASE_URL}/playtest?paid=1`,
-      extraMetadata: { app_url: o.appUrl, focus: (o.focus ?? "").slice(0, 400) },
+      // After paying, the buyer lands on their order's watch page (it shows "in line" until it starts).
+      successUrl: watch ? watchUrl(ctx.config.SITE_URL, watch.token) : `${ctx.config.PUBLIC_BASE_URL}/playtest?paid=1`,
+      extraMetadata: { app_url: o.appUrl, focus: (o.focus ?? "").slice(0, 400), ...(watch ? { order_id: watch.id } : {}) },
     });
     await ctx.store.setStage(lead.id, "pilot_offered");
     return { ok: true, lead, payUrl: link.url };
   }
   step(lead.id, "In the queue for the iPhone");
-  void enqueue(() => runPlaytestOrder(ctx, lead, o.appUrl, o.focus ?? null)).catch(async (err) => {
+  void enqueue(() => runPlaytestOrder(ctx, lead, o.appUrl, o.focus ?? null, null, watch?.id ?? null)).catch(async (err) => {
     finish(lead.id, "Something went wrong. A person will follow up", false);
     await ctx.store.logActivity({
       at: new Date().toISOString(), agent: "playtest-lead", action: `playtest order needs a person: ${lead.company}`,
@@ -166,6 +171,9 @@ export function unplayableReason(appUrl: string): string | null {
   return null;
 }
 
+/** The watch order being run, and how it ends up. */
+interface WatchRun { order: WatchOrder | null; state: Exclude<WatchState, "queued" | "testing">; summary: WatchSummary | null }
+
 export async function runPlaytestOrder(
   ctx: ToolContext,
   lead: Lead,
@@ -173,6 +181,47 @@ export async function runPlaytestOrder(
   focus: string | null,
   /** Set when a payment started this order: the payments row it delivers, and whether it was test money. */
   payment: { id: string; livemode: boolean } | null = null,
+  /** The order's watch record (`order_id` in the payment metadata), when it has one. */
+  orderId: string | null = null,
+): Promise<void> {
+  const found = orderId ? await ctx.store.getWatchOrder(orderId).catch(() => null) : null;
+  const run: WatchRun = { order: found && found.leadId === lead.id ? found : null, state: "failed", summary: null };
+  try {
+    await playAndReport(ctx, lead, appUrl, focus, payment, run);
+  } finally {
+    if (run.order) {
+      await phoneDone(run.order.id);
+      await ctx.store.updateWatchOrder(run.order.id, { state: run.state, finishedAt: new Date().toISOString(), summary: run.summary }).catch(() => null);
+    }
+  }
+}
+
+/** Tells a paying customer their playtest is starting, with the live watch link. Never stops the playtest. */
+async function sendWatchEmail(ctx: ToolContext, lead: Lead, order: WatchOrder, test: boolean, label: string): Promise<void> {
+  const log = (action: string, why: string | null, result: string | null) =>
+    ctx.store.logActivity({ at: new Date().toISOString(), agent: "playtest-lead", action, why, result, costUsd: null, human: false });
+  if (!lead.email || !ctx.mail || (await ctx.store.isSuppressed(lead.email))) return;
+  const { subject, body, html } = composeWatchEmail({
+    name: lead.contactName, team: lead.company, gameName: order.gameName, watchUrl: watchUrl(ctx.config.SITE_URL, order.token), test,
+    companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
+  });
+  try {
+    const key = idempotencyKey("playtest-watch", lead.id, order.id);
+    const { messageId } = await ctx.mail.send({ to: lead.email, subject, text: body, html, idempotencyKey: key });
+    await ctx.store.addOutreach({ leadId: lead.id, to: lead.email, subject, body, status: "sent", blockedReason: null, providerMessageId: messageId });
+    await log(`emailed the live watch link to ${lead.company}`, null, `message ${messageId}${label}`);
+  } catch (err) {
+    await log(`couldn't email ${lead.company} the live watch link`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", `not sent${label}`);
+  }
+}
+
+async function playAndReport(
+  ctx: ToolContext,
+  lead: Lead,
+  appUrl: string,
+  focus: string | null,
+  payment: { id: string; livemode: boolean } | null,
+  run: WatchRun,
 ): Promise<void> {
   const label = payment && !payment.livemode ? " (test order)" : "";
   const log = (action: string, why: string | null, result: string | null) =>
@@ -188,7 +237,14 @@ export async function runPlaytestOrder(
     error = "phone not configured";
     await log(`playtest skipped for ${lead.company}`, "the phone isn't configured on this server", `no phone${label}`);
   } else {
+    const watch = run.order;
     try {
+      if (watch) {
+        const test = payment ? !payment.livemode : false;
+        run.order = (await ctx.store.updateWatchOrder(watch.id, { state: "testing", startedAt: new Date().toISOString(), test }).catch(() => null)) ?? watch;
+        phoneStart(watch, ctx.mobilerun, deviceId);
+        if (payment) await sendWatchEmail(ctx, lead, run.order, test, label);
+      }
       // An App Store link means a real iOS app: install it from the App Store first, then open it.
       const storeId = appIdFromStoreUrl(appUrl);
       let app: { platform: "ios"; package: string; label?: string } = { platform: "ios", package: "safari" };
@@ -200,6 +256,7 @@ export async function runPlaytestOrder(
           const installed = await installFromAppStore({ client: ctx.mobilerun, deviceId, appStoreId: storeId.slice(4) });
           await log(`installed ${installed.label} on the iPhone`, appUrl, installed.packageName);
           app = { platform: "ios", package: installed.packageName, label: installed.label };
+          if (watch) await ctx.store.updateWatchOrder(watch.id, { gameName: installed.label.slice(0, 80) }).catch(() => null);
           open = `the "${installed.label}" app icon on the home screen`;
         } catch (err) {
           // The install step's messages are written for the customer ("couldn't find that app…").
@@ -225,10 +282,17 @@ export async function runPlaytestOrder(
     } catch (err) {
       error = err instanceof Error ? err.message.slice(0, 200) : "unknown error";
       await log(`playtest failed for ${lead.company}`, error, label.trim() || null);
+    } finally {
+      // The live view ends with the phone's part; its last screen stays as the final frame.
+      if (watch) await phoneDone(watch.id);
     }
   }
 
-  const delivered = outcome?.results?.results?.[0] != null;
+  const first = outcome?.results?.results?.[0];
+  const delivered = first != null;
+  if (first) {
+    run.summary = { loaded: first.loaded, touchOk: first.touchOk, visualIssues: first.visualIssues, stuckReason: first.stuckReason ?? null, notes: first.notes || null };
+  }
   const settle = async (status: "delivered" | "failed", detail: string) => {
     if (payment) await ctx.store.addDelivery({ paymentId: payment.id, leadId: lead.id, status, detail });
     if (status === "failed") {
@@ -265,6 +329,7 @@ export async function runPlaytestOrder(
   }
   await ctx.store.addOutreach({ leadId: lead.id, to: lead.email, subject, body, status: "sent", blockedReason: null, providerMessageId: messageId });
   if (delivered) {
+    run.state = "finished";
     await ctx.store.setStage(lead.id, "delivered");
     await log(`emailed the playtest report to ${lead.company}`, null, `message ${messageId}${label}`);
     await settle("delivered", `report emailed, message ${messageId}`);
@@ -273,4 +338,22 @@ export async function runPlaytestOrder(
     await settle("failed", `no report; status email sent, message ${messageId}`);
   }
   finish(lead.id, delivered ? "Report sent. Check your inbox" : "We emailed you an update; the phone couldn't finish this time", delivered);
+}
+
+/**
+ * After a restart: paid orders from the last day that never finished go back in the queue. A run that
+ * was cut off mid-test starts over; the customer's watch page picks it up again.
+ */
+export async function resumePaidOrders(ctx: ToolContext): Promise<number> {
+  const orders = await ctx.store.listUnfinishedPaidOrders().catch(() => []);
+  for (const o of orders) {
+    const lead = await ctx.store.getLead(o.leadId);
+    if (!lead || !o.paymentId) continue;
+    await ctx.store.logActivity({
+      at: new Date().toISOString(), agent: "billing", action: `resumed a paid playtest after a restart: ${lead.company}`,
+      why: "the server restarted before this order finished", result: `order ${o.id}${o.test ? " (test mode)" : ""}`, costUsd: null, human: false,
+    });
+    void enqueue(() => runPlaytestOrder(ctx, lead, o.appUrl, o.focus ?? null, { id: o.paymentId!, livemode: !o.test }, o.id)).catch(() => undefined);
+  }
+  return orders.length;
 }

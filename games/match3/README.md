@@ -21,6 +21,16 @@ parallel wire format. `adapter/index.ts` wraps the headless rules engine copied 
 a deterministic seed, optional board mask, clearable seal blockers, move limit, and collection
 goal. It intentionally does not copy Houseki's campaign levels or demo assets.
 
+## Rules, practice levels, and tests
+
+- [`RULES.md`](RULES.md) lists the match-3 rules the engine, adapter, and web player follow, with
+  references, and the one rule changed in the Houseki engine (a dead board reshuffles instead of
+  ending the level).
+- `adapter/levels.ts` holds the level type, `levelOptions` (level JSON → engine settings), and the
+  built-in `PRACTICE_LEVELS`. It has no Node dependencies, so the adapter and the web player
+  (`player/`, built into `site/play.js`) import the same code.
+- Tests: `cd solver && node --import tsx --test ../games/match3/test/*.test.ts`.
+
 ## Editor reference
 
 The requested [CandyCrushLevelEditor](https://github.com/metrokitten/CandyCrushLevelEditor) is
