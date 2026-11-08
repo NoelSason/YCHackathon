@@ -6,6 +6,8 @@ import type { ToolContext } from "../mcp/tools.js";
 import { naiveClient } from "../naive.js";
 import { composePost, gatherStats, publish, type Angle } from "./posts.js";
 import { postOnXFromPhone } from "./phone-post.js";
+import { neonQuery } from "../store.js";
+import { nextVerifiedPost, type VerifiedState } from "./verified.js";
 import { stopLoopTask } from "../mobile/loop.js";
 
 /**
@@ -16,7 +18,7 @@ import { stopLoopTask } from "../mobile/loop.js";
  * busy, it retries a few times with a pause.
  */
 const STATE_FILE = join(tmpdir(), "levelai-social-state.json");
-type State = { turn: number; lastResearchReviews: number };
+type State = { turn: number; lastResearchReviews: number } & VerifiedState;
 
 function load(): State {
   try {
@@ -59,7 +61,11 @@ export async function runSocialCycle(ctx: ToolContext, sleep = (ms: number) => n
   const state = load();
   const playtest = ctx.config.PUBLIC_BASE_URL.startsWith("https://") ? `${ctx.config.PUBLIC_BASE_URL}/playtest` : null;
   const angle = opts.preferAngle === "research" && stats.reviewsRead > state.lastResearchReviews ? "research" : pickAngle(state, stats.reviewsRead, Boolean(playtest));
-  const post = composePost(angle, stats, { site: ctx.config.SITE_URL, playtest });
+  // Scheduled posts alternate with "Verified by Level AI" posts; a delivered customer pack goes first.
+  const verified = opts.preferAngle || !ctx.config.DATABASE_URL
+    ? null
+    : await nextVerifiedPost(neonQuery(ctx.config.DATABASE_URL), state, ctx.config.SITE_URL).catch(() => null);
+  const post = verified?.post ?? composePost(angle, stats, { site: ctx.config.SITE_URL, playtest });
   const dailyCap = ctx.config.SOCIAL_DAILY_CAP + (opts.extraCap ?? 0);
   let phoneTried = false;
   let xDone = !post.platforms.includes("x");
@@ -89,7 +95,9 @@ export async function runSocialCycle(ctx: ToolContext, sleep = (ms: number) => n
     const busy = r.skipped.some((s) => /capacity|rate/i.test(s.reason));
     if (r.posted.length || !busy) {
       if (r.posted.length) {
-        save({ turn: state.turn + 1, lastResearchReviews: angle === "research" ? stats.reviewsRead : state.lastResearchReviews });
+        save(verified
+          ? { ...state, ...verified.state }
+          : { ...state, lastVerified: false, turn: state.turn + 1, lastResearchReviews: angle === "research" ? stats.reviewsRead : state.lastResearchReviews });
       }
       return { posted: r.posted, reason: r.posted.length ? null : r.skipped.map((s) => `${s.platform}: ${s.reason}`).join("; ") };
     }

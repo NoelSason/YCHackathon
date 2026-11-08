@@ -20,6 +20,16 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### Sun Nov 8, 9:43 AM PT, Noel, Claude Code, main
+
+**What:** New "Verified by Level AI" X posts. Scheduled posts alternate with one that reports a game's measured results (levels, simulated bot games, average distance from target win rate), rotating games. A delivered, paid customer pack goes first, once, without naming the studio. Test and demo orders never count.
+**Why:** Noel wants tested work promoted on X. A customer hasn't agreed to be named, so the post is anonymous until there's an opt-in.
+**Files:** business/src/marketing/verified.ts, business/src/marketing/loop.ts, business/test/verified-posts.test.ts.
+**State:** Works. Business tests pass; queries run against live Neon returned Splash Sort, Gem Garden, and Turbo Lanes. .env: SOCIAL_QUIET_HOURS cleared, because 3-14 Pacific would have held scheduled posts until 2 PM.
+**Next / heads-up:** Post goes through the phone on X, so each one costs about 20 Mobilerun credits.
+
+---
+
 ### Sun Nov 8, 9:35 AM PT, Noel, Claude Code, main
 
 **What:** X posts from the phone stop as soon as the post is sent instead of opening the profile page. Chart and directory load errors in the activity feed now read in plain words; the raw error goes to the server log.
