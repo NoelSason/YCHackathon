@@ -165,3 +165,19 @@ describe("inbound replies", () => {
     expect(verifySvixSignature({ ...base, body, nowSeconds: 1700009999 })).toBe(false);
   });
 });
+
+describe("html email", () => {
+  it("passes the draft's HTML version to the sender", async () => {
+    const { sendOutreach } = await import("../src/outreach/send.js");
+    const { MemoryStore } = await import("../src/store.js");
+    const store = new MemoryStore();
+    const lead = await store.upsertLead({ company: "Loop Games", email: "hi@loop.example", source: "inbound", appId: null, reason: "signed up" } as never);
+    const sent: Array<{ html?: string }> = [];
+    await sendOutreach(lead, { subject: "s", body: "Hello.\n\n1752 Shattuck Avenue, Berkeley, CA 94704\nReply \"stop\" to opt out.", facts: [], html: "<b>hi</b>" }, {
+      store, dailyCap: 20, inboundDailyCap: 200, postalAddress: "1752 Shattuck Avenue, Berkeley, CA 94704", extraAllowedNumbers: ["1752 Shattuck Avenue, Berkeley, CA 94704"],
+      sender: { async send(a: { html?: string }) { sent.push(a); return { messageId: "m" }; }, async reply() { return { messageId: "r" }; } },
+      sendingEnabled: true, agent: "test",
+    } as never);
+    expect(sent[0]?.html).toBe("<b>hi</b>");
+  });
+});

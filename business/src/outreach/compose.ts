@@ -13,6 +13,8 @@ export interface OutreachDraft {
   body: string;
   /** Numbers the body is allowed to contain, and where each came from. */
   facts: Array<{ value: string; source: string }>;
+  /** Optional HTML version; the plain-text body always goes too. */
+  html?: string;
 }
 
 export interface ComposeInput {

@@ -8,6 +8,7 @@ import { handleInboundReply, parseAgentMailEvent, verifySvixSignature } from "./
 import { handleStripeWebhook, stripeClient } from "./billing/stripe.js";
 import { intakeLead } from "./leads/intake.js";
 import { runLiveSignup } from "./leads/live.js";
+import { levelsQuery, publicLevelRoutes } from "./levels/public.js";
 import { joinPage } from "./leads/join-page.js";
 import { playtestPage } from "./leads/playtest-page.js";
 import { createPlaytestOrder, enqueue, runPlaytestOrder } from "./leads/playtest-offer.js";
@@ -64,6 +65,7 @@ function bearerOk(token: string | undefined, authorization: string | null): bool
 
 export function createHandler(config: Config, ctx: ToolContext = buildContext(config)): Handler {
   const header = (request: Request, name: string): string | undefined => request.headers.get(name) ?? undefined;
+  const levelRoutes = publicLevelRoutes(levelsQuery(config.DATABASE_URL));
 
   async function route(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -175,6 +177,10 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       if (!/^[0-9a-f-]{36}$/i.test(id)) return json(400, { error: "bad id" });
       return json(200, progressStatus(id));
     }
+
+    // Public read-only levels for the web player: /levels/:id, /packs/:id, /levels-latest.
+    const levelRoute = await levelRoutes(request, url);
+    if (levelRoute) return levelRoute;
 
     if (request.method === "GET" && url.pathname === "/public-stats") {
       // Aggregate counts only, for the website's proof section. No names, no emails.

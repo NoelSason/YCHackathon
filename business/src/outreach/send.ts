@@ -75,7 +75,7 @@ export async function sendOutreach(lead: Lead, draft: OutreachDraft, opts: SendO
   }
 
   const { messageId } = await opts.sender.send({
-    to, subject: draft.subject, text: draft.body, idempotencyKey: idempotencyKey("first-touch", lead.id),
+    to, subject: draft.subject, text: draft.body, ...(draft.html ? { html: draft.html } : {}), idempotencyKey: idempotencyKey("first-touch", lead.id),
   });
   const record = await opts.store.addOutreach({ ...base, status: "sent", blockedReason: null, providerMessageId: messageId });
   await opts.store.setStage(lead.id, "emailed");

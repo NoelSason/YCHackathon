@@ -3,7 +3,7 @@ import reviewsSample from "./fixtures/reviews-sample.json" with { type: "json" }
 import { loadConfig } from "../src/config.js";
 import { MemoryStore } from "../src/store.js";
 import { intakeLead } from "../src/leads/intake.js";
-import { runLiveSignup } from "../src/leads/live.js";
+import { composeWelcome, runLiveSignup } from "../src/leads/live.js";
 import { joinPage } from "../src/leads/join-page.js";
 import type { ToolContext } from "../src/mcp/tools.js";
 
@@ -66,6 +66,46 @@ describe("live signup", () => {
     if (!r.ok) throw new Error("intake failed");
     expect((await runLiveSignup(c, r.lead, "Parking Loop")).email).toBe("drafted");
     expect(sent).toHaveLength(0);
+  });
+
+  it("links the free levels the agents made when real ones exist", async () => {
+    const { c, sent } = ctx({ DEMO_PLAY_URL: "" });
+    const r = await intakeLead(form, c.store);
+    if (!r.ok) throw new Error("intake failed");
+    const out = await runLiveSignup(c, r.lead, "Parking Loop", async () => "https://levelai.vercel.app/play?pack=6f1c2a4e-9b3d-4c1a-8e2f-0a1b2c3d4e5f");
+    expect(out.email).toBe("sent");
+    const mail = sent[0]!;
+    expect(mail.text).toContain("Play them on your phone: https://levelai.vercel.app/play?pack=6f1c2a4e-9b3d-4c1a-8e2f-0a1b2c3d4e5f");
+    const html = composeWelcome({ lead: r.lead, gameTitle: "Parking Loop", target: null, sampleUrl: "https://levelai.vercel.app/play", companyName: "Level AI", postalAddress: "x" }).html;
+    expect(html).toContain("Play your free levels");
+    expect(html).toContain('href="https://levelai.vercel.app/play"');
+    expect(html).not.toContain("Reply for your free levels");
+  });
+
+  it("keeps the reply wording when no levels are ready yet", async () => {
+    const { c, sent } = ctx({ DEMO_PLAY_URL: "" });
+    const r = await intakeLead(form, c.store);
+    if (!r.ok) throw new Error("intake failed");
+    expect((await runLiveSignup(c, r.lead, "Parking Loop", async () => null)).email).toBe("sent");
+    expect(sent[0]!.text).toContain("Reply and we'll send you free levels made for your game.");
+    expect(sent[0]!.text).not.toContain("/play");
+    const html = composeWelcome({ lead: r.lead, gameTitle: "Parking Loop", target: null, sampleUrl: null, companyName: "Level AI", postalAddress: "x" }).html;
+    expect(html).toContain("Reply for your free levels");
+    expect(html).not.toContain("/play");
+  });
+
+  it("uses a team-set SAMPLE_PLAY_URL first, and survives a failed level lookup", async () => {
+    const pinned = ctx({ SAMPLE_PLAY_URL: "https://levelai.vercel.app/play?level=0b9f3c1e-2d4a-4f6b-8c7d-9e0f1a2b3c4d" });
+    const r1 = await intakeLead(form, pinned.c.store);
+    if (!r1.ok) throw new Error("intake failed");
+    await runLiveSignup(pinned.c, r1.lead, "Parking Loop", async () => "https://levelai.vercel.app/play");
+    expect(pinned.sent[0]!.text).toContain("?level=0b9f3c1e-2d4a-4f6b-8c7d-9e0f1a2b3c4d");
+
+    const failing = ctx();
+    const r2 = await intakeLead(form, failing.c.store);
+    if (!r2.ok) throw new Error("intake failed");
+    await runLiveSignup(failing.c, r2.lead, "Parking Loop", async () => { throw new Error("db down"); });
+    expect(failing.sent[0]!.text).toContain("https://play.levelai.example/match3?level=7");
   });
 
   it("serves a join page with no internal details", () => {

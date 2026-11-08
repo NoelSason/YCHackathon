@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:22 PM PT · Noel · Claude Code (level-delivery subagent + main) · main
+- **What:** Web player for agent-made levels at https://levelai.vercel.app/play (`?level=<id>`, `?pack=<id>`, or newest pack), built on Max's match-3 engine (unchanged, MIT credit kept). Public read-only level API (`/levels/:id`, `/packs/:id`, `/levels-latest`; accepted/published match3 only, notes and creator private). Player events post to the platform's `/events`. Welcome email links the newest pack when one exists, otherwise keeps the reply wording; it now also sends its HTML version (it had been going out as plain text only).
+- **Why:** The emails promise free levels; there was nowhere to play them.
+- **Files:** `player/`, `site/play.{html,css,js}`, `business/src/levels/public.ts`, `business/src/app.ts`, `business/src/leads/live.ts`, `business/src/outreach/{compose,send}.ts`, `business/live.sh`
+- **State:** works; 83 business tests pass. Played to a win locally (mouse and touch) against throwaway test levels. Production `/play` shows "New levels are on the way" because Neon has **zero match3 levels**.
+- **Next / heads-up:** **Abhinav:** the deployed platform function returns "unknown game" for match3, so the Designer can't save match3 levels until it's redeployed. Set `GAMES_BASE_URL=https://levelai.vercel.app` when you redeploy (`/match3` aliases to `/play`). **Pinara:** no solver worker is running, and the 3 stub levels were never accepted or rejected, so there are no packs.
+
 ### 2026-11-07 5:19 PM PT · Noel · Claude Code · main
 - **What:** (1) Outreach loop fixed: it had run dry (two puzzle charts, every game already read) and its last run died silently on an empty store-chart response. It now rotates through 7 puzzle-adjacent charts (puzzle, casual, board, word; free, grossing, paid), retries an empty chart once, logs failures to the activity log, and runs every 20 min (was 45). Same guards: ≥3 matching reviews, daily cap, opt-outs. (2) iOS installs: Mobilerun installs by bundle id, not numeric App Store id (numeric → 404), and only for apps in its own catalog (Duolingo, Spotify installed; Royal Match, Block Blast, NYT → APP_NOT_FOUND instantly). Installer now resolves the bundle id via Apple's public lookup and installs inline so the reason comes back. (3) `business/keepalive.sh` restarts the business server if it goes down, tunnel untouched. (4) `live_phone_view` check sends the console password.
 - **Why:** No agent action had been logged since 4:54 PM; App Store playtests never installed.

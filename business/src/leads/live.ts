@@ -9,6 +9,7 @@ import type { OutreachDraft } from "../outreach/compose.js";
 import type { Lead, Target } from "../types.js";
 import { finish, step } from "./progress.js";
 import * as E from "../email/html.js";
+import { freeLevelsUrl, levelsQuery } from "../levels/public.js";
 
 /**
  * The live signup: someone at our table (or in the audience) enters their game, and within about a
@@ -64,7 +65,7 @@ export function composeWelcome(args: {
     "",
     ...evidence,
     "",
-    sampleUrl ? `Here are free levels our agents made today. Try one on your phone: ${sampleUrl}` : "Reply and we'll send you free levels made for your game.",
+    sampleUrl ? `Here are free levels our agents designed and tested. Play them on your phone: ${sampleUrl}` : "Reply and we'll send you free levels made for your game.",
     "",
     "If you'd like levels made for your game, just reply. A person on our team reads every reply.",
     "",
@@ -94,6 +95,7 @@ export function composeWelcome(args: {
           ? [E.panel(E.bigStat(`${target.reviewsAnalyzed}`, `newest ${storeName(target.appId)} reviews of ${game} read. No difficulty complaints. Nice work.`, E.C.green)),
              E.text("If you ever need more levels, we design them in your game's style and tune each one before it ships.")]
           : [E.text("We design levels in your game's style and play each one hundreds of times until it hits the difficulty you want, then check it on a real iPhone.")]),
+      ...(sampleUrl ? [E.text("Here are free levels our agents designed and tested. They play right in your phone's browser.")] : []),
       sampleUrl
         ? E.button("Play your free levels", sampleUrl)
         : E.button("Reply for your free levels", `mailto:${args.replyTo ?? "levelai@agentmail.to"}?subject=${encodeURIComponent(`Free levels for ${game}`)}`),
@@ -114,7 +116,22 @@ export function composeWelcome(args: {
   };
 }
 
-export async function runLiveSignup(ctx: ToolContext, lead: Lead, gameTitle: string | null): Promise<LiveOutcome> {
+/**
+ * The welcome email's play link. A team-set SAMPLE_PLAY_URL wins; otherwise the newest real match3
+ * pack or accepted levels on levelai.vercel.app/play; otherwise DEMO_PLAY_URL; otherwise null, and
+ * the email asks them to reply for levels instead. It never links to a page with nothing to play.
+ */
+export async function samplePlayUrl(ctx: ToolContext, findFreeLevels: () => Promise<string | null>): Promise<string | null> {
+  if (ctx.config.SAMPLE_PLAY_URL) return ctx.config.SAMPLE_PLAY_URL;
+  return (await findFreeLevels().catch(() => null)) ?? ctx.config.DEMO_PLAY_URL ?? null;
+}
+
+export async function runLiveSignup(
+  ctx: ToolContext,
+  lead: Lead,
+  gameTitle: string | null,
+  findFreeLevels: () => Promise<string | null> = () => freeLevelsUrl(levelsQuery(ctx.config.DATABASE_URL), ctx.config.SITE_URL),
+): Promise<LiveOutcome> {
   const log = (action: string, why: string | null, result: string | null) =>
     ctx.store.logActivity({ at: new Date().toISOString(), agent: "research", action, why, result, costUsd: null, human: false });
 
@@ -137,7 +154,7 @@ export async function runLiveSignup(ctx: ToolContext, lead: Lead, gameTitle: str
   }
 
   step(lead.id, "Writing your email");
-  const sampleUrl = ctx.config.SAMPLE_PLAY_URL ?? ctx.config.DEMO_PLAY_URL ?? null;
+  const sampleUrl = await samplePlayUrl(ctx, findFreeLevels);
   const fresh = (await ctx.store.getLead(lead.id)) ?? lead;
   const draft = composeWelcome({
     lead: fresh,

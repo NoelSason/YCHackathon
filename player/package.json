@@ -1,0 +1,14 @@
+{
+  "name": "@levelstudio/player",
+  "private": true,
+  "type": "module",
+  "description": "The public match-3 web player at levelai.vercel.app/play. Bundles games/match3/engine into site/play.js.",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --format=esm --target=es2020 --minify --sourcemap --outfile=../site/play.js --banner:js=\"/*! Level AI web player. Includes the Gem Swap rules engine from Houseki (https://github.com/johnmorrisdotca/houseki), MIT License, Copyright (c) John Morris. */\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}
