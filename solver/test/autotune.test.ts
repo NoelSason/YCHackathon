@@ -176,3 +176,11 @@ test("a resumed tune finishes and its log says so; a version that stopped twice 
 test("nothing to tune is idle", async () => {
   assert.deepEqual(await tuneNextDesign(q, "w", getAdapter, { games: ["watersort"] }), { kind: "idle" });
 });
+
+test("accepts a measurement whose 95% interval contains the target, within 8 points", async () => {
+  const { onTarget } = await import("../src/autotune.js");
+  assert.equal(onTarget({ win_rate: 0.28, ci95_low: 0.2, ci95_high: 0.39 }, 0.35), true);
+  assert.equal(onTarget({ win_rate: 0.33, ci95_low: 0.3, ci95_high: 0.36 }, 0.35), true);
+  assert.equal(onTarget({ win_rate: 0.25, ci95_low: 0.15, ci95_high: 0.4 }, 0.35), false); // 10 pts off
+  assert.equal(onTarget({ win_rate: 0.28, ci95_low: 0.25, ci95_high: 0.31 }, 0.35), false); // tight interval excludes it
+});

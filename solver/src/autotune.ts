@@ -10,10 +10,20 @@ import type { Adapter } from "../../platform/mcp/src/adapters.js";
 import type { GetAdapter, Query, Row } from "./queue.js";
 import { firstSeedFor, runLevelSmart, summarize } from "./run.js";
 
-// Up to 6 measurements: rounds cost under a second for most games (a minute for match-3), and steep
-// curves near a game's minimum need a couple more than a straight-line guess.
-export const MAX_ROUNDS = 6;
+// Up to 12 measurements: rounds cost under a second for most games (a minute for match-3), and steep
+// curves near a game's minimum need several more than a straight-line guess. (Raised from 6 on Nov 7,
+// 7:45 PM: match-3 levels were converging, e.g. 0% → 14% → 28% vs 35%, and running out of rounds.)
+export const MAX_ROUNDS = 12;
 export const TOLERANCE = 0.05;
+/** Also accept when the target lies inside the measurement's 95% interval and it's within this many points. */
+export const CI_TOLERANCE = 0.08;
+
+/** True when a measurement is close enough to the target to accept. */
+export function onTarget(r: { win_rate: number; ci95_low: number; ci95_high: number }, target: number): boolean {
+  const diff = Math.abs(r.win_rate - target);
+  if (diff <= TOLERANCE + 1e-9) return true;
+  return diff <= CI_TOLERANCE + 1e-9 && r.ci95_low <= target && target <= r.ci95_high;
+}
 export const REFERENCE_BOTS = ["human", "search", "greedy"] as const;
 
 /** The integer field the tuner moves. dir +1: a higher value makes the level easier. */
@@ -187,12 +197,12 @@ export async function tuneNextDesign(
     if (knob.solverFloor && typeof m.out.min_moves === "number" && knob.dir === 1) lo = Math.max(lo, m.out.min_moves);
     seen.push({ e, rate: m.r.win_rate });
     const why = `${bot} ${m.r.wins}/${m.r.runs} = ${Math.round(m.r.win_rate * 100)}% (95% ${Math.round(m.r.ci95_low * 100)}-${Math.round(m.r.ci95_high * 100)}%), ${knob.path.join(".")} = ${getKnob(level, knob.path)}, target ${Math.round(d.target * 100)}%, round ${round}${d.resumed ? " (resumed after the tune stopped mid-way)" : ""}`;
-    if (Math.abs(m.r.win_rate - d.target) <= TOLERANCE + 1e-9 && m.out.solvable !== false) {
+    if (onTarget(m.r, d.target) && m.out.solvable !== false) {
       await q(`update levels set status = 'accepted', measured_win_rate = $2, updated_at = now() where level_id = $1`, [levelId, m.r.win_rate]);
       await log(q, "tuner", "accept_level", `auto-tuner (program): ${why}`, `measured ${m.r.win_rate}`, "level", levelId);
       return { kind: "accepted", level_id: levelId, game_id: d.game_id, target: d.target, measured: m.r.win_rate, rounds: round, resumed: d.resumed };
     }
-    if (round === MAX_ROUNDS) return reject(levelId, `not within ${TOLERANCE * 100} pts after ${MAX_ROUNDS} rounds: ${why}`, round);
+    if (round === MAX_ROUNDS) return reject(levelId, `not within ${TOLERANCE * 100} pts (or ${CI_TOLERANCE * 100} pts with the target inside the 95% interval) after ${MAX_ROUNDS} rounds: ${why}`, round);
 
     if (m.r.win_rate < d.target) lo = Math.max(lo, e + 1);
     else hi = Math.min(hi, e - 1);
