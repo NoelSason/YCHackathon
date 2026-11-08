@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:57 PM PT · Noel · Claude Code · main
+- **What:** Lot Escape auto-advances: 1.4 s after you clear a built-in lot, the next one loads; after the last built-in, endless mode turns on by itself. Rebuilt the hosted games (Lot Escape, plus Splash Sort and Turbo Lanes from their latest pushed source) and deployed.
+- **Why:** Noel: auto-advance Lot Escape when you finish a level.
+- **Files:** `games/lotescape/ui/main.ts`, `site/games/{lotescape,racer,watersort}/**`
+- **State:** works; 19/19 game tests, typecheck clean, live game.js has the change.
+- **Next / heads-up:** Five demo-hardening agents are running overnight (customer flow, console and phone, money, levels, ops). Their changes land in later entries.
+
 ### 2026-11-07 19:53 PT · Pinara (Codex) · branch `pinara/game-ui`
 
 **What:** Added a fast deterministic content compiler (`npm run production`) for watersort, racer, and match3: 1,000 positions per game, staged feature unlocks and a challenge/recovery difficulty curve. One 64-game completion profile proposes the allowance; at least 200 fresh-seed actual replays verify each accepted level. Three game streams run concurrently with a 55-second hard deadline per position, checkpoints, duplicate-layout rejection, process locking, and crash/resume recovery.

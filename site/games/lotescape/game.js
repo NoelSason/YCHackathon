@@ -654,12 +654,22 @@ function finish2() {
     ended = true;
     message.className = "message good";
     event("win");
-    message.textContent = mode === "endless" ? "Lot clear! On to a harder one." : "Lot clear! Every car made it out.";
+    const lastBuiltIn = mode === "builtin" && activeIndex === LEVELS.length - 1;
+    message.textContent = mode === "endless" ? "Lot clear! On to a harder one." : mode === "builtin" ? lastBuiltIn ? "All built-in lots cleared! Generating harder ones\u2026" : "Lot clear! On to the next lot." : "Lot clear! Every car made it out.";
     if (mode === "endless") {
       const at = endless.level;
       setTimeout(() => {
         if (mode === "endless" && endless.level === at && state.won) void advanceEndless();
       }, 1100);
+    } else if (mode === "builtin") {
+      const at = activeIndex;
+      setTimeout(() => {
+        if (mode !== "builtin" || activeIndex !== at || !state.won) return;
+        if (lastBuiltIn) {
+          endlessToggle.checked = true;
+          setEndless(true);
+        } else loadLevel(at + 1);
+      }, 1400);
     }
   } else if (state.moves >= level.move_limit && !ended) {
     ended = true;

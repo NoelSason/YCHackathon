@@ -265,3 +265,21 @@ button:focus-visible { outline:3px solid var(--neon2); outline-offset:4px; }
 .legend .key.oil { width: 13px; height: 9px; border-radius: 50%; background: radial-gradient(ellipse, #6d5b8a, #2f8e8b 50%, #05080f 75%); }
 
 @keyframes bump { 35% { translate: var(--bump) 0; } 100% { translate: 0 0; } }
+
+/* Track selection and pit-stop controls. */
+.mission-actions { display:flex; gap:6px; align-items:center; }
+.mini:disabled { opacity:.35; cursor:default; }
+.mini:focus-visible { outline:2px solid var(--neon2); outline-offset:3px; }
+.road.paused * { animation-play-state:paused !important; }
+.collection-label { display:flex; justify-content:space-between; gap:8px; margin-top:2px; color:#829aa5; font-size:8px; font-weight:800; letter-spacing:1.5px; }
+.collection-label>span { font-size:9px; font-weight:400; letter-spacing:0; }
+.samples { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+.samples button { display:flex; flex-direction:column; align-items:flex-start; gap:5px; min-width:0; border-radius:10px; padding:10px 8px; text-align:left; transition:background .15s,border-color .15s; }
+.samples .sample-number { font-size:10px; color:var(--neon2); font-weight:400; }
+.samples strong { display:block; width:100%; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.samples small { font-size:8px; font-weight:400; color:#a0b4bd; white-space:nowrap; }
+.samples button[aria-current="true"] { background:#edff8612; border-color:#edff8699; box-shadow:inset 0 -2px var(--neon); color:#eaf3f3; }
+.samples button[aria-current="true"] .sample-number { color:var(--neon); }
+@media(hover:hover) { .samples button:hover { background:#ffffff10; border-color:#88e7d066; } }
+@media(max-width:380px) { .mission { grid-template-columns:1fr; } .mission-actions { grid-row:2; } .mini { flex:1; } .mission p { grid-row:3; } .samples small { font-size:7px; } .collection-label>span { display:none; } }
+.samples strong { white-space:normal; overflow:visible; line-height:1.3; min-height:2.6em; }
