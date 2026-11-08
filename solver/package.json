@@ -8,7 +8,8 @@
     "worker": "node --env-file-if-exists=.env --import tsx src/worker.ts",
     "drain": "node --env-file-if-exists=.env --import tsx src/worker.ts --once",
     "test": "node --import tsx --test test/*.test.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "production": "node --env-file-if-exists=.env --import tsx src/production/cli.ts"
   },
   "dependencies": {
     "pg": "^8.23.1"

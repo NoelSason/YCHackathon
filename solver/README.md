@@ -149,3 +149,12 @@ These come from `platform/CONTRACTS.md` §1:
 - **Where the worker runs overnight.** The platform runs as a Neon Function, which suits
   request/response, not a polling worker. Render was dropped. Until the team decides, run it on a
   laptop that stays awake.
+
+## Fast production to 1,000 levels per game
+
+`npm run production` compiles a resumable progression for Splash Sort, Turbo Lanes, and match-3
+without waiting for the Designer's 10-minute cron. It uses the shared adapters, one completion
+profile and independent 200-game verification, with a 55-second per-position deadline. Add
+`-- --database` to import accepted levels and evidence into LevelOps; no automatic publication.
+See [PRODUCTION.md](PRODUCTION.md) for progression, supported feature unlocks, commands, stopping,
+resume, measurements, and the distinction between authored plans and accepted playable content.
