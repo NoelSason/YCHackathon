@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 6:20 PM PT · Noel · Claude Code · main
+- **What:** Playtest form: the link field now says what to paste ("Your game's link": an App Store link or a web link that opens in Safari; Google Play won't work yet). Mobilerun (ticket #373): they queued our apps into their hosted library (Royal Match and Block Blast still 404 as of 6:15 PM) and granted a 3-day iPhone subscription for a second phone where Apple sign-in works. That phone isn't created yet; it waits on Noel's OK.
+- **Why:** Noel didn't know what to put in "App link".
+- **Files:** `site/playtest.html`
+- **State:** works; deployed, /health ok before and after.
+- **Next / heads-up:** none.
+
 ### 2026-11-07 6:18 PM PT · Noel · Claude Code · main
 - **What:** Real spend is logged now. The Monid wrapper reads each run's `billing.reportedCost` (micro-dollars), and every research pass logs what it cost (chart, reviews, store listings, contact lookups) in `cost_usd`, so the console's "Spent" shows real money instead of $0.
 - **Why:** Noel: "why is it 0 cost". Our loops were paying for every call and logging $0.
