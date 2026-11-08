@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<base href="/games/watersort/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%231a1d3a%27/%3E%3Crect x=%274%27 y=%2719%27 width=%278%27 height=%278%27 rx=%272%27 fill=%27%2322b893%27/%3E%3Crect x=%2712%27 y=%2712%27 width=%278%27 height=%278%27 rx=%272%27 fill=%27%23ffc53d%27/%3E%3Crect x=%2720%27 y=%275%27 width=%278%27 height=%278%27 rx=%272%27 fill=%27%23ff5b4f%27/%3E%3C/svg%3E">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1026">
+  <title>Splash Sort</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main id="app">
+    <div class="eyebrow">LEVEL AI · PUZZLE COLLECTION <span>04 / SORT</span></div>
+    <header class="top">
+      <div class="brand"><span class="drop" aria-hidden="true"></span>Splash Sort</div>
+      <div class="level-title" id="title"></div>
+    </header>
+
+    <section class="mission"><small>THE OBJECTIVE</small><h1>A little order.<br>A splash of color.</h1><p>One color per tube. Make every pour count.</p><div id="objective" role="status"></div></section>
+    <section class="hud">
+      <div class="pill" id="moves" aria-live="polite">Pours 0 / 0</div>
+      <div class="meter" aria-hidden="true"><div class="meter-fill" id="meter"></div></div>
+      <button id="restart" class="btn ghost" type="button" aria-label="Restart level">Restart</button>
+    </section>
+
+    <section id="board" class="board" aria-label="Tubes"></section>
+    <div class="tools"><button id="hint-btn" class="btn ghost" type="button">✦ Reveal a hint <span id="hints">3</span></button><span>Match colors · Leave room to move</span></div>
+    <p class="hint" id="hint">Tap a tube, then tap the tube to pour into.</p>
+    <p class="notice hidden" id="notice" role="status"></p>
+
+    <nav class="samples" id="samples" aria-label="Practice levels"></nav>
+  </main>
+
+  <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ov-title">
+    <div class="card">
+      <div class="burst" aria-hidden="true"></div>
+      <h2 id="ov-title"></h2>
+      <p id="ov-text"></p>
+      <div class="stars" id="ov-stars" aria-hidden="true"></div>
+      <button class="btn" id="ov-btn" type="button"></button>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

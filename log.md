@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 6:35 PM PT · Noel · Claude Code (games-hosting subagent) · main
+- **What:** All games are on the site. Hub https://levelai.vercel.app/games, Splash Sort /games/watersort/, Turbo Lanes /games/racer/, Lot Escape /games/lotescape/ (Preview), Gem Match card → /play (Preview until match3 levels are accepted). "Games" link added to the header nav on index, join, play, playtest, privacy, and terms. `site/build-games.sh` rebuilds the bundles from games/*, without changing game code, and writes `site/games/published.json` (games the level API serves). Once the level API serves a game, its card links its newest agent-made level first.
+- **Why:** Noel: host the games so we can see them.
+- **Files:** `site/games/**`, `site/build-games.sh`, `site/*.html` (nav only), `site/styles.css` (additive)
+- **State:** works; deployed, headless Chrome at 1440×900 and 390×844 (touch): loads, no console errors, real moves, no horizontal scroll.
+- **Next / heads-up:** **Lot Escape owner:** the moving cars draw as thin slivers, and its two fonts don't load. That's a bug in the game's own render code. **Max/Pinara:** after changing a game, run `site/build-games.sh` and redeploy the site. The platformer has no browser UI, so it isn't hosted.
+
 ### 2026-11-07 6:30 PM PT · Noel · Claude Code (README subagent) · main
 - **What:** New public README.md in the style of Noel's other repos: hero console screenshot, how it works (mermaid diagrams for the agent loop and the level loop), agents, what's autonomous, live numbers with timestamps, honest status and limits, stack, repo layout, how to run it, team, and credits. The old README (the team plan) is now `docs/plan.md`, and references in AGENTS.md, docs/*, games/match3/README.md, and platform/CONTRACTS.md point there. (The move itself went out by accident in e90218b, which left the repo briefly without a README; this restores it.)
 - **Why:** Noel: a README like the rest of his profile.
