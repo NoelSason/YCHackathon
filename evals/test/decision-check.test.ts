@@ -103,3 +103,30 @@ test("expectations are read only when they are simple thresholds", () => {
   assert.equal(parseExpectation("retune toward 45%"), null);
   assert.equal(parseExpectation(null), null);
 });
+
+
+test("inclusive expectations accept the exact boundary and reject impossible percentages", async () => {
+  assert.equal(parseExpectation("quits at most 50%")?.op, "<=");
+  assert.equal(parseExpectation("wins at least 50%")?.op, ">=");
+  assert.equal(parseExpectation("wins above 101%"), null);
+  const q = await freshDb();
+  await addGame(q, "watersort");
+  const lvl = await addLevel(q, { game_id: "watersort", created_at: hoursAfter(T0, -5) });
+  await addPlays(q, "watersort", lvl, T0, NOW, { attempts: 20, wins: 10, quits: 10 });
+  for (const expected of ["wins at least 50%", "quits at most 50%", "wins above 50%", "quits below 50%"] as const) {
+    const id = await addDecision(q, { ts: T0, chose: `retune ${lvl}`, expected });
+    const result = (await checkDecision(q, id, { now: NOW }))!;
+    assert.equal(result.meets_expectation, expected.includes("at "));
+  }
+});
+
+test("later retunes are found through versions made before the decision", async () => {
+  const q = await freshDb();
+  await addGame(q, "racer");
+  const parent = await addLevel(q, { game_id: "racer", created_at: hoursAfter(T0, -5) });
+  const middle = await addLevel(q, { game_id: "racer", parent, created_at: hoursAfter(T0, -1) });
+  const child = await addLevel(q, { game_id: "racer", parent: middle, created_at: hoursAfter(T0, 0.1) });
+  const id = await addDecision(q, { ts: T0, chose: `retune ${parent}` });
+  const result = (await checkDecision(q, id, { now: NOW }))!;
+  assert.deepEqual(result.scope.newer_versions, [child]);
+});

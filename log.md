@@ -20,6 +20,15 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 23:58 PT · Pinara (Codex) · branch `pinara/game-ui`
+
+**What:** Audited all five games and Pinara's solver/evals. Fixed cleared racer traffic colliding again after a lane switch; browser/bots/exact solver share bounded collision history. Manual input cancels stale solver replay in sort, lot, and platformer; canceled lot drags no longer spend moves. Rebuilt the four browser bundles and added a repeatable browser regression script.
+Fixed tuner exceptions leaving measurements running, conflicting checkpoints silently claiming an existing different level, and repeated generation after the stock limit changed. CEO checks now handle inclusive thresholds and descendants reached through older retunes.
+**Why:** Pinara requested a plan-aligned mechanics and pipeline audit while preserving concurrent work. All fixes use existing adapters and contracts; no replacement agent framework.
+**Files:** `games/{racer,watersort,lotescape,platformer}/`, corresponding `site/games/` bundles, `solver/src/{autotune,production/*}`, `evals/src/decision-check.ts`, regression tests, `scripts/check-game-mechanics.cjs`.
+**State:** works in source: 126 tests across solver/evals/five games passed, relevant typechecks passed, and headless browser regressions passed (sort takeover/undo/full replay; lot cancel/restart/takeover; platformer takeover/full replay). Read-only live check: all five game routes HTTP 200; 1,131 accepted/published levels; all 1,250 solver runs done at audit time. This push does not claim the new bundles are deployed.
+**Next / heads-up:** Max/Noel: user authorized game mechanics fixes across all five; deploy the rebuilt site bundles. Abhinav: `check_decision.expectation.op` additionally supports `<=` and `>=`; old values remain supported. Existing historical bot evidence used the older racer engine; new runs use corrected rules. No existing levels deleted/replaced, no teammate edits staged. The two running stock watchers use their already-loaded source; these pipeline fixes need a deliberate restart by their operator. Real-player calibration and live Naïve/phone demo checks still need evidence; raw event totals include playtests and must not be presented as unique humans.
+
 ### 2026-11-07 11:32 PM PT · Noel · Claude Code (hourly checkpoint) · main
 - **What:** Hourly checkpoint of the outreach agent's work in progress: a fallback sender for new recipients (`outreach/alt-mail.ts`), a stronger offer in `compose.ts`, and related agency and config changes.
 - **Why:** Noel asked for a commit every hour.

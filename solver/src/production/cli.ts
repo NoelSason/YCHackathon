@@ -98,13 +98,13 @@ try {
       }
       // Checkpoint first: if DB import fails, restart imports this exact measured result once.
       await write({ status: "accepted", result: result.result });
+      completed.set(key, result.result);
+      fingerprints.push(result.result.fingerprint);
       if (pool) {
         try { await saveAccepted(async (sql, values=[]) => (await pool.query(sql, values)).rows, result.result, series); }
         catch (e) { if (e instanceof BufferFullError) break; throw e; }
       }
-      completed.set(key, result.result);
       accepted++;
-      fingerprints.push(result.result.fingerprint);
       console.log(JSON.stringify({ event: "accepted", game, position, target: result.result.target, measured: result.result.measured, ms: result.result.elapsed_ms }));
     }
     }

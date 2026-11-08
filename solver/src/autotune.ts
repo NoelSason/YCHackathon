@@ -115,7 +115,15 @@ async function measure(q: Query, a: Adapter, levelId: string, level: object, bot
     [levelId, JSON.stringify([bot]), runs, workerId],
   )) as Row[];
   const runId = String(run!.run_id);
-  const out = await runLevelSmart(a, level, [bot], runs, firstSeedFor(runId), { gameId: a.game_id, ...budget });
+  let out;
+  try {
+    out = await runLevelSmart(a, level, [bot], runs, firstSeedFor(runId), { gameId: a.game_id, ...budget });
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    await q(`update solver_runs set status = 'failed', error = $2, finished_at = now() where run_id = $1`, [runId, reason]);
+    await log(q, "platform", "solver_run.failed", "", reason, "solver_run", runId);
+    throw err;
+  }
   await q(`update solver_runs set status = 'done', results = $2, solvable = $3, min_moves = $4, finished_at = now() where run_id = $1`, [
     runId, JSON.stringify(out.results), out.solvable, out.min_moves,
   ]);

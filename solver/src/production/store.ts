@@ -37,12 +37,18 @@ export async function saveAccepted(q: Query, result: AcceptedLevel, series: numb
       insert into activity_log(agent,action,reason,result,ref_kind,ref_id)
       select 'platform','production.level_accepted',$12,$13,'level',level_id::text from added returning id
     ) select level_id::text as id from added
-      union all select level_id::text as id from levels where level_id=$1::uuid and exists(select 1 from allowed)`,
+      union all select level_id::text as id from levels
+      where level_id=$1::uuid and game_id=$2 and level=$3::jsonb
+        and target_win_rate=$4 and measured_win_rate=$5 and exists(select 1 from allowed)`,
     [id, result.game_id, JSON.stringify(result.level), result.target, result.measured, notes,
       JSON.stringify([result.bot]), result.evidence.runs, JSON.stringify({ [result.bot]: result.evidence }),
       result.min_moves === null ? null : true, result.min_moves,
       `deterministic content compiler; ${result.game_id} position ${result.position}, target ${result.target}; ${result.evidence.runs} independent ${result.bot} replays; features ${result.features.join(', ')}`,
       `measured ${result.measured}; ${result.elapsed_ms}ms; accepted, awaiting CEO publication`]);
-  if (!rows.length) throw new Error("production stopped by kill switch");
+  if (!rows.length) {
+    const killed = await q("select 1 from settings where key in ('kill_switch','production_kill_switch') and value='true'::jsonb");
+    if (killed.length) throw new Error("production stopped by kill switch");
+    throw new Error(`production checkpoint conflicts with existing level ${id}; existing content preserved`);
+  }
   return String(rows[0]!.id);
 }

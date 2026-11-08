@@ -24,7 +24,7 @@ export interface Rates {
 
 export interface Expectation {
   metric: "win_rate" | "quit_rate";
-  op: "<" | ">";
+  op: "<" | ">" | "<=" | ">=";
   value: number; // 0..1
   text: string;  // the phrase it was read from
 }
@@ -94,8 +94,11 @@ export function parseExpectation(text: string | null): Expectation | null {
   const m = re.exec(text);
   if (!m) return null;
   const metric = /^quit/i.test(m[1]!) ? "quit_rate" : "win_rate";
-  const op = /below|under|less|lower|fewer|at most/i.test(m[2]!) ? "<" : ">";
-  return { metric, op, value: Number(m[3]) / 100, text: m[0] };
+  const value = Number(m[3]) / 100;
+  if (value > 1) return null;
+  const op = /^at most$/i.test(m[2]!) ? "<=" : /^at least$/i.test(m[2]!) ? ">="
+    : /below|under|less|lower|fewer/i.test(m[2]!) ? "<" : ">";
+  return { metric, op, value, text: m[0] };
 }
 
 async function windowRates(q: Query, levelIds: string[], from: Date, to: Date): Promise<Rates> {
@@ -146,11 +149,11 @@ export async function checkDecision(q: Query, decisionId: string, opts: CheckOpt
   const newer = levelIds.length
     ? await q(
         `with recursive tree as (
-           select level_id, game_id from levels where parent_level_id = any($1::uuid[]) and created_at >= $2
+           select level_id, game_id, created_at from levels where parent_level_id = any($1::uuid[])
            union
-           select l.level_id, l.game_id from levels l join tree t on l.parent_level_id = t.level_id
+           select l.level_id, l.game_id, l.created_at from levels l join tree t on l.parent_level_id = t.level_id
          )
-         select level_id::text as level_id, game_id from tree`,
+         select level_id::text as level_id, game_id from tree where created_at >= $2`,
         [levelIds, decidedAt.toISOString()],
       )
     : [];
@@ -201,7 +204,9 @@ export async function checkDecision(q: Query, decisionId: string, opts: CheckOpt
   let meets: boolean | null = null;
   if (expectation && ta.finished >= minFinished) {
     const v = ta[expectation.metric];
-    if (v !== null) meets = expectation.op === "<" ? v < expectation.value : v > expectation.value;
+    if (v !== null) meets = expectation.op === "<" ? v < expectation.value
+      : expectation.op === "<=" ? v <= expectation.value
+      : expectation.op === ">=" ? v >= expectation.value : v > expectation.value;
   }
 
   // ---- pipeline since the decision ----
