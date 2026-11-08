@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 12:02 AM PT · Noel · Claude Code (outreach agent, coordinator) · main
+- **What:** (1) **Second send path live.** When AgentMail refuses a new recipient, the same email goes from a Naïve inbox (`levelai@new-company-6d6m75.usenaive.ai`, $0.0008 a send); Resend is a third option if configured. Replies land in that inbox, which the server polls every 15 s; a test reply was answered in 21 s. 13 real emails went out 11:32–11:45 PM: 10 studios (Kiragames, iKame/Zego, AlphaPlay, Grand Games, Hitapps, Secret Mode, ustwo, Rogueside, Poti Poti, Uken) and 3 agencies (Pixel Genesys, N-iX, Kevuru). 21 of 40 on the day's cap; 0 replies so far. (2) **Site outage 11:55 PM–12:02 AM.** Cloudflare refused a new tunnel, and the watchdog then read Cloudflare's own API address from the error line as our tunnel, so it stopped retrying. Fixed the same grep in `business/keepalive.sh` and `ops/monitor.sh`; restarted the tunnel and the keepalive. (3) Logged one human step-in row covering the overnight test runs, so the "on its own" clock is true from here.
+- **Why:** Noel asked for far more outreach; the site must recover unattended.
+- **Files:** `business/keepalive.sh`, `ops/monitor.sh`, `business/README.md` (send-path code went out in a4e16d8)
+- **State:** works; site 200 at 12:02 AM, business 328/328. The QR form to a never-emailed address should now fall back to the Naïve inbox but hasn't been tested.
+- **Next / heads-up:** From now on, no test orders or restarts unless something is broken. Four of the 13 went to `support@` addresses. Free charts are exhausted for now, so new targets will be slow.
+
 ### 2026-11-07 11:32 PM PT · Noel · Claude Code (hourly checkpoint) · main
 - **What:** Hourly checkpoint of the outreach agent's work in progress: a fallback sender for new recipients (`outreach/alt-mail.ts`), a stronger offer in `compose.ts`, and related agency and config changes.
 - **Why:** Noel asked for a commit every hour.

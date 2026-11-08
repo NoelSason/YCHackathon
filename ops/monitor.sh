@@ -119,7 +119,7 @@ hourly() { # balances and the Vercel login, at most once an hour
 
 recover_site() { # the documented recovery for the public site
   local tunnel direct
-  tunnel="$(grep -aoE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TMP/levelai-live/tunnel.log" 2>/dev/null | tail -1 || true)"
+  tunnel="$(grep -aoE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TMP/levelai-live/tunnel.log" 2>/dev/null | grep -v '://api\.trycloudflare' | tail -1 || true)"
   direct="$( [ -n "$tunnel" ] && code_of "$tunnel/health" || echo 000)"
   if [ "$direct" = "200" ]; then
     if (cd "$ROOT/site" && vercel deploy --prod --yes > "$TMP/levelai-site-redeploy.log" 2>&1); then

@@ -26,7 +26,7 @@ while true; do
     pub="$(curl -s -o /dev/null -m 10 -w '%{http_code}' "$PUBLIC" || true)"
     if [ "$pub" = "200" ]; then misses=0; else misses=$((misses + 1)); fi
     if [ "$misses" -ge 3 ]; then
-      tunnel="$(grep -aoE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" 2>/dev/null | tail -1 || true)"
+      tunnel="$(grep -aoE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" 2>/dev/null | grep -v '://api\.trycloudflare' | tail -1 || true)"
       direct="000"
       [ -n "$tunnel" ] && direct="$(curl -s -o /dev/null -m 10 -w '%{http_code}' "$tunnel/health" || true)"
       if [ "$direct" = "200" ]; then

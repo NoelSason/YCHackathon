@@ -115,6 +115,8 @@ again. Leads are stored with source `agency_research`.
 Sun 3:04 PM PT" in the log), with no Monid spend while paused; the agencies already found are emailed first when it
 lifts. Replies to people who wrote to us first aren't limited.
 
+**Second send path.** When AgentMail refuses a send for that limit, the same email goes from the first configured alternative (`src/outreach/alt-mail.ts`): the Naïve inbox (`NAIVE_SALES_INBOX_ID`, `NAIVE_SALES_INBOX_ADDRESS`, on the organization's free system domain), otherwise Resend (`RESEND_API_KEY`, `RESEND_FROM`, Reply-To the AgentMail inbox). With no alternative configured, the pause above stands. Naïve's send has no Reply-To, so the server also polls that inbox and replies leave from it. The activity log names the address each alternative send left from. The daily cap counts every send on any path.
+
 **The sales agent** (`converse.ts`, `facts.ts`). Replies that aren't a clear no, an out-of-office, or a money request
 (refunds and cancellations still go to a person first) go to the agent, including a yes from an agency, whose email
 made a specific offer. It answers only from the facts sheet in `facts.ts` (products, prices, what's real, what isn't,
