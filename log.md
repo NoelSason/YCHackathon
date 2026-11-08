@@ -20,6 +20,25 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:00 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Website: new pages in the main design, plus credibility.**
+- `levelai.vercel.app/join`, `/playtest`, and `/developers` are now static pages in the site's own design (they no longer
+  come from the business server). After submit they show a **live checklist** of each step from `/signup-status`. The
+  playtest page reads its price from `/offer`, and the developers page issues keys and shows the studio MCP setup. A
+  sticky header with a phone menu is on every page.
+- **Home page credibility** (answers the "AI slop" review): a "How we measure difficulty" section (three simulated
+  player types, win rate and moves left, tuning to within 5 points, solvable and fewest-moves checks, a real iPhone),
+  "The honest limit" (we calibrate against your real completion and quit rates), a worked example labeled "Example",
+  a **live "What our studio did this week"** strip from `/public-stats`, and a "Difficulty audit" offer.
+**Files:** `site/` (`join.html`, `playtest.html`, `developers.html`, `forms.js`, `site.js`, `styles.css`, `index.html`,
+`privacy.html`, `terms.html`).
+**State:** Deployed. All pages return 200, there's no horizontal scroll at 375 or 390 px, and the request bodies match
+the server contract. The live forms weren't submitted in this check (the live playtest flow was verified separately at
+16:35). The example graphic's per-player rates are illustrative and labeled "Example".
+
+---
+
 ### 2026-11-07 16:45 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Phone playtest verified live through the public site.** Order `ab547561…`: POST `levelai.vercel.app/playtest-orders`

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free levels for your game | Level AI</title>
+<meta name="description" content="Tell us about your puzzle game. We read what your players say about its difficulty and email you to start your free sample set of levels.">
+<meta name="theme-color" content="#1a1d3a">
+<link rel="canonical" href="https://levelai.vercel.app/join">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Level AI">
+<meta property="og:title" content="Free levels for your game | Level AI">
+<meta property="og:description" content="Tell us about your puzzle game and get a free sample set of levels, tuned to the difficulty you want.">
+<meta property="og:url" content="https://levelai.vercel.app/join">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Free levels for your game | Level AI">
+<meta name="twitter:description" content="Tell us about your puzzle game and get a free sample set of levels, tuned to the difficulty you want.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a1d3a'/%3E%3Crect x='4' y='19' width='8' height='8' rx='2' fill='%2322b893'/%3E%3Crect x='12' y='12' width='8' height='8' rx='2' fill='%23ffc53d'/%3E%3Crect x='20' y='5' width='8' height='8' rx='2' fill='%23ff5b4f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="Level AI home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1a1d3a"/><rect x="4" y="19" width="8" height="8" rx="2" fill="#22b893"/><rect x="12" y="12" width="8" height="8" rx="2" fill="#ffc53d"/><rect x="20" y="5" width="8" height="8" rx="2" fill="#ff5b4f"/></svg>
+      Level AI
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a class="nav-link" href="/#how">How it works</a>
+      <a class="nav-link" href="/#studios">For studios</a>
+      <a class="nav-link" href="/playtest">Playtests</a>
+      <a class="nav-link" href="/developers">Developers</a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path class="l1" d="M3 4.5h14"/><path class="l3" d="M3 10h14"/><path class="l2" d="M3 15.5h14"/></svg>
+      </button>
+      <a class="btn small" href="/#contact">Contact</a>
+    </nav>
+  </div>
+  <div class="mobile-menu" id="mobile-menu" hidden>
+    <nav class="wrap" aria-label="Menu">
+      <a href="/#how">How it works</a>
+      <a href="/#studios">For studios</a>
+      <a href="/join" aria-current="page">Free levels</a>
+      <a href="/playtest">Playtests</a>
+      <a href="/developers">Developers</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page-top">
+  <div class="wrap page-grid">
+    <div class="page-intro">
+      <h1>Free levels for your game</h1>
+      <p class="lede">Tell us about your puzzle game. We read what your players say about its difficulty, then email you to start a free sample set of levels in its style.</p>
+    </div>
+
+    <div class="page-form" id="join-mount">
+      <div class="panel">
+        <h2 class="panel-title">About you and your game</h2>
+        <p class="panel-sub">It takes about a minute. We start as soon as you send it.</p>
+        <form class="form" id="join-form" novalidate>
+          <div class="field">
+            <label for="name">Your name</label>
+            <input id="name" name="name" type="text" autocomplete="name" required data-missing="Enter your name." aria-describedby="name-err">
+            <p class="field-error" id="name-err" hidden></p>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" required data-missing="Enter your email address." aria-describedby="email-err">
+            <p class="field-error" id="email-err" hidden></p>
+          </div>
+          <div class="field">
+            <label for="company">Studio</label>
+            <input id="company" name="company" type="text" autocomplete="organization" required data-missing="Enter your studio’s name. Solo? Use your own name." aria-describedby="company-err">
+            <p class="field-error" id="company-err" hidden></p>
+          </div>
+          <div class="field">
+            <label for="game">Game name <span class="opt">(optional)</span></label>
+            <input id="game" name="game" type="text" autocomplete="off" aria-describedby="game-err">
+            <p class="field-error" id="game-err" hidden></p>
+          </div>
+          <div class="field">
+            <label for="storeUrl">Store link <span class="opt">(optional)</span></label>
+            <input id="storeUrl" name="storeUrl" type="url" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" data-check="store" placeholder="https://play.google.com/store/apps/…" aria-describedby="storeUrl-hint storeUrl-err">
+            <p class="hint" id="storeUrl-hint">A Google Play link or an App Store link. We use it to read your newest reviews.</p>
+            <p class="field-error" id="storeUrl-err" hidden></p>
+          </div>
+          <div class="check-field">
+            <label for="consent">
+              <input id="consent" name="consent" type="checkbox" required data-missing="Check this box so we can email you your levels." aria-describedby="consent-err">
+              <span>Email me my free levels. I can reply &ldquo;stop&rdquo; anytime.</span>
+            </label>
+            <p class="field-error" id="consent-err" hidden></p>
+          </div>
+          <p class="form-alert" role="alert" tabindex="-1" hidden></p>
+          <button class="btn" type="submit">Get my free levels</button>
+          <p class="form-fine">We only use these details to work on your levels. <a href="/privacy">Privacy</a></p>
+        </form>
+      </div>
+    </div>
+
+    <section class="page-next" aria-labelledby="next-title">
+      <h2 id="next-title">What happens next</h2>
+      <ol class="next">
+        <li><span aria-hidden="true">1</span><div><strong>We read your reviews</strong><p>Your newest player reviews, looking for where people get stuck or bored.</p></div></li>
+        <li><span aria-hidden="true">2</span><div><strong>We write to you</strong><p>An email with what your players are saying and what we’d make for you.</p></div></li>
+        <li><span aria-hidden="true">3</span><div><strong>You get your free set</strong><p>A short set of levels in your game’s style. Play them and decide from there.</p></div></li>
+      </ol>
+    </section>
+  </div>
+</main>
+
+<div class="footer-ink">
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <address>Level AI, 1752 Shattuck Avenue, Berkeley, CA 94704</address>
+        <p>&copy; 2026 Level AI</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/">Home</a>
+        <a href="/playtest">Playtests</a>
+        <a href="/developers">Developers</a>
+        <a href="mailto:levelai@agentmail.to">Email us</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+      </nav>
+    </div>
+  </footer>
+</div>
+
+<script src="forms.js"></script>
+<script>
+(function () {
+  var LA = window.LevelAI;
+  var mount = document.getElementById('join-mount');
+
+  function track(id) {
+    LA.showProgress(mount, {
+      id: id,
+      title: 'Your free levels',
+      maxMs: 3 * 60 * 1000,
+      waitingText: 'Getting started…',
+      runningNote: 'This page updates by itself. You can close it anytime; we’ll still email you.',
+      doneText: 'All set. Check your inbox.',
+      failedText: 'One step didn’t go through. We have your details and will follow up by email.',
+      timeoutText: 'This is taking longer than usual. You can close this page; we’ll email you when it’s ready.',
+      actions: [
+        { href: '/playtest', label: 'Book a playtest on a real iPhone', primary: true },
+        { href: '/', label: 'Back to Level AI' }
+      ]
+    });
+  }
+
+  var resume = LA.param('id');
+  if (resume) { track(resume); return; }
+
+  LA.bindForm(document.getElementById('join-form'), {
+    url: '/leads',
+    sendingLabel: 'Sending…',
+    body: function (v) {
+      var body = { name: v.name, email: v.email, company: v.company, consent: true };
+      if (v.game) body.game = v.game;
+      if (v.storeUrl) body.storeUrl = v.storeUrl;
+      return body;
+    },
+    onSuccess: function (data) { track(data.id); }
+  });
+})();
+</script>
+<script src="site.js"></script>
+</body>
+</html>

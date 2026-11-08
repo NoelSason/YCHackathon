@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Developers | Level AI</title>
+<meta name="description" content="Let your coding agent order playtests, read your reviews, and ask for free levels from Level AI. Get an API key and connect in a minute.">
+<meta name="theme-color" content="#1a1d3a">
+<link rel="canonical" href="https://levelai.vercel.app/developers">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Level AI">
+<meta property="og:title" content="Plug Level AI into your tools | Level AI">
+<meta property="og:description" content="Let your coding agent order playtests, read your reviews, and ask for free levels.">
+<meta property="og:url" content="https://levelai.vercel.app/developers">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Plug Level AI into your tools | Level AI">
+<meta name="twitter:description" content="Let your coding agent order playtests, read your reviews, and ask for free levels.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a1d3a'/%3E%3Crect x='4' y='19' width='8' height='8' rx='2' fill='%2322b893'/%3E%3Crect x='12' y='12' width='8' height='8' rx='2' fill='%23ffc53d'/%3E%3Crect x='20' y='5' width='8' height='8' rx='2' fill='%23ff5b4f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="Level AI home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1a1d3a"/><rect x="4" y="19" width="8" height="8" rx="2" fill="#22b893"/><rect x="12" y="12" width="8" height="8" rx="2" fill="#ffc53d"/><rect x="20" y="5" width="8" height="8" rx="2" fill="#ff5b4f"/></svg>
+      Level AI
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a class="nav-link" href="/#how">How it works</a>
+      <a class="nav-link" href="/#studios">For studios</a>
+      <a class="nav-link" href="/playtest">Playtests</a>
+      <a class="nav-link" href="/developers" aria-current="page">Developers</a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path class="l1" d="M3 4.5h14"/><path class="l3" d="M3 10h14"/><path class="l2" d="M3 15.5h14"/></svg>
+      </button>
+      <a class="btn small" href="/#contact">Contact</a>
+    </nav>
+  </div>
+  <div class="mobile-menu" id="mobile-menu" hidden>
+    <nav class="wrap" aria-label="Menu">
+      <a href="/#how">How it works</a>
+      <a href="/#studios">For studios</a>
+      <a href="/join">Free levels</a>
+      <a href="/playtest">Playtests</a>
+      <a href="/developers" aria-current="page">Developers</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap">
+      <div>
+        <h1 id="hero-title">Plug Level AI into your tools</h1>
+        <p class="lede">Your coding agent can order work from us without leaving your editor. Ask it for a playtest, a read on your reviews, or a free set of levels, and the results come to your inbox.</p>
+        <div class="hero-actions">
+          <a class="btn" href="#get-key">Get an API key</a>
+          <a class="text-link" href="#tools">See what your agent can do</a>
+        </div>
+      </div>
+
+      <figure class="agent-demo" role="img" aria-label="Example: a developer asks their coding agent for a playtest, the agent calls Level AI, and Level AI confirms the playtest is queued.">
+        <div class="bar" aria-hidden="true"><strong>Your editor</strong><span>Agent chat</span></div>
+        <p class="msg you" aria-hidden="true">Get a playtest of our new build on a real iPhone. Focus on the first five minutes.</p>
+        <p class="msg call" aria-hidden="true"><i></i><span>Calling <code>request_playtest</code> on levelai</span></p>
+        <p class="msg agent" aria-hidden="true">Your playtest is in the queue. Level AI will play it on a real iPhone and email the report.</p>
+        <p class="msg call" aria-hidden="true"><i></i><span>Calling <code>get_status</code>: playing your app</span></p>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section how" aria-labelledby="setup-title">
+    <div class="wrap">
+      <h2 id="setup-title">Set it up in two steps</h2>
+      <p class="intro">Level AI works with any coding agent that supports MCP (Model Context Protocol) servers over HTTP.</p>
+
+      <ol class="dev-steps">
+        <li id="get-key">
+          <div class="dev-step-head"><span class="step-num" aria-hidden="true">1</span><h3>Get an API key</h3></div>
+          <p class="dev-step-text">We email your key to you. It lets your agent order work on your studio’s behalf.</p>
+          <div id="key-mount" style="margin-top:22px">
+            <div class="panel">
+              <form class="form" id="key-form" novalidate aria-label="Get an API key">
+                <div class="field">
+                  <label for="name">Your name</label>
+                  <input id="name" name="name" type="text" autocomplete="name" required data-missing="Enter your name." aria-describedby="name-err">
+                  <p class="field-error" id="name-err" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="email">Email</label>
+                  <input id="email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" required data-missing="Enter your email address." aria-describedby="email-err">
+                  <p class="field-error" id="email-err" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="studio">Studio</label>
+                  <input id="studio" name="studio" type="text" autocomplete="organization" required data-missing="Enter your studio’s name. Solo? Use your own name." aria-describedby="studio-err">
+                  <p class="field-error" id="studio-err" hidden></p>
+                </div>
+                <div class="check-field">
+                  <label for="consent">
+                    <input id="consent" name="consent" type="checkbox" required data-missing="Check this box so we can email you your key." aria-describedby="consent-err">
+                    <span>Email me my API key. I can reply &ldquo;stop&rdquo; anytime.</span>
+                  </label>
+                  <p class="field-error" id="consent-err" hidden></p>
+                </div>
+                <p class="form-alert" role="alert" tabindex="-1" hidden></p>
+                <button class="btn" type="submit">Email me a key</button>
+              </form>
+            </div>
+          </div>
+        </li>
+
+        <li>
+          <div class="dev-step-head"><span class="step-num" aria-hidden="true">2</span><h3>Connect your agent</h3></div>
+          <p class="dev-step-text">Add Level AI to your agent’s MCP settings, then replace <code class="inline-code">YOUR_KEY</code> with the key from your email.</p>
+
+          <div class="code">
+            <div class="code-bar">
+              <span id="cfg-label">MCP config (JSON)</span>
+              <button class="copy-btn" type="button" data-copy="cfg-code" aria-describedby="cfg-label">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                <span class="copy-label">Copy</span>
+              </button>
+            </div>
+<pre tabindex="0" aria-labelledby="cfg-label"><code id="cfg-code"><span class="tok-p">{</span>
+  <span class="tok-k">"mcpServers"</span><span class="tok-p">: {</span>
+    <span class="tok-k">"levelai"</span><span class="tok-p">: {</span>
+      <span class="tok-k">"type"</span><span class="tok-p">:</span> <span class="tok-s">"http"</span><span class="tok-p">,</span>
+      <span class="tok-k">"url"</span><span class="tok-p">:</span> <span class="tok-s">"https://levelai.vercel.app/studio-mcp"</span><span class="tok-p">,</span>
+      <span class="tok-k">"headers"</span><span class="tok-p">: {</span>
+        <span class="tok-k">"Authorization"</span><span class="tok-p">:</span> <span class="tok-s">"Bearer <span class="tok-x">YOUR_KEY</span>"</span>
+      <span class="tok-p">}</span>
+    <span class="tok-p">}</span>
+  <span class="tok-p">}</span>
+<span class="tok-p">}</span></code></pre>
+          </div>
+
+          <div class="code">
+            <div class="code-bar">
+              <span id="cli-label">Claude Code (terminal)</span>
+              <button class="copy-btn" type="button" data-copy="cli-code" aria-describedby="cli-label">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                <span class="copy-label">Copy</span>
+              </button>
+            </div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="cli-label"><code id="cli-code">claude mcp add --transport http levelai https://levelai.vercel.app/studio-mcp --header <span class="tok-s">"Authorization: Bearer <span class="tok-x">YOUR_KEY</span>"</span></code></pre>
+          </div>
+          <p class="code-note">Then ask your agent something like &ldquo;Get a Level AI playtest of my app.&rdquo;</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="tools" aria-labelledby="tools-title">
+    <div class="wrap">
+      <h2 id="tools-title">What your agent can do</h2>
+      <p class="intro">Four tools. Your agent picks the right one from what you ask for.</p>
+      <ul class="tool-list">
+        <li class="tool">
+          <span class="tool-tile" aria-hidden="true"></span>
+          <div class="tool-head"><h3>Order a playtest</h3><code class="tool-name">request_playtest</code></div>
+          <p>Plays your app on a real iPhone and emails you a report.</p>
+        </li>
+        <li class="tool">
+          <span class="tool-tile" aria-hidden="true"></span>
+          <div class="tool-head"><h3>Read your reviews</h3><code class="tool-name">audit_reviews</code></div>
+          <p>Reads your game’s newest Google Play or App Store reviews and says where players get stuck or bored.</p>
+        </li>
+        <li class="tool">
+          <span class="tool-tile" aria-hidden="true"></span>
+          <div class="tool-head"><h3>Ask for free levels</h3><code class="tool-name">request_free_levels</code></div>
+          <p>Asks for a free sample set of levels for your game.</p>
+        </li>
+        <li class="tool">
+          <span class="tool-tile" aria-hidden="true"></span>
+          <div class="tool-head"><h3>Check on a request</h3><code class="tool-name">get_status</code></div>
+          <p>Tells you where a request is and what’s done so far.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="who dev-cta" aria-label="Prefer a form">
+    <div class="wrap">
+      <div class="who-inner">
+        <div class="who-mark" aria-hidden="true"><i style="background:var(--mint)"></i><i style="background:var(--sun)"></i><i style="background:var(--tomato)"></i></div>
+        <p>Rather not set up an agent? <a class="text-link" href="/playtest">Book a playtest</a> or <a class="text-link" href="/join">get free levels</a> with a short form.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="footer-ink">
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <address>Level AI, 1752 Shattuck Avenue, Berkeley, CA 94704</address>
+        <p>&copy; 2026 Level AI</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/">Home</a>
+        <a href="/join">Free levels</a>
+        <a href="/playtest">Playtests</a>
+        <a href="mailto:levelai@agentmail.to">Email us</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+      </nav>
+    </div>
+  </footer>
+</div>
+
+<script src="forms.js"></script>
+<script>
+(function () {
+  var LA = window.LevelAI;
+  LA.bindCopyButtons();
+
+  var mount = document.getElementById('key-mount');
+  LA.bindForm(document.getElementById('key-form'), {
+    url: '/developer-keys',
+    sendingLabel: 'Sending…',
+    body: function (v) {
+      return { name: v.name, email: v.email, studio: v.studio, consent: true };
+    },
+    onSuccess: function (data, v) {
+      var box = document.createElement('section');
+      box.className = 'progress is-finished pg-ok';
+      box.setAttribute('aria-labelledby', 'key-done-title');
+      box.innerHTML =
+        '<div class="progress-top"><h2 id="key-done-title" tabindex="-1">Your key is on its way to your inbox</h2></div>' +
+        '<div class="ticker" aria-hidden="true">' + new Array(9).join('<i></i>') + '</div>' +
+        '<p class="progress-note"></p>';
+      box.querySelector('.progress-note').textContent =
+        'Look for an email at ' + v.email + '. Then add the config on this page and replace YOUR_KEY with your key.';
+      mount.innerHTML = '';
+      mount.appendChild(box);
+      box.querySelector('h2').focus();
+    }
+  });
+})();
+</script>
+<script src="site.js"></script>
+</body>
+</html>

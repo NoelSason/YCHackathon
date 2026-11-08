@@ -33,7 +33,21 @@
     <nav class="nav" aria-label="Main">
       <a class="nav-link" href="#how">How it works</a>
       <a class="nav-link" href="#studios">For studios</a>
+      <a class="nav-link" href="/playtest">Playtests</a>
+      <a class="nav-link" href="/developers">Developers</a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path class="l1" d="M3 4.5h14"/><path class="l3" d="M3 10h14"/><path class="l2" d="M3 15.5h14"/></svg>
+      </button>
       <a class="btn small" href="#contact">Contact</a>
+    </nav>
+  </div>
+  <div class="mobile-menu" id="mobile-menu" hidden>
+    <nav class="wrap" aria-label="Menu">
+      <a href="/#how">How it works</a>
+      <a href="/#studios">For studios</a>
+      <a href="/join">Free levels</a>
+      <a href="/playtest">Playtests</a>
+      <a href="/developers">Developers</a>
     </nav>
   </div>
 </header>
@@ -43,10 +57,10 @@
     <div class="wrap">
       <div>
         <h1 id="hero-title">New levels for your puzzle game, tuned before your players see them.</h1>
-        <p class="lede">We listen to what your players say about difficulty, design new levels in your game's style, and play each one hundreds of times until it feels the way you want. Then we check it on real phones.</p>
+        <p class="lede">We design new levels in your game's style. Simulated players play each one hundreds of times, and we tune it until its win rate lands on the target you pick. Then a real iPhone plays it before you ship.</p>
         <div class="hero-actions">
-          <a class="btn" href="mailto:levelai@agentmail.to?subject=Free%20levels%20for%20my%20game">Get free levels for your game</a>
-          <a class="text-link" href="#how">See how it works</a>
+          <a class="btn" href="/join">Get free levels for your game</a>
+          <a class="text-link" href="#measure">See how we measure difficulty</a>
         </div>
       </div>
 
@@ -99,6 +113,81 @@
     </div>
   </section>
 
+  <section class="section measure" id="measure" aria-labelledby="measure-title">
+    <div class="wrap">
+      <h2 id="measure-title">How we measure difficulty</h2>
+      <p class="intro">Difficulty is a number we measure, not a guess. Here is how we get it.</p>
+
+      <div class="measure-grid">
+        <ol class="mechanics">
+          <li>
+            <h3>Three kinds of simulated players</h3>
+            <p>Each level is played hundreds of times by three simulated players: one that moves at random, a greedy one that takes the best-looking move, and one that looks a few moves ahead.</p>
+          </li>
+          <li>
+            <h3>A score you can read</h3>
+            <p>A level’s difficulty is the share of games those players win, plus how many moves they had left when they won.</p>
+          </li>
+          <li>
+            <h3>Tuned to your target</h3>
+            <p>We adjust the moves allowed, the blockers, and the layout until the level lands within 5 points of your target win rate. Levels that never get there are thrown out.</p>
+          </li>
+          <li>
+            <h3>Checked for a solution</h3>
+            <p>For search puzzles, we also confirm each level can be solved and find its fewest moves.</p>
+          </li>
+          <li>
+            <h3>Played on a real iPhone</h3>
+            <p>Last, a real iPhone plays the level to catch loading, touch, and layout problems.</p>
+          </li>
+        </ol>
+
+        <figure class="example" aria-labelledby="ex-cap">
+          <figcaption class="ex-top">
+            <span class="ex-label">Example</span>
+            <span id="ex-cap">One level, tuned to a 40% target</span>
+          </figcaption>
+
+          <div class="ex-state is-hard">
+            <div class="ex-head">
+              <span class="ex-when">Before tuning</span>
+              <span class="ex-rate"><b>3%</b> win rate</span>
+              <span class="ex-verdict">Too hard</span>
+            </div>
+            <div class="ex-track" aria-hidden="true"><i class="ex-band"></i><i class="ex-pin" style="left:3%"></i></div>
+            <ul class="ex-players">
+              <li><span>Random player</span><i style="--w:0%"></i><b>0%</b></li>
+              <li><span>Greedy player</span><i style="--w:2%"></i><b>2%</b></li>
+              <li><span>Looks ahead</span><i style="--w:8%"></i><b>8%</b></li>
+            </ul>
+          </div>
+
+          <p class="ex-change"><span aria-hidden="true"></span>Tuned: 4 more moves, 2 fewer blockers</p>
+
+          <div class="ex-state is-ok">
+            <div class="ex-head">
+              <span class="ex-when">After tuning</span>
+              <span class="ex-rate"><b>41%</b> win rate</span>
+              <span class="ex-verdict">On target</span>
+            </div>
+            <div class="ex-track" aria-hidden="true"><i class="ex-band"></i><i class="ex-pin" style="left:41%"></i></div>
+            <ul class="ex-players">
+              <li><span>Random player</span><i style="--w:12%"></i><b>12%</b></li>
+              <li><span>Greedy player</span><i style="--w:41%"></i><b>41%</b></li>
+              <li><span>Looks ahead</span><i style="--w:70%"></i><b>70%</b></li>
+            </ul>
+            <p class="ex-key" aria-hidden="true"><span></span>Target band: 35% to 45%</p>
+          </div>
+        </figure>
+      </div>
+
+      <div class="limit">
+        <h3>The honest limit</h3>
+        <p>Simulated players aren’t people. So for your game, we compare our predictions with your real completion and quit rates, then recalibrate. That’s also how you can check us: ask for a difficulty audit below.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="section" id="studios" aria-labelledby="studios-title">
     <div class="wrap">
       <h2 id="studios-title">For studios</h2>
@@ -108,12 +197,22 @@
         <article class="offer free">
           <h3>Free sample set</h3>
           <p>Tell us about your game and we'll make a short set of levels in its style, free. Play them, show your team, and decide from there.</p>
-          <a class="btn ink" href="mailto:levelai@agentmail.to?subject=Free%20levels%20for%20my%20game">Get free levels for your game</a>
+          <a class="btn ink" href="/join">Get free levels for your game</a>
           <div class="minis" aria-hidden="true">
             <div class="mini" style="--r:-3deg"><i class="t"></i><i class="s"></i><i class="s"></i><i class="c"></i><i class="b"></i><i class="t"></i><i class="m"></i><i class="c"></i><i class="g"></i><i></i><i class="m"></i><i class="s"></i><i class="c"></i><i class="g"></i><i class="b"></i><i class="t"></i></div>
             <div class="mini" style="--r:2deg"><i class="m"></i><i class="m"></i><i class="b"></i><i class="g"></i><i class="c"></i><i class="t"></i><i class="s"></i><i class="g"></i><i></i><i class="c"></i><i class="t"></i><i class="s"></i><i class="b"></i><i class="m"></i><i class="c"></i><i class="t"></i></div>
             <div class="mini" style="--r:-1deg"><i class="g"></i><i class="s"></i><i class="t"></i><i class="b"></i><i class="c"></i><i></i><i class="m"></i><i class="t"></i><i class="s"></i><i class="g"></i><i class="b"></i><i class="c"></i><i class="m"></i><i class="t"></i><i class="s"></i><i class="g"></i></div>
           </div>
+        </article>
+
+        <article class="offer audit">
+          <div class="pairs" aria-hidden="true">
+            <i style="--p:30%;--r:34%"></i><i style="--p:44%;--r:41%"></i><i style="--p:58%;--r:63%"></i><i style="--p:38%;--r:35%"></i><i style="--p:72%;--r:68%"></i><i style="--p:50%;--r:55%"></i><i style="--p:64%;--r:60%"></i><i style="--p:82%;--r:86%"></i>
+          </div>
+          <div class="curve-key" aria-hidden="true"><span style="--c:var(--cobalt)">Our prediction</span><span style="--c:var(--sun)">Your players</span></div>
+          <h3>Difficulty audit</h3>
+          <p>Send us 20 levels from your game. We’ll predict each one’s difficulty, and if you share your completion rates, we’ll show you how close we were.</p>
+          <a class="text-link" href="/join">Ask for a difficulty audit</a>
         </article>
 
         <article class="offer">
@@ -145,9 +244,24 @@
               <p style="margin-top:12px">We play your levels on real devices and tell you what loads, what breaks, and where players will get stuck.</p>
             </div>
           </div>
-          <a class="text-link" href="mailto:levelai@agentmail.to?subject=Playtest">Ask about a playtest</a>
+          <a class="text-link" href="/playtest">Book a playtest</a>
         </article>
       </div>
+    </div>
+  </section>
+
+  <section class="section stats" id="this-week" aria-labelledby="stats-title" hidden>
+    <div class="wrap">
+      <div class="stats-head">
+        <h2 id="stats-title">What our studio did this week</h2>
+        <p class="live"><span aria-hidden="true"></span>Live</p>
+      </div>
+      <dl class="stat-grid" id="stat-grid">
+        <div class="stat" data-key="studiosAudited"><dt>Studios whose reviews we read</dt><dd>0</dd></div>
+        <div class="stat" data-key="playtestsRun"><dt>Playtests run on a real iPhone</dt><dd>0</dd></div>
+        <div class="stat" data-key="emailsSent"><dt>Emails sent to studios</dt><dd>0</dd></div>
+        <div class="stat" data-key="signups"><dt>Studios who signed up</dt><dd>0</dd></div>
+      </dl>
     </div>
   </section>
 
@@ -155,7 +269,7 @@
     <div class="wrap">
       <div class="who-inner">
         <div class="who-mark" aria-hidden="true"><i style="background:var(--mint)"></i><i style="background:var(--sun)"></i><i style="background:var(--tomato)"></i></div>
-        <p>Level AI is a small studio. AI agents design and test our levels, with a human team behind them.</p>
+        <p>Level AI is a small studio. AI agents do the work, with a human team behind them.</p>
       </div>
     </div>
   </section>
@@ -166,7 +280,7 @@
       <p class="intro">Send the name of your game, where to find it, and what your players say about its difficulty. We'll start with a free sample set.</p>
       <a class="mail" href="mailto:levelai@agentmail.to">levelai@agentmail.to</a>
       <p class="fine">Questions about an order or a refund go to the same address.</p>
-      <a class="btn" href="mailto:levelai@agentmail.to?subject=Free%20levels%20for%20my%20game">Get free levels for your game</a>
+      <a class="btn" href="/join">Get free levels for your game</a>
     </div>
 
     <footer class="site-footer">
@@ -176,9 +290,12 @@
           <p>&copy; 2026 Level AI</p>
         </div>
         <nav aria-label="Footer">
+          <a href="/join">Free levels</a>
+          <a href="/playtest">Playtests</a>
+          <a href="/developers">Developers</a>
           <a href="mailto:levelai@agentmail.to">Email us</a>
-          <a href="/privacy.html">Privacy</a>
-          <a href="/terms.html">Terms</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
         </nav>
       </div>
     </footer>
@@ -288,5 +405,42 @@
   run();
 })();
 </script>
+<script>
+(function () {
+  var section = document.getElementById('this-week');
+  if (!section || !window.fetch) return;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function countUp(el, to) {
+    var final = to.toLocaleString('en-US');
+    el.textContent = final;
+    if (reduce || to < 2 || document.hidden) return;
+    var start = null, dur = 900;
+    // If animation frames never arrive, the final number is already showing.
+    setTimeout(function () { el.textContent = final; }, dur + 200);
+    function frame(t) {
+      if (start === null) { start = t; requestAnimationFrame(frame); return; }
+      var k = Math.min(1, (t - start) / dur);
+      el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))).toLocaleString('en-US');
+      if (k < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+  fetch('/public-stats', { headers: { Accept: 'application/json' }, cache: 'no-store' })
+    .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+    .then(function (data) {
+      var shown = [];
+      section.querySelectorAll('.stat').forEach(function (stat) {
+        var v = data ? data[stat.getAttribute('data-key')] : null;
+        if (typeof v === 'number' && isFinite(v) && v >= 0) shown.push([stat, Math.round(v)]);
+        else stat.hidden = true;
+      });
+      if (!shown.length || shown.every(function (s) { return s[1] === 0; })) return;
+      section.hidden = false;
+      shown.forEach(function (s) { countUp(s[0].querySelector('dd'), s[1]); });
+    })
+    .catch(function () { /* keep the section hidden */ });
+})();
+</script>
+<script src="site.js"></script>
 </body>
 </html>
