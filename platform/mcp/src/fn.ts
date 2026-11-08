@@ -6,9 +6,21 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { attachDatabasePool } from "@neon/functions";
 import { registerTools } from "./tools.js";
 import { pool, q } from "./db.js";
-import { getAdapter } from "./adapters.js";
+import { getAdapter, listAdapters } from "./adapters.js";
 
 attachDatabasePool(pool);
+
+// Make sure every registered adapter has a `games` row, so list_games and the FK on levels work
+// as soon as an adapter is registered. Runs once per isolate; idempotent.
+const seeded = (async () => {
+  for (const a of listAdapters()) {
+    await q(
+      `insert into games(game_id, name, bots) values ($1,$2,$3)
+       on conflict (game_id) do update set name = excluded.name, bots = excluded.bots`,
+      [a.game_id, a.name, JSON.stringify(a.bots)],
+    ).catch((e: unknown) => console.error("seed games failed", e));
+  }
+})();
 
 const TOKEN = process.env.MCP_BEARER_TOKEN ?? "";
 const json = (data: unknown, status = 200) =>
@@ -38,6 +50,7 @@ export default {
 };
 
 async function handle(request: Request): Promise<Response> {
+  await seeded;
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
 

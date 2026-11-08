@@ -20,6 +20,18 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:00 PT · Abhinav (Claude) · branch `main`
+
+**What:** Platform seeds a `games` row for every registered adapter on function start (idempotent),
+so Max's `match3` (Gem Garden) and `platformer` (Mosslight Trails) show in `list_games` with their
+bots the moment the function redeploys. Smoke test passes locally with the real adapters.
+**Why:** `list_games` reads the `games` table; only `stub` was seeded.
+**Files:** `platform/mcp/src/fn.ts`.
+**State:** Typechecks; local smoke OK. **Needs a redeploy** (`neon deploy --env .env` from
+`platform/mcp`) with `GAMES_BASE_URL` set to Max's hosted games URL.
+**Next / heads-up:** **Max:** what is the hosted base URL for the two games? It goes in Abhinav's
+`platform/mcp/.env` as `GAMES_BASE_URL` before the redeploy; until then level URLs say localhost.
+
 ### 2026-11-07 16:50 PT · Abhinav (Claude) · branch `main`
 
 **What:** **Switch-on at 16:45, and the first CEO run hit the people-data rule.** All four
