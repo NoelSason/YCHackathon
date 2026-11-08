@@ -140,6 +140,17 @@ describe("the difficulty curve", () => {
     });
     expect(mail.body).toContain("How we set the curve: Our iPhone reached level 3");
     expect(mail.body).not.toContain("before building, our iPhone played");
+    // A free sample doesn't say it was ordered, and with no phone study it doesn't claim to match their game.
+    const sample = composePackEmail({
+      name: "Noel", company: "Team Demo", gameId: "watersort", difficulty: "medium", owed: 1, levels: [{ target: 0.85, measured: 0.85, notes: null, url: "u" }],
+      curve: none, studiedGame: null, studied: false, playUrl: "p", jsonUrl: "j", siteUrl: "s", test: false,
+      companyName: "Level AI", postalAddress: "", replyTo: "r", bot: "human", runs: 200, freeSample: true,
+    });
+    expect(sample.subject).toMatch(/^Your free sample is ready/);
+    expect(sample.body).toContain("Your free sample is ready");
+    expect(sample.body).toContain("you asked for a free sample");
+    expect(sample.body).not.toContain("ordered a level pack");
+    expect(sample.body).not.toContain("calibrated to how your game plays");
   });
 
   it("doesn't call a closing run that stopped at the move cap a loss", () => {

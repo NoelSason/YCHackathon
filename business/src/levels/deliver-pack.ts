@@ -226,6 +226,10 @@ export interface NewDelivery {
   dueAt?: Date;
 }
 
+/** `part` of a free sample (agency/converse.ts): never a paid part, which start at 1, so its emails can say what it is. */
+export const FREE_SAMPLE_PART = 0;
+const orderReason = (freeSample?: boolean): string => `You're getting it because you ${freeSample ? "asked for a free sample" : "ordered a level pack"}.`;
+
 /** Adds a delivery. Null when this payment's part is already on file (webhooks retry). */
 export async function addPackDelivery(q: Query, d: NewDelivery): Promise<PackDelivery | null> {
   const r = await q(
@@ -408,7 +412,7 @@ const shotHtml = `<img src="cid:iphone-shot" width="240" alt="Screenshot from ou
 /** "Here's how your game played on our iPhone": sent as soon as the phone study ends. */
 export function composeStudyRecap(args: {
   first: string; game: string; study: PackStudy | null; liveFailed: string | null; curve: PackCurve; levels: number; genre: string; eta: number;
-  test: boolean; screenshot: boolean; companyName: string; postalAddress: string; replyTo: string;
+  test: boolean; screenshot: boolean; companyName: string; postalAddress: string; replyTo: string; freeSample?: boolean;
 }): { subject: string; body: string; html: string } {
   const st = args.study;
   const facts: Array<[string, string]> = [];
@@ -427,7 +431,7 @@ export function composeStudyRecap(args: {
     : `Our iPhone couldn't finish a session of ${args.game} this time (${args.liveFailed ?? "no result"}), so we have no measurements from it.`;
   const next = `Next: we're building ${args.levels} ${args.genre} levels calibrated to this curve; you'll get them in about ${args.eta} minute${args.eta === 1 ? "" : "s"}.`;
   const testNote = args.test ? "This is a test order, so no money was charged." : null;
-  const footerReason = "You're getting it because you ordered a level pack.";
+  const footerReason = orderReason(args.freeSample);
   const body = [
     `Hi ${args.first},`, "", intro, "",
     ...facts.map(([k, v]) => `- ${k}: ${v}`),
@@ -463,13 +467,13 @@ export function composeStudyRecap(args: {
 /** "We played level 1 of your pack": sent after the closing phone run. */
 export function composeLevelOneRecap(args: {
   first: string; genre: string; result: LoopResult | null; summary: string; target: number | null; playUrl: string; test: boolean; screenshot: boolean;
-  companyName: string; postalAddress: string; replyTo: string;
+  companyName: string; postalAddress: string; replyTo: string; freeSample?: boolean;
 }): { subject: string; body: string; html: string } {
   const r = args.result;
   const outcome = r ? args.summary : `the phone couldn't finish the run (${args.summary})`;
   const target = args.target !== null ? ` Our bots set it to about ${pct(args.target)} win rate, so most first-time players should beat it.` : "";
   const testNote = args.test ? "This is a test order, so no money was charged." : null;
-  const footerReason = "You're getting it because you ordered a level pack.";
+  const footerReason = orderReason(args.freeSample);
   const body = [
     `Hi ${args.first},`, "",
     `We played level 1 of your ${args.genre} pack on our iPhone, as a first-time player: ${outcome}.${target}`, "",
@@ -579,7 +583,7 @@ async function studyGame(ctx: ToolContext, d: PackDelivery, who: Recipient, poll
   const shot = shotPng ? await smallScreenshot(shotPng) : null;
   await sendRecap(ctx, who, `${d.id}:study`, composeStudyRecap({
     first: who.first, game: work.name, study, liveFailed, curve, levels: d.levelsOwed, genre: GENRES[d.gameId].label, eta: etaMinutes(d.gameId, d.levelsOwed),
-    test: d.test, screenshot: Boolean(shot), companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
+    test: d.test, freeSample: d.part === FREE_SAMPLE_PART, screenshot: Boolean(shot), companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
     replyTo: ctx.config.AGENTMAIL_INBOX_ID ?? "levelai@agentmail.to",
   }), shot, "phone study recap");
   return study;
@@ -616,7 +620,7 @@ async function playtestPack(ctx: ToolContext, d: PackDelivery, who: Recipient, p
   const shot = shotPng ? await smallScreenshot(shotPng) : null;
   await sendRecap(ctx, who, `${d.id}:level1`, composeLevelOneRecap({
     first: who.first, genre: genre.label, result: out?.result ?? null, summary: out?.result ? levelOneSummary(out.result, out.summary) : (out?.summary ?? "the page didn't load on the phone"), target: d.curve?.targets[0] ?? null,
-    playUrl: url, test: d.test, screenshot: Boolean(shot), companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
+    playUrl: url, test: d.test, freeSample: d.part === FREE_SAMPLE_PART, screenshot: Boolean(shot), companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
     replyTo: ctx.config.AGENTMAIL_INBOX_ID ?? "levelai@agentmail.to",
   }), shot, "level 1 playtest recap");
 }
@@ -626,7 +630,7 @@ async function playtestPack(ctx: ToolContext, d: PackDelivery, who: Recipient, p
 export function composePackEmail(args: {
   name: string | null; company: string; gameId: PackGameId; difficulty: PackDifficulty; owed: number;
   levels: Array<{ target: number; measured: number | null; notes: string | null; url: string }>; curve: PackCurve; studiedGame: string | null; studied: boolean;
-  playUrl: string; jsonUrl: string; siteUrl: string; test: boolean; companyName: string; postalAddress: string; replyTo: string; bot: string; runs: number;
+  playUrl: string; jsonUrl: string; siteUrl: string; test: boolean; companyName: string; postalAddress: string; replyTo: string; bot: string; runs: number; freeSample?: boolean;
 }): { subject: string; body: string; html: string } {
   const first = args.name ? args.name.split(" ")[0]! : args.company;
   const g = GENRES[args.gameId];
@@ -642,16 +646,16 @@ export function composePackEmail(args: {
   const calibration = args.studied && args.studiedGame && !/^Our iPhone\b/.test(args.curve.basis)
     ? `How we set the curve: before building, our iPhone played ${args.studiedGame}. ${args.curve.basis}`
     : `How we set the curve: ${args.curve.basis}`;
-  const honest = `These levels are made in our own ${g.label} game (${g.game}) for your genre, calibrated to how your game plays. They aren't built inside your game: you get playable previews plus JSON in a documented format (${args.siteUrl}/developers#formats) to adapt to your engine.`;
+  const honest = `These levels are made in our own ${g.label} game (${g.game}) for your genre${args.studied ? ", calibrated to how your game plays" : ""}. They aren't built inside your game: you get playable previews plus JSON in a documented format (${args.siteUrl}/developers#formats) to adapt to your engine.`;
   const shortNote = short
     ? `We promised ${args.owed} levels and ${n} passed testing in the time we allow, so this pack has ${n}. A person on our team will follow up with the rest.`
     : null;
   const testNote = args.test ? "This was a test order, so no money was charged." : null;
-  const footerReason = "You're getting it because you ordered a level pack.";
+  const footerReason = orderReason(args.freeSample);
   const body = [
     `Hi ${first},`,
     "",
-    `Your level pack is ready: ${what}, each played by our ${botName} until it landed on its target win rate${range ? ` (measured ${range})` : ""}.`,
+    `Your ${args.freeSample ? "free sample" : "level pack"} is ready: ${what}, each played by our ${botName} until it landed on its target win rate${range ? ` (measured ${range})` : ""}.`,
     "",
     `Play them: ${args.playUrl}`,
     `JSON for all levels: ${args.jsonUrl}`,
@@ -677,7 +681,7 @@ export function composePackEmail(args: {
     preheader: `${what}, measured ${range ?? "by our bots"}. Play them in your browser.`,
     companyName: args.companyName, postalAddress: args.postalAddress, footerReason,
     body: [
-      E.eyebrow(short ? `Level pack · ${n} of ${args.owed} levels` : args.test ? "Level pack ready · test order" : "Level pack ready", short ? E.C.yellow : E.C.green),
+      E.eyebrow(short ? `${args.freeSample ? "Free sample" : "Level pack"} · ${n} of ${args.owed} levels` : `${args.freeSample ? "Free sample" : "Level pack"} ready${args.test ? " · test order" : ""}`, short ? E.C.yellow : E.C.green),
       E.heading(`Your ${g.label} levels are ready, ${first}`),
       E.text(`${what}, each played by our ${botName} until it landed on its target win rate.`, { color: E.C.muted }),
       E.button("Play your levels", args.playUrl),
@@ -697,7 +701,8 @@ export function composePackEmail(args: {
       ...(testNote ? [E.text(testNote, { color: E.C.muted })] : []),
     ].join(""),
   });
-  const subject = short ? `Your level pack: ${n} of ${args.owed} levels ready` : `Your level pack is ready: ${what}`;
+  const noun = args.freeSample ? "free sample" : "level pack";
+  const subject = short ? `Your ${noun}: ${n} of ${args.owed} levels ready` : `Your ${noun} is ready: ${what}`;
   return { subject: args.test ? `[Test order] ${subject}` : subject, body, html };
 }
 
@@ -799,7 +804,7 @@ export async function runPackDelivery(ctx: ToolContext, d: PackDelivery, opts: R
       const mail = composePackEmail({
         name: lead?.contactName ?? null, company, gameId: d.gameId, difficulty: d.difficulty, owed: d.levelsOwed, levels: saved.map((l) => ({ ...l, url: levelUrl(site, d.gameId, l.level_id) })), curve,
         studiedGame: study?.game ?? d.studiedGame, studied: Boolean(study?.ok), playUrl: play, jsonUrl: jsonUrl(site, packId),
-        siteUrl: site, test: d.test, companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
+        siteUrl: site, test: d.test, freeSample: d.part === FREE_SAMPLE_PART, companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
         replyTo: ctx.config.AGENTMAIL_INBOX_ID ?? "levelai@agentmail.to", bot: firstMade?.bot ?? (d.gameId === "match3" ? "greedy" : d.gameId === "lotescape" ? "search" : "human"),
         runs: firstMade?.runs ?? (d.gameId === "match3" ? 100 : 200),
       });

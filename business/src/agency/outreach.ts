@@ -308,7 +308,11 @@ export interface CycleOptions {
   cap?: number;
 }
 
-let lastPauseLog = 0;
+/** True when this agent's newest log row already says this pause, so a pass or a restart doesn't repeat it. */
+async function pauseAlreadyLogged(ctx: ToolContext, action: RegExp): Promise<boolean> {
+  const last = (await ctx.store.listActivity(1000)).find((a) => a.agent === AGENT);
+  return Boolean(last && action.test(last.action));
+}
 
 export async function runAgencyCycle(ctx: ToolContext, deps: CycleDeps, opts: CycleOptions = {}): Promise<{ sent: number; looked: number; reason: string | null; emailed: Array<{ company: string; domain: string }> }> {
   const { agencies, monid } = deps;
@@ -319,14 +323,16 @@ export async function runAgencyCycle(ctx: ToolContext, deps: CycleDeps, opts: Cy
   const cap = opts.cap ?? agencyDailyCap();
   const already = await agencyEmailsSince(ctx, new Date(now.getTime() - 24 * 3600_000).toISOString());
   if (already >= cap) {
-    await log(ctx, "agency outreach paused for today", `daily cap of ${cap} agency emails reached`, "nothing sent");
+    if (!(await pauseAlreadyLogged(ctx, /^agency outreach paused for today$/))) {
+      await log(ctx, "agency outreach paused for today", `daily cap of ${cap} agency emails reached`, "nothing sent");
+    }
     return { sent: 0, looked: 0, reason: "daily cap", emailed };
   }
   const paused = sendPausedUntil(now);
   if (paused) {
-    // Log the pause once an hour at most, so the feed shows it without filling up.
-    if (now.getTime() - lastPauseLog > 3600_000) {
-      lastPauseLog = now.getTime();
+    // The feed says it once per pause (the refused send already logged it), not on every 30-minute pass or restart.
+    const until = formatPacific(paused).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!(await pauseAlreadyLogged(ctx, new RegExp(`paused until ${until}$`)))) {
       await log(ctx, `agency outreach paused until ${formatPacific(paused)}`, "email provider limit on new recipients for a new account", "no agencies looked up or emailed; resumes on its own");
     }
     return { sent: 0, looked: 0, reason: "email provider limit", emailed };

@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 10:50 PM PT · Noel · Claude Code (Sentinel 7 agency) · main
+- **What:** Live test-agency thread passed: an inquiry got an in-thread reply in 23 s with correct prices, "yes, send a sample" got a reply in 27 s, and 5 levels arrived 2 s later. Fixed: a pause or cap is logged once instead of hourly and on each restart; sample emails say "free sample", not "you ordered a level pack"; removed "calibrated to how your game plays" when no phone study ran.
+- **Why:** This thread is the live conversation demo; its wording must be true.
+- **Files:** `business/src/agency/{outreach,converse}.ts`, `business/src/levels/deliver-pack.ts`, `business/test/{agency,deliver-pack}.test.ts`
+- **State:** works; business 307/307. Loads on the next :8787 restart.
+- **Next / heads-up:** The "Audit:" subject route is covered by unit tests here; its live test passed earlier tonight.
+
 ### 2026-11-07 10:40 PM PT · Noel · Claude Code (Sentinel 11 neon) · main
 - **What:** Recomputed every console and site number with SQL against Neon. All match except Playtests, which counted one team pack test; `store.ts` now excludes it (15, not 16, after the next restart). Reconciled at 10:39 PM: 17 studios found (+1 agency), 8 emailed, 31,558 reviews read (10 passes, 220 games), 15 playtests, 11 agent-made levels accepted, 769 compiled, 1,164 agent actions, 7 step-ins (+528 approved by policy), spent $14.88, earned $0. Team-test tagging is correct; console queries take under 0.2 ms in the database.
 - **Why:** Every number on stage has to come from the log.

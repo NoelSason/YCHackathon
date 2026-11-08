@@ -7,7 +7,7 @@ import { idempotencyKey } from "../outreach/send.js";
 import { createOrder } from "../leads/orders.js";
 import { createPlaytestOrder, enqueue, runPlaytestOrder, unplayableReason } from "../leads/playtest-offer.js";
 import { gameNameFromUrl, newWatchToken } from "../leads/watch.js";
-import { addPackDelivery, GENRES, packGameOpen, runDueDeliveries } from "../levels/deliver-pack.js";
+import { addPackDelivery, FREE_SAMPLE_PART, GENRES, packGameOpen, runDueDeliveries } from "../levels/deliver-pack.js";
 import { PACK_GAME_IDS, type PackGameId } from "../levels/pack-types.js";
 import { buildFacts, MAX_EXCHANGES, SAMPLE_LEVELS, type Facts } from "./facts.js";
 import { chatJson } from "./openai.js";
@@ -268,7 +268,7 @@ export async function converse(ctx: ToolContext, deps: ConverseDeps, o: { leadId
     } else {
       if (startWork) {
         await addPackDelivery(ctx.db, {
-          paymentId: null, leadId: lead.id, plan: "level_pack", gameId: genre, difficulty, levelsOwed: SAMPLE_LEVELS,
+          paymentId: null, part: FREE_SAMPLE_PART, leadId: lead.id, plan: "level_pack", gameId: genre, difficulty, levelsOwed: SAMPLE_LEVELS,
           studiedGame: gameUrl ? gameNameFromUrl(gameUrl) : null, gameUrl, bundleId: null,
           test: Boolean(agency?.internalTest), demo: Boolean(agency?.internalTest),
         });

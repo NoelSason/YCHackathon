@@ -348,6 +348,10 @@ describe("email provider limit", () => {
       const r2 = await runAgencyCycle({ ...s.ctx, monid }, { agencies: s.agencies, monid, fetchImpl, cache: false, now: new Date("2026-11-08T12:00:00Z") });
       expect(r2.reason).toBe("email provider limit");
       expect(calls.length).toBe(before);
+      // The pause is said once (by the refused send), not again on each pass while paused.
+      await runAgencyCycle({ ...s.ctx, monid }, { agencies: s.agencies, monid, fetchImpl, cache: false, now: new Date("2026-11-08T14:00:00Z") });
+      const pauseRows = (await s.store.listActivity(200)).filter((a) => /paused until Sun 3:04 PM PT$/.test(a.action));
+      expect(pauseRows).toHaveLength(1);
       // After the reopen time, the agency already found is emailed without buying its profile again.
       refuse = false;
       const later = new Date("2026-11-08T23:10:00Z");
