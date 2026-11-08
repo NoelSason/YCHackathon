@@ -20,6 +20,15 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:16 PM PT · Pinara · Claude Code · main
+- **What:** The solver worker's heartbeat runs on its own 30 s timer, so it stays fresh during a long run or an auto-tune. Ctrl-C still finishes the current job; pressing it again now quits at once (before, a second Ctrl-C did nothing). Also corrected my previous entry's time (7:09 PM, not 7:14).
+- **Why:** The heartbeat was written only between jobs. A match-3 tune holds the loop for up to 12 minutes, so the `solver_queue` check would see the worker as gone while it was working: `pinara-laptop`'s heartbeat was 10 minutes old at 7:11 PM, mid-tune. And during a tune, restarting the worker after a pull meant waiting minutes or killing the terminal.
+- **Files:** `solver/src/worker.ts`, `solver/README.md`.
+- **State:** works; checked against a local Postgres: during a 75 s match-3 run the heartbeat advanced every 30 s (3:13:26, 3:13:56, 3:14:26 UTC); one Ctrl-C mid-run kept the job going, a second quit at once; one Ctrl-C while idle stopped in 5 s with `stopped: true`. Solver 25/25, typecheck clean.
+- **Next / heads-up:** **Pinara:** restart your worker to pick this up (Ctrl-C twice if it's mid-tune; the next push resumes an interrupted tune). Noel's worker is from before the auto-tuner; restarting it after a pull gives it both.
+
+### 2026-11-07 7:09 PM PT · Pinara · Claude Code · main
+
 ### 2026-11-07 19:35 PT · Abhinav (Claude) · branch `main`
 
 **What:** **Catalog split did not fix `read_people`.** Probe `ses_e9f0pnhfdr12kghsmgp2k4bssm`

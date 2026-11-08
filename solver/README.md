@@ -69,10 +69,11 @@ for any other game stays queued for an up-to-date worker instead of failing, bec
 makes the Tuner reject a level that was fine. The worker logs `queued_for_unknown_games` when
 this happens.
 
-Every 30 s the worker writes a heartbeat to `settings` under `solver_worker:<WORKER_ID>`, as
-`{ worker, games, started_at, at }`, and adds `stopped: true` on a clean stop. The
-`solver_queue` readiness check reads it. The check fails when no worker has written in 3 minutes
-(after switch-on), or when a game has queued runs that no live worker knows.
+Every 30 s, on its own timer (so also during a long run or tune), the worker writes a heartbeat
+to `settings` under `solver_worker:<WORKER_ID>`, as `{ worker, games, started_at, at }`, and adds
+`stopped: true` on a clean stop. The `solver_queue` readiness check reads it. The check fails when
+no worker has written in 3 minutes (after switch-on), or when a game has queued runs that no live
+worker knows.
 
 ### The automatic Tuner (`src/autotune.ts`)
 
@@ -110,6 +111,9 @@ cp .env.example .env    # put DATABASE_URL in .env (ask Abhinav). Never commit i
 caffeinate -i npm run worker   # keeps polling; the Mac stays awake for the overnight run
 npm run drain                  # processes everything queued, then exits
 ```
+
+**Ctrl-C** stops after the current job (a long run or a match-3 tune can take minutes). Press it
+again to quit at once; a run left mid-way is failed after `STALE_MINUTES`.
 
 `PGSSL=0` turns TLS off for a local Postgres. Neon needs TLS, so leave it unset for Neon.
 

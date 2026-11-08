@@ -42,7 +42,13 @@ const HEARTBEAT_MS = 30_000;
 let stopping = false;
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, () => {
-    console.log(JSON.stringify({ worker: workerId, event: "stopping", signal: sig }));
+    if (stopping) {
+      // Second signal: quit now instead of waiting for a long run or a match-3 tune (minutes).
+      // Anything left mid-way is recovered: stuck runs by failStale, levels by the auto-tuner.
+      console.log(JSON.stringify({ worker: workerId, event: "quit", signal: sig }));
+      process.exit(sig === "SIGINT" ? 130 : 143);
+    }
+    console.log(JSON.stringify({ worker: workerId, event: "stopping", signal: sig, hint: "finishing the current job; press Ctrl-C again to quit now" }));
     stopping = true;
   });
 }
@@ -50,8 +56,17 @@ for (const sig of ["SIGINT", "SIGTERM"] as const) {
 const log = (o: Record<string, unknown>) => console.log(JSON.stringify({ ts: new Date().toISOString(), worker: workerId, ...o }));
 
 log({ event: "started", once, games, poll_ms: pollMs, stale_minutes: staleMinutes, threads, max_seconds: maxSeconds, autotune });
+
+// The heartbeat has its own timer, so it stays fresh during a long run or an auto-tune: slow games
+// play on worker threads, which leaves this thread free. (With SOLVER_THREADS=1 a slow game blocks it.)
+let lastBeat: Promise<void> = Promise.resolve();
+const beat = (stopped?: true): Promise<void> =>
+  (lastBeat = writeHeartbeat(q, { worker: workerId, games, started_at: startedAt, at: new Date().toISOString(), ...(stopped ? { stopped } : {}) })
+    .catch((e: unknown) => log({ event: "heartbeat_error", message: e instanceof Error ? e.message : String(e) })));
+const heartbeat = once ? undefined : setInterval(() => void beat(), HEARTBEAT_MS);
+if (!once) void beat();
+
 let lastStaleCheck = 0;
-let lastHeartbeat = 0;
 let lastUnplayable = "";
 let errorsInARow = 0;
 
@@ -67,10 +82,6 @@ while (!stopping) {
         log({ event: "queued_for_unknown_games", waiting, games, hint: "git pull, then restart the worker" });
       }
       lastUnplayable = key;
-    }
-    if (!once && Date.now() - lastHeartbeat > HEARTBEAT_MS) {
-      await writeHeartbeat(q, { worker: workerId, games, started_at: startedAt, at: new Date().toISOString() });
-      lastHeartbeat = Date.now();
     }
     const out = await processNext(q, workerId, getAdapter, { threads, maxSeconds, games });
     errorsInARow = 0;
@@ -94,9 +105,10 @@ while (!stopping) {
   }
 }
 
-if (!once) {
-  await writeHeartbeat(q, { worker: workerId, games, started_at: startedAt, at: new Date().toISOString(), stopped: true })
-    .catch(() => undefined); // best effort: a stale heartbeat reads as stopped anyway
+if (heartbeat) {
+  clearInterval(heartbeat);
+  await lastBeat; // so a beat already in flight can't overwrite the stop below
+  await beat(true); // best effort: a stale heartbeat reads as stopped anyway
 }
 await pool.end();
 log({ event: "stopped" });
