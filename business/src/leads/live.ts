@@ -1,12 +1,13 @@
 import type { ToolContext } from "../mcp/tools.js";
 import { rememberTarget } from "../mcp/tools.js";
-import { fetchRecentReviews } from "../research/monid.js";
+import { fetchRecentReviews, storeName } from "../research/monid.js";
 import { buildTarget } from "../research/targets.js";
 import { signalPhrase } from "../research/signals.js";
 import { checkOutreach } from "../outreach/guard.js";
 import { sendOutreach } from "../outreach/send.js";
 import type { OutreachDraft } from "../outreach/compose.js";
 import type { Lead, Target } from "../types.js";
+import { finish, step } from "./progress.js";
 
 /**
  * The live signup: someone at our table (or in the audience) enters their game, and within about a
@@ -41,14 +42,14 @@ export function composeWelcome(args: {
   const evidence =
     kind && target
       ? [
-          `We just read the ${target.reviewsAnalyzed} newest Google Play reviews of ${game}. ${n} of them ${signalPhrase(kind, n)}.`,
+          `We just read the ${target.reviewsAnalyzed} newest ${storeName(target.appId)} reviews of ${game}. ${n} of them ${signalPhrase(kind, n)}.`,
           ...(quote ? ["", `One player put it this way: "${quote}"`] : []),
           "",
           "That's exactly what we fix. We make puzzle levels and tune each one by having test players play it hundreds of times before it ships.",
         ]
       : target
         ? [
-            `We read the ${target.reviewsAnalyzed} newest Google Play reviews of ${game}, and your players aren't complaining about difficulty. Nice work.`,
+            `We read the ${target.reviewsAnalyzed} newest ${storeName(target.appId)} reviews of ${game}, and your players aren't complaining about difficulty. Nice work.`,
             "",
             "If you ever need more levels, we make puzzle levels and tune each one by having test players play it hundreds of times before it ships.",
           ]
@@ -90,19 +91,24 @@ export async function runLiveSignup(ctx: ToolContext, lead: Lead, gameTitle: str
     ctx.store.logActivity({ at: new Date().toISOString(), agent: "research", action, why, result, costUsd: null, human: false });
 
   let target: Target | null = null;
+  const game = gameTitle ?? lead.company;
   if (lead.appId && ctx.monid) {
-    await log(`reading ${gameTitle ?? lead.company}'s newest Google Play reviews`, "a studio signed up at our table", null);
+    step(lead.id, `Reading ${game}'s newest ${storeName(lead.appId)} reviews`);
+    await log(`reading ${game}'s newest ${storeName(lead.appId)} reviews`, "a studio signed up", null);
     try {
       const reviews = await fetchRecentReviews(ctx.monid, lead.appId);
       target = buildTarget({ appId: lead.appId, title: gameTitle ?? lead.company, developer: lead.company, rating: null, downloads: null }, reviews);
       rememberTarget(target);
       await ctx.store.upsertLead({ ...lead, reason: target.reason });
-      await log(`audited ${gameTitle ?? lead.company}`, target.reason, target.primarySignal ? `pitch angle: ${target.primarySignal}` : "no difficulty complaints");
+      await log(`audited ${game}`, target.reason, target.primarySignal ? `pitch angle: ${target.primarySignal}` : "no difficulty complaints");
+      step(lead.id, target.primarySignal ? `Found it: ${target.reason}` : `Read ${target.reviewsAnalyzed} reviews: no difficulty complaints`);
     } catch (err) {
-      await log(`couldn't read reviews for ${gameTitle ?? lead.company}`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", "sending the welcome without evidence");
+      await log(`couldn't read reviews for ${game}`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", "sending the welcome without evidence");
+      step(lead.id, "Couldn't read the reviews this time, so we'll skip that part");
     }
   }
 
+  step(lead.id, "Writing your email");
   const sampleUrl = ctx.config.SAMPLE_PLAY_URL ?? ctx.config.DEMO_PLAY_URL ?? null;
   const fresh = (await ctx.store.getLead(lead.id)) ?? lead;
   const draft = composeWelcome({
@@ -127,6 +133,9 @@ export async function runLiveSignup(ctx: ToolContext, lead: Lead, gameTitle: str
     agent: "sales-sender",
   });
   const blocked = record.status === "blocked" ? record.blockedReason : null;
+  if (record.status === "sent") finish(lead.id, "Email sent. Check your inbox");
+  else if (record.status === "drafted") finish(lead.id, "Your email is written and waiting to send");
+  else finish(lead.id, "We couldn't send your email automatically. A person will follow up", false);
   return { leadId: lead.id, audited: target !== null, signal: target?.primarySignal ?? null, email: record.status, reason: blocked };
 }
 

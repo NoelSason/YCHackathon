@@ -128,6 +128,14 @@
   .phone .off { display: flex; align-items: center; justify-content: center; text-align: center; color: var(--faint); padding: 1.5em; font-size: .9em; }
   .live-tag { color: var(--live); font: 700 .78em var(--mono); letter-spacing: .12em; display: inline-flex; align-items: center; gap: .4em; }
   .live-tag::before { content: ""; width: .55em; height: .55em; border-radius: 50%; background: var(--live); animation: blink 1.6s infinite; }
+  .now-testing { display: flex; align-items: baseline; flex-wrap: wrap; gap: .35em .5em; margin: 0 1.1em .6em; padding: .55em .8em; border-radius: 10px; background: rgba(124,92,255,.14); font-size: .95em; }
+  .now-testing .nt-label { color: var(--muted); font: 600 .78em var(--mono); text-transform: uppercase; letter-spacing: .05em; }
+  .now-testing b { word-break: break-all; }
+  .now-testing small { color: var(--muted); width: 100%; }
+  .now-testing .nt-dot { width: .55em; height: .55em; border-radius: 50%; background: #3ddc97; align-self: center; animation: ntp 1.2s ease-in-out infinite; }
+  .now-testing.idle { background: rgba(255,255,255,.05); } .now-testing.idle .nt-dot { background: var(--muted); animation: none; }
+  @keyframes ntp { 50% { opacity: .25; } }
+  @media (prefers-reduced-motion: reduce) { .now-testing .nt-dot { animation: none; } }
   .qr { display: flex; gap: 1em; align-items: center; padding: 0 1.1em 1.1em; }
   .qr img { width: clamp(90px, 7vw, 150px); height: auto; border-radius: 8px; background: #fff; padding: 4px; }
   .qr p { margin: 0; font-weight: 600; font-size: 1.1em; }
@@ -203,6 +211,7 @@
   <div class="side">
     <section class="panel" style="flex:1">
       <h2><span class="live-tag" id="phone-live">LIVE</span> Phone playtest</h2>
+      <div class="now-testing" id="now-testing" hidden><span class="nt-dot"></span><span class="nt-label">Now testing</span> <b id="nt-app"></b><small id="nt-who"></small></div>
       <div class="phone-wrap"><div class="phone" id="phone"><div class="off">Phone not connected</div></div></div>
     </section>
     <section class="panel" id="join-panel" hidden>
@@ -317,7 +326,26 @@ function itemHtml(e, isNew) {
     <time>${hms(e.at)}</time><div><span class="who">${esc(who)}</span>${tag}${body}</div></li>`;
 }
 
+// What the phone is testing right now: the newest "playtesting …" step with no finish after it.
+const playtests = [];
+function trackPlaytests(list) {
+  for (const e of list) {
+    const a = e.action || "";
+    if (/^playtesting /i.test(a) || /^phone playtest /i.test(a)) playtests.push({ at: e.at, app: e.why || "", who: a.replace(/^playtesting /i, "").replace(/'s app on the iPhone$/i, ""), open: true });
+    else if (/^(playtested|playtest failed|emailed the playtest report)/i.test(a) && playtests.length) playtests[playtests.length - 1].open = false;
+  }
+  const last = playtests[playtests.length - 1];
+  const box = $("now-testing");
+  if (!last) { box.hidden = true; return; }
+  box.hidden = false;
+  box.classList.toggle("idle", !last.open);
+  box.querySelector(".nt-label").textContent = last.open ? "Now testing" : "Last tested";
+  $("nt-app").textContent = last.app.replace(/^https?:\/\//, "");
+  $("nt-who").textContent = last.who ? `for ${last.who} · started ${pt(last.at, { hour: "numeric", minute: "2-digit" })}` : "";
+}
+
 function addEvents(list, isNew) {
+  trackPlaytests(list);
   if (!list.length) return;
   const feed = $("feed");
   if (feed.querySelector(".empty")) feed.innerHTML = "";

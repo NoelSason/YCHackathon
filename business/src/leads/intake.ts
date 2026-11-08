@@ -19,10 +19,19 @@ export const LeadFormSchema = z.object({
 export type LeadForm = z.infer<typeof LeadFormSchema>;
 
 /** Pulls an app id out of a Google Play URL, if there is one. */
+/**
+ * Pulls an app id out of a store link. Google Play: the package name ("com.studio.game").
+ * App Store: "ios:<numeric id>" from links like apps.apple.com/us/app/name/id1482155847.
+ */
 export function appIdFromStoreUrl(url: string | undefined): string | null {
   if (!url) return null;
   try {
-    return new URL(url).searchParams.get("id");
+    const u = new URL(url);
+    if (/(^|\.)apple\.com$/.test(u.hostname)) {
+      const m = u.pathname.match(/\/id(\d{5,})/);
+      return m ? `ios:${m[1]}` : null;
+    }
+    return u.searchParams.get("id");
   } catch {
     return null;
   }

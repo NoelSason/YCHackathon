@@ -3,6 +3,7 @@ import { integrationStatus, loadConfig } from "./config.js";
 import { buildContext, createHandler, MAX_BODY_BYTES } from "./app.js";
 import { agentMailLister, pollOnce } from "./outreach/poll.js";
 import { startSession } from "./naive.js";
+import { runOutreachCycle } from "./outreach/autopilot.js";
 
 /**
  * The business server on Node: `npm run webhooks` (dev) or `npm start` (built, `node dist/server.js`).
@@ -29,6 +30,25 @@ if (config.AGENTMAIL_API_KEY && config.AGENTMAIL_INBOX_ID) {
       .catch((err) => console.error("inbox check failed:", err instanceof Error ? err.message.slice(0, 200) : "unknown"));
   void tick();
   setInterval(tick, 60_000);
+}
+
+// Outreach loop: research → public contact → evidence email, within the daily cap.
+if (config.OUTREACH_AUTOPILOT === "1" && config.OUTREACH_SEND === "1") {
+  let running = false;
+  const cycle = async () => {
+    if (running) return;
+    running = true;
+    try {
+      const r = await runOutreachCycle(ctx);
+      console.log(`outreach loop: sent ${r.sent}${r.reason ? ` (${r.reason})` : ""}`);
+    } catch (err) {
+      console.error("outreach loop failed:", err instanceof Error ? err.message.slice(0, 200) : "unknown");
+    } finally {
+      running = false;
+    }
+  };
+  setTimeout(cycle, 20_000);
+  setInterval(cycle, config.OUTREACH_AUTOPILOT_MINUTES * 60_000);
 }
 
 async function readBody(req: IncomingMessage): Promise<string> {

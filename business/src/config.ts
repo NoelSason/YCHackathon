@@ -51,6 +51,9 @@ const EnvSchema = z.object({
   OUTREACH_SEND: z.enum(["0", "1"]).default("0"),
   OUTREACH_DAILY_CAP: z.coerce.number().int().positive().default(20),
   INBOUND_DAILY_CAP: z.coerce.number().int().positive().default(200),
+  /** Run the outreach loop on the live server: research, find public contacts, send evidence emails. */
+  OUTREACH_AUTOPILOT: z.enum(["0", "1"]).default("0"),
+  OUTREACH_AUTOPILOT_MINUTES: z.coerce.number().int().positive().default(45),
   COMPANY_NAME: z.string().default("Level AI"),
   COMPANY_POSTAL_ADDRESS: z.string().optional(),
   PUBLIC_BASE_URL: z.string().default("http://localhost:8787"),

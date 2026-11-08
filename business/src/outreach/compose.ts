@@ -1,4 +1,5 @@
 import type { Lead, SignalKind, Target } from "../types.js";
+import { storeName } from "../research/monid.js";
 
 /**
  * Writes the first outreach email to a studio. The copy is for the person reading it: what we
@@ -16,22 +17,22 @@ export interface OutreachDraft {
 
 export interface ComposeInput {
   lead: Pick<Lead, "contactName" | "company">;
-  target: Pick<Target, "appTitle" | "reviewsAnalyzed" | "signalCounts" | "primarySignal" | "examples">;
+  target: Pick<Target, "appId" | "appTitle" | "reviewsAnalyzed" | "signalCounts" | "primarySignal" | "examples">;
   /** A playable sample made for them. Without one, the email offers to make one. */
   sampleUrl: string | null;
   pilot: { levels: number; priceLabel: string; paymentUrl: string | null };
   sender: { name: string; company: string; postalAddress: string };
 }
 
-const OPENERS: Record<SignalKind, (n: number, total: number, game: string) => string> = {
-  too_easy: (n, total, game) =>
-    `I read the ${total} newest Google Play reviews of ${game}, and ${n} of them ${n === 1 ? "says" : "say"} the levels are too easy or take too long to get challenging.`,
-  too_hard: (n, total, game) =>
-    `I read the ${total} newest Google Play reviews of ${game}, and ${n} of them ${n === 1 ? "says" : "say"} a level is too hard to get past.`,
-  wants_more_levels: (n, total, game) =>
-    `I read the ${total} newest Google Play reviews of ${game}, and ${n} of them ${n === 1 ? "asks" : "ask"} for more levels.`,
-  repetitive: (n, total, game) =>
-    `I read the ${total} newest Google Play reviews of ${game}, and ${n} of them ${n === 1 ? "says" : "say"} the levels start to feel the same.`,
+const OPENERS: Record<SignalKind, (n: number, total: number, game: string, store: string) => string> = {
+  too_easy: (n, total, game, store) =>
+    `I read the ${total} newest ${store} reviews of ${game}, and ${n} of them ${n === 1 ? "says" : "say"} the levels are too easy or take too long to get challenging.`,
+  too_hard: (n, total, game, store) =>
+    `I read the ${total} newest ${store} reviews of ${game}, and ${n} of them ${n === 1 ? "says" : "say"} a level is too hard to get past.`,
+  wants_more_levels: (n, total, game, store) =>
+    `I read the ${total} newest ${store} reviews of ${game}, and ${n} of them ${n === 1 ? "asks" : "ask"} for more levels.`,
+  repetitive: (n, total, game, store) =>
+    `I read the ${total} newest ${store} reviews of ${game}, and ${n} of them ${n === 1 ? "says" : "say"} the levels start to feel the same.`,
 };
 
 const SUBJECTS: Record<SignalKind, (game: string) => string> = {
@@ -53,7 +54,7 @@ export function composeOutreach(input: ComposeInput): OutreachDraft {
   const lines = [
     greeting,
     "",
-    OPENERS[kind](n, total, target.appTitle),
+    OPENERS[kind](n, total, target.appTitle, storeName(target.appId)),
     ...(quote ? ["", `One player put it this way: "${quote}"`] : []),
     "",
     ...(sampleUrl

@@ -43,11 +43,14 @@ done
 SITE="${SITE_URL:-https://levelai.vercel.app}"
 cat > "$ROOT/site/vercel.json" <<JSON
 {
+  "cleanUrls": true,
   "rewrites": [
-    { "source": "/join", "destination": "$URL/join" },
     { "source": "/leads", "destination": "$URL/leads" },
-    { "source": "/playtest", "destination": "$URL/playtest" },
+    { "source": "/signup-status", "destination": "$URL/signup-status" },
+    { "source": "/offer", "destination": "$URL/offer" },
     { "source": "/playtest-orders", "destination": "$URL/playtest-orders" },
+    { "source": "/developer-keys", "destination": "$URL/developer-keys" },
+    { "source": "/studio-mcp", "destination": "$URL/studio-mcp" },
     { "source": "/webhooks/:path*", "destination": "$URL/webhooks/:path*" },
     { "source": "/mcp", "destination": "$URL/mcp" }
   ]

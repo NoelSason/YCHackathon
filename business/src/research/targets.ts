@@ -1,6 +1,6 @@
 import type { SignalKind, Target } from "../types.js";
 import { countSignals, extractSignals, signalPhrase, type RawReview } from "./signals.js";
-import { fetchRecentReviews, fetchTopPuzzleGames, type MonidRunner, type StoreGame } from "./monid.js";
+import { fetchRecentReviews, fetchTopPuzzleGames, storeName, storeUrl, type MonidRunner, type StoreGame } from "./monid.js";
 
 /** Studios that are almost certainly too big to buy a level pilot from us this weekend. */
 const BIG_STUDIOS = [/\bking\b/i, /\bdream games\b/i, /\bplayrix\b/i, /^peak$/i, /\bmoon active\b/i, /\bzynga\b/i, /\bsupercell\b/i, /\brovio\b/i];
@@ -33,14 +33,14 @@ export function buildTarget(game: StoreGame, reviews: RawReview[]): Target {
 
   const reason =
     primary && top
-      ? `${top[1]} of the ${analyzed} newest Google Play reviews of ${game.title} ${signalPhrase(primary, top[1])}.`
-      : `No level-design complaints in the ${analyzed} newest Google Play reviews of ${game.title}.`;
+      ? `${top[1]} of the ${analyzed} newest ${storeName(game.appId)} reviews of ${game.title} ${signalPhrase(primary, top[1])}.`
+      : `No level-design complaints in the ${analyzed} newest ${storeName(game.appId)} reviews of ${game.title}.`;
 
   return {
     appId: game.appId,
     appTitle: game.title,
     developer: game.developer,
-    storeUrl: `https://play.google.com/store/apps/details?id=${encodeURIComponent(game.appId)}`,
+    storeUrl: storeUrl(game.appId),
     downloads: game.downloads,
     reviewsAnalyzed: analyzed,
     signalCounts: counts,

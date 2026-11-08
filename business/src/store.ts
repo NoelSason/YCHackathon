@@ -27,6 +27,9 @@ export interface Store {
   addInboundEmail(input: { leadId: string; subject: string; summary: string; externalId: string | null }): Promise<void>;
   lastInboundMessageId(leadId: string): Promise<string | null>;
   hasInboundMessage(externalId: string): Promise<boolean>;
+  /** Studio API keys, stored only as SHA-256 hashes. */
+  addApiKey(leadId: string, keyHash: string): Promise<void>;
+  leadForApiKey(keyHash: string): Promise<Lead | null>;
 
   isSuppressed(email: string): Promise<boolean>;
   suppress(email: string, reason: string): Promise<void>;
@@ -112,6 +115,17 @@ export class MemoryStore implements Store {
 
   async hasInboundMessage(externalId: string): Promise<boolean> {
     return this.inbound.some((m) => m.externalId === externalId);
+  }
+
+  private apiKeys = new Map<string, string>();
+
+  async addApiKey(leadId: string, keyHash: string): Promise<void> {
+    this.apiKeys.set(keyHash, leadId);
+  }
+
+  async leadForApiKey(keyHash: string): Promise<Lead | null> {
+    const id = this.apiKeys.get(keyHash);
+    return id ? this.getLead(id) : null;
   }
 
   async lastInboundMessageId(leadId: string): Promise<string | null> {
@@ -252,6 +266,15 @@ export class PlatformStore implements Store {
   async addInboundEmail(input: { leadId: string; subject: string; summary: string; externalId: string | null }): Promise<void> {
     await this.q(`insert into emails (studio_id, direction, subject, summary, external_id) values ($1, 'in', $2, $3, $4)`,
       [input.leadId, input.subject, input.summary.slice(0, 500), input.externalId]);
+  }
+
+  async addApiKey(leadId: string, keyHash: string): Promise<void> {
+    await this.q(`insert into biz_api_keys (key_hash, studio_id) values ($1, $2) on conflict (key_hash) do nothing`, [keyHash, leadId]);
+  }
+
+  async leadForApiKey(keyHash: string): Promise<Lead | null> {
+    const r = await this.q(`select s.* from biz_api_keys k join studios s on s.studio_id = k.studio_id where k.key_hash = $1 and k.revoked_at is null`, [keyHash]);
+    return r[0] ? rowToLead(r[0]) : null;
   }
 
   async hasInboundMessage(externalId: string): Promise<boolean> {

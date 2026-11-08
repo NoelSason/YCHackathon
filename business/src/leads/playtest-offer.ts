@@ -4,6 +4,7 @@ import { createPaymentLink } from "../billing/stripe.js";
 import { runPlan, type PlaytestOutcome } from "../mobile/playtest.js";
 import { idempotencyKey } from "../outreach/send.js";
 import type { Lead } from "../types.js";
+import { finish, step } from "./progress.js";
 
 /**
  * The phone playtest offer: "Your app, played on a real iPhone, with a report in about 10 minutes."
@@ -56,7 +57,8 @@ export async function createPlaytestOrder(ctx: ToolContext, input: unknown): Pro
     await ctx.store.setStage(lead.id, "pilot_offered");
     return { ok: true, lead, payUrl: link.url };
   }
-  void enqueue(() => runPlaytestOrder(ctx, lead, o.appUrl, o.focus ?? null)).catch(() => undefined);
+  step(lead.id, "In the queue for the iPhone");
+  void enqueue(() => runPlaytestOrder(ctx, lead, o.appUrl, o.focus ?? null)).catch(() => finish(lead.id, "Something went wrong. A person will follow up", false));
   return { ok: true, lead, payUrl: null };
 }
 
@@ -113,6 +115,7 @@ export async function runPlaytestOrder(ctx: ToolContext, lead: Lead, appUrl: str
   if (!ctx.mobilerun || !deviceId) error = "phone not configured";
   else {
     await log(`playtesting ${lead.company}'s app on the iPhone`, appUrl, null);
+    step(lead.id, "Playing your app on the iPhone");
     try {
       outcome = await runPlan({
         client: ctx.mobilerun,
@@ -133,14 +136,16 @@ export async function runPlaytestOrder(ctx: ToolContext, lead: Lead, appUrl: str
     }
   }
 
-  if (!lead.email || !ctx.mail) return;
+  if (!lead.email || !ctx.mail) { finish(lead.id, "Playtest finished", outcome?.results != null); return; }
+  step(lead.id, "Writing your report");
   const { subject, body } = composeReport({
     name: lead.contactName, team: lead.company, appUrl, outcome, error,
     companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
   });
-  if (await ctx.store.isSuppressed(lead.email)) return;
+  if (await ctx.store.isSuppressed(lead.email)) { finish(lead.id, "Playtest finished", true); return; }
   const sent = await ctx.mail.send({ to: lead.email, subject, text: body, idempotencyKey: idempotencyKey("playtest-report", lead.id, appUrl, outcome?.taskId ?? "none") });
   await ctx.store.addOutreach({ leadId: lead.id, to: lead.email, subject, body, status: "sent", blockedReason: null, providerMessageId: sent.messageId });
   if (outcome?.results) await ctx.store.setStage(lead.id, "delivered");
   await log(`emailed the playtest report to ${lead.company}`, null, `message ${sent.messageId}`);
+  finish(lead.id, outcome?.results ? "Report sent. Check your inbox" : "We emailed you an update; the phone couldn't finish this time", outcome?.results != null);
 }

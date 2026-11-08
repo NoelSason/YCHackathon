@@ -11,9 +11,12 @@ import { runLiveSignup } from "./leads/live.js";
 import { joinPage } from "./leads/join-page.js";
 import { playtestPage } from "./leads/playtest-page.js";
 import { createPlaytestOrder, enqueue, runPlaytestOrder } from "./leads/playtest-offer.js";
+import { status as progressStatus, step as progressStep } from "./leads/progress.js";
 import { mobilerunClient } from "./mobile/playtest.js";
 import { naiveClient, startSession } from "./naive.js";
 import { buildMcpServer } from "./mcp/server.js";
+import { buildStudioMcp } from "./studio/mcp.js";
+import { hashKey, issueDeveloperKey } from "./studio/keys.js";
 import type { ToolContext } from "./mcp/tools.js";
 
 /**
@@ -66,6 +69,27 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
     const url = new URL(request.url);
 
     if (request.method === "GET" && url.pathname === "/health") return json(200, { ok: true, integrations: integrationStatus(config) });
+
+    if (url.pathname === "/studio-mcp") {
+      const key = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+      const studio = /^lvl_[0-9a-f]{48}$/.test(key) ? await ctx.store.leadForApiKey(hashKey(key)) : null;
+      if (!studio) return json(401, { error: "unauthorized: get a key at /developers" });
+      const parsedBody: unknown = request.method === "POST" ? JSON.parse(await readBody(request)) : undefined;
+      const mcp = buildStudioMcp(ctx, studio);
+      const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+      await mcp.connect(transport);
+      try {
+        return await transport.handleRequest(request, { parsedBody });
+      } finally {
+        void transport.close();
+        void mcp.close();
+      }
+    }
+
+    if (request.method === "POST" && url.pathname === "/developer-keys") {
+      const result = await issueDeveloperKey(ctx, JSON.parse(await readBody(request)));
+      return json(result.ok ? 201 : 400, result);
+    }
 
     if (url.pathname === "/mcp") {
       if (!bearerOk(config.BUSINESS_MCP_TOKEN, request.headers.get("authorization"))) return json(401, { error: "unauthorized" });
@@ -126,13 +150,14 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
 
     if (request.method === "POST" && url.pathname === "/playtest-orders") {
       const result = await createPlaytestOrder(ctx, JSON.parse(await readBody(request)));
-      return json(result.ok ? 201 : 400, result.ok ? { ok: true, payUrl: result.payUrl } : { ok: false, error: result.error });
+      return json(result.ok ? 201 : 400, result.ok ? { ok: true, id: result.lead.id, payUrl: result.payUrl } : { ok: false, error: result.error });
     }
 
     if (request.method === "POST" && url.pathname === "/leads") {
       const body = JSON.parse(await readBody(request)) as Record<string, unknown>;
       const result = await intakeLead(body, ctx.store);
       if (result.ok) {
+        progressStep(result.lead.id, "Got it. Starting now");
         // Research and the welcome email run in the background so the form answers right away.
         const game = typeof body.game === "string" && body.game.trim() ? body.game.trim() : null;
         void runLiveSignup(ctx, result.lead, game).catch((err) =>
@@ -142,7 +167,17 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
           }),
         );
       }
-      return json(result.ok ? 201 : 400, result.ok ? { ok: true } : { ok: false, error: result.error });
+      return json(result.ok ? 201 : 400, result.ok ? { ok: true, id: result.lead.id } : { ok: false, error: result.error });
+    }
+
+    if (request.method === "GET" && url.pathname === "/signup-status") {
+      const id = url.searchParams.get("id") ?? "";
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return json(400, { error: "bad id" });
+      return json(200, progressStatus(id));
+    }
+
+    if (request.method === "GET" && url.pathname === "/offer") {
+      return json(200, { playtestPriceUsd: ctx.stripe && config.PLAYTEST_PRICE_USD ? config.PLAYTEST_PRICE_USD : null });
     }
 
     return json(404, { error: "not found" });

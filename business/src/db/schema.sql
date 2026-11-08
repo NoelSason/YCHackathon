@@ -36,3 +36,11 @@ create table if not exists biz_deliveries (
   detail     text,
   created_at timestamptz not null default now()
 );
+
+-- Studio API keys for the developer integration (studio MCP). Only hashes are stored.
+create table if not exists biz_api_keys (
+  key_hash   text primary key,
+  studio_id  uuid not null references studios (studio_id),
+  created_at timestamptz not null default now(),
+  revoked_at timestamptz
+);

@@ -59,6 +59,33 @@ sandbox, no business URL). Not yet run against Neon from a laptop.
 delivery), live phone view. **Max:** owed: dashboard numbers all from Neon. Add each as one file in
 `platform/checks/src/checks/` (see its README). **Max:** the dashboard's "checks" panel reads the
 latest `checks` row per `name`.
+
+### 2026-11-07 17:25 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Fully automatic intake, App Store support, a developer integration, an always-on outreach loop, and "Now testing" on the demo stage.**
+- **Live progress:** `/leads` and `/playtest-orders` now return an `id`. `GET /signup-status?id=` streams each step ("Reading
+  Parking Loop's newest App Store reviews" → "Found it: …" → "Email sent"), and `GET /offer` gives the playtest price.
+  The new site pages (being built now) show this as a live checklist.
+- **App Store support:** App Store links (`apps.apple.com/…/id123`) are read through Monid's dataforseo
+  `/app-store/app-reviews`, and every email and audit names the right store.
+- **Developer integration:** `POST /developer-keys` emails a studio a key (`lvl_…`, stored only as a hash in the new table
+  `biz_api_keys`, already applied to Neon). The **studio MCP** at `https://levelai.vercel.app/studio-mcp` lets a studio's
+  own coding agent call `request_playtest`, `audit_reviews`, `request_free_levels`, and `get_status`.
+- **Contact lookup through Monid:** Hunter.io domain search, generic role addresses only (`business@`, `contact@`,
+  `support@`; never a person's own address).
+- **Outreach loop** (`OUTREACH_AUTOPILOT=1`, every 45 minutes on the live server): research the top puzzle games, find each
+  studio's public contact, and send the evidence email through the same guarded tools (daily cap, opt-outs, honest
+  numbers), at most 2 per run.
+- **Demo stage:** the phone panel shows "Now testing <app> for <team>" while a playtest runs, then "Last tested".
+- `live.sh`: the site's forwarding rules now cover the new endpoints, plus `cleanUrls`.
+**Files:** `business/src/` (`leads/progress.ts`, `studio/`, `research/contacts.ts`, `outreach/autopilot.ts`, App Store
+handling), `business/src/db/schema.sql`, `business/live.sh`, `demo/public/index.html`.
+**State:** 67 business tests and the typecheck pass. The studio MCP and keys are tested through the real request
+handler. Not yet verified live: the Hunter response shape (the first loop run will show it).
+**Next / heads-up:** **Abhinav:** I'm adding my 3 checks to `platform/checks` next.
+
+---
+
 ### 2026-11-07 17:05 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Business MCP now has a permanent URL: `https://levelai.vercel.app/mcp`.** The site forwards it to the laptop's

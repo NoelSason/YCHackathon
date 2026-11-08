@@ -81,7 +81,35 @@ export function parseReviews(raw: unknown): RawReviewItem[] {
   return ((first as { items?: RawReviewItem[] })?.items ?? []).filter(Boolean);
 }
 
+/** "Google Play" or "App Store", from our app id format ("ios:<id>" is the App Store). */
+export function storeName(appId: string): "Google Play" | "App Store" {
+  return appId.startsWith("ios:") ? "App Store" : "Google Play";
+}
+
+export function storeUrl(appId: string): string {
+  return appId.startsWith("ios:")
+    ? `https://apps.apple.com/app/id${appId.slice(4)}`
+    : `https://play.google.com/store/apps/details?id=${encodeURIComponent(appId)}`;
+}
+
+/**
+ * Newest reviews from either store. App Store (dataforseo /app-store/app-reviews, 25 per page,
+ * checked Nov 7): the review's title is folded into its text, since iOS reviews often put the point
+ * in the title.
+ */
 export async function fetchRecentReviews(monid: MonidRunner, appId: string, depth = 150): Promise<RawReviewItem[]> {
+  if (appId.startsWith("ios:")) {
+    const raw = await monid.run({
+      provider: "dataforseo",
+      endpoint: "/app-store/app-reviews",
+      body: { app_id: appId.slice(4), location_code: 2840, language_code: "en", depth: Math.min(depth, 100), sort_by: "most_recent" },
+    });
+    return parseReviews(raw).map((r) => {
+      const title = (r as { title?: string | null }).title?.trim();
+      const text = r.review_text?.trim() ?? "";
+      return { ...r, review_text: title && !text.toLowerCase().startsWith(title.toLowerCase()) ? `${title}. ${text}` : text };
+    });
+  }
   const raw = await monid.run({
     provider: "dataforseo",
     endpoint: "/google-play/app-reviews",
