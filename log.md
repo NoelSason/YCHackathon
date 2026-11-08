@@ -20,6 +20,18 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 10:25 PT · Pinara (Claude Code) · branch `main`
+
+**What:** updated `docs/demo-video-script.md` for the final demo video, which has no voiceover. It
+now has the Google Drive link and a script to read over the video, timed per scene.
+**Why:** the team reads or records the narration over the video themselves.
+**Files:** `docs/demo-video-script.md`.
+**State:** docs only. Each part was timed read aloud against its scene and fits.
+**Next / heads-up:** the numbers are from 8:48 AM PT. The two team clips are still untracked in
+`demo/assets/`. I didn't commit them.
+
+---
+
 ### Sun Nov 8, 9:43 AM PT, Noel, Claude Code, main
 
 **What:** New "Verified by Level AI" X posts. Scheduled posts alternate with one that reports a game's measured results (levels, simulated bot games, average distance from target win rate), rotating games. A delivered, paid customer pack goes first, once, without naming the studio. Test and demo orders never count.
