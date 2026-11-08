@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:53 PM PT · Noel · Claude Code (Lot Escape subagent) · main
+- **What:** Lot Escape is much harder, with an endless mode. Six new built-in lots ramp from 26 to 53 best moves (limits are best + ~20%, with up to 7 back-steps and blocking chains up to 10 deep). There's a top-right "Endless: generated levels" switch: each win builds the next lot one step harder in a Web Worker, with the indicator "Level 7 · Generated" / "Level 3 of 6 · Built-in", "Move limit N · Best possible: N moves", and a "Building the next lot…" state. The solver was rewritten as a 0-1 BFS (exact fewest moves, 60–100×+ faster, cross-checked against plain BFS) sharing one movement rule (`stepAlongLane`). Stable generator API in `src/generate.ts` (`generateLevel({seed, difficulty})`), re-exported by the adapter for level packs.
+- **Why:** Noel: make Lot Escape a lot harder, with dynamically generated levels as you play.
+- **Files:** `games/lotescape/**`, `site/games/lotescape/**`
+- **State:** works; 19/19 game tests, solver 28/28, typecheck clean, headless Chrome at 1440×900 and 390×844 checked, deployed.
+- **Next / heads-up:** The game's quit event uses sendBeacon, which fails CORS against the platform's /events, so quit events are lost. Switch to fetch with keepalive.
+
 ### 2026-11-07 7:52 PM PT · Noel · Claude Code (Lot Escape subagent, in progress) · main
 - **What:** Lot Escape work in progress: a seeded level generator (`games/lotescape/src/generate.ts`) that produces solver-proven levels at a target difficulty, harder built-in levels, and an in-browser worker for the coming endless mode (`ui/worker.ts`, `ui/jobs.ts`).
 - **Why:** Noel: make Lot Escape much harder, with an endless generated mode.
