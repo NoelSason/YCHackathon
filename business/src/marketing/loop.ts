@@ -4,6 +4,7 @@ import { join } from "node:path";
 import type { ToolContext } from "../mcp/tools.js";
 import { naiveClient } from "../naive.js";
 import { composePost, gatherStats, publish, type Angle } from "./posts.js";
+import { postOnXFromPhone } from "./phone-post.js";
 
 /**
  * Posts on Level AI's connected social accounts on a schedule, rotating angles: live market
@@ -52,6 +53,12 @@ export async function runSocialCycle(ctx: ToolContext, sleep = (ms: number) => n
   const post = composePost(angle, stats, { site: ctx.config.SITE_URL, playtest });
   for (let attempt = 0; attempt < 4; attempt++) {
     const r = await publish({ naive, identityId, store: ctx.store, post, dailyCap: ctx.config.SOCIAL_DAILY_CAP });
+    // X refuses our API posts; post the same text from the cloud iPhone in Safari instead.
+    const xRejected = r.skipped.find((x) => x.platform === "x" && /rejected|failed/i.test(x.reason));
+    if (xRejected && ctx.mobilerun) {
+      const phone = await postOnXFromPhone(ctx, post.content).catch(() => ({ posted: false }));
+      if (phone.posted) r.posted.push("x");
+    }
     const busy = r.skipped.some((s) => /capacity|rate/i.test(s.reason));
     if (r.posted.length || !busy) {
       if (r.posted.length) {

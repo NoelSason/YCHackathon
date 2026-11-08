@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 6:57 PM PT · Noel · Claude Code · main
+- **What:** X posts go out from the cloud iPhone. X refuses every API post from @uselevelai (also after Noel verified and reconnected at 6:51 PM), so `business/src/marketing/phone-post.ts` has the phone agent open x.com/compose/post in Safari, type the post, tap Post, and report whether it saw it sent. It never logs in or types a password; Noel logged in himself. It runs in the playtest queue, so paid orders keep priority. The social loop falls back to it automatically when the API post is rejected. First phone post sent at 6:55 PM (task a4868c26…). The phone finishes on @uselevelai's profile.
+- **Why:** Noel: get posts on X. It's also a real Mobilerun use: the agents do their own marketing from a phone.
+- **Files:** `business/src/marketing/{phone-post.ts,loop.ts}`
+- **State:** works; first post sent, 157 tests pass, server restarted.
+- **Next / heads-up:** X's Safari session lasts until X logs it out; if phone posts start failing with "not logged in", Noel logs in again on the phone.
+
 ### 2026-11-07 6:51 PM PT · Noel · Claude Code · main
 - **What:** Corrected the timestamps on my 22 log entries from 5:32 to 6:47 PM, which had been written ahead of the clock (some by up to 35 min). They now match the commit times. Also: X still rejects @uselevelai posts (6:49 PM retry, after Noel posted manually); a fresh connect link went to Noel to reconnect.
 - **Why:** The log has to be accurate; it's what the demo and teammates rely on.
