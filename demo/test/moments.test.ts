@@ -98,3 +98,15 @@ test("the rehearsal story fires every moment the stage celebrates, and its numbe
   assert.equal(board.totals.studios, board.rows.length);
   assert.equal(sampleStageStudios("pilot_paid").length, board.totals.won);
 });
+
+test("market studies read as studies, not a customer's app", async () => {
+  const { momentFor } = await import("../src/moments.ts");
+  const ev = (action: string, why: string | null = null) => ({ id: "x", at: "2026-11-07T00:00:00Z", agent: "playtest-lead", action, why, result: null, saw: null, expected: null, costUsd: null, human: false, kind: "action", source: "activity_log" }) as never;
+  const start = momentFor(ev("playtesting 2048 (web game, market study) on the iPhone", "2048 (free web game)"));
+  assert.equal(start?.title, "Now playtesting 2048, a web puzzle game");
+  assert.equal(start?.app, "2048");
+  assert.equal(start?.market, true);
+  const done = momentFor(ev("playtested 2048 (web game): played in 15 moves"));
+  assert.equal(done?.kind, "playtest_done");
+  assert.equal(done?.title, "Finished studying 2048");
+});

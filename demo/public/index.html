@@ -827,7 +827,7 @@ const playtests = [];
 function trackPlaytests(list) {
   for (const e of list) {
     const k = e.moment?.kind;
-    if (k === "playtest_started") playtests.push({ at: e.at, app: e.moment.app || "", who: e.moment.subject || "", open: true });
+    if (k === "playtest_started") playtests.push({ at: e.at, app: e.moment.app || "", who: e.moment.subject || "", market: Boolean(e.moment.market), open: true });
     else if ((k === "playtest_done" || k === "report_sent" || /^playtest failed/i.test(e.action || "")) && playtests.length) playtests[playtests.length - 1].open = false;
   }
   const last = playtests[playtests.length - 1];
@@ -842,7 +842,9 @@ function trackPlaytests(list) {
   $("pb-k").textContent = last.open ? "Now testing" : "Last tested";
   $("pb-title").textContent = app;
   if ($("phone-big").classList.contains("show")) fit($("pb-title"));
-  $("pb-sub").textContent = `${last.who ? `For ${last.who}. ` : ""}A real iPhone, playing it from a written test plan.`;
+  $("pb-sub").textContent = last.market
+    ? "A web puzzle game. A real iPhone plays it to study how the difficulty ramps."
+    : `${last.who ? `For ${last.who}. ` : ""}A real iPhone, playing it from a written test plan.`;
 }
 
 let booted = false;

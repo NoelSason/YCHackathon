@@ -34,6 +34,8 @@ export interface Moment {
   app: string | null;
   /** Payments only: true when the row says it was a test-mode payment. */
   test: boolean | null;
+  /** Playtests only: true for a market study of someone else's web game (no customer). */
+  market?: boolean;
 }
 
 /** Results that are plumbing (message ids, lead ids), not something to show the room. */
@@ -73,6 +75,13 @@ export function momentFor(e: StageEvent): Moment | null {
   }
   if ((x = a.match(/^playtest ordered by (.+)$/i))) {
     return m("playtest_ordered", "small", "Playtest", `New playtest order from ${x[1]}`, { subject: x[1]!, app: e.why });
+  }
+  // Market studies from the phone loop: "playtesting 2048 (web game, market study) on the iPhone".
+  if ((x = a.match(/^playtesting (.+?) \(web game[^)]*\)(?: on the iPhone)?$/i))) {
+    return m("playtest_started", "big", "Market study", `Now playtesting ${x[1]}, a web puzzle game`, { subject: "", app: x[1]!, market: true });
+  }
+  if ((x = a.match(/^playtested (.+?) \(web game[^)]*\)(?::.*)?$/i))) {
+    return m("playtest_done", "small", "Market study", `Finished studying ${x[1]}`, { subject: "", app: x[1]!, market: true, detail: cleanResult(e.result) || a.replace(/^[^:]*:\s*/, "") });
   }
   if ((x = a.match(/^playtesting (.+?)(?:'s app)?(?: on the iPhone)?$/i))) {
     return m("playtest_started", "big", "Playtest", `Now testing ${x[1]}'s app`, { subject: x[1]!, app: e.why });

@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:57 PM PT · Noel · Claude Code (phone-loop subagent + main) · main
+- **What:** The iPhone now playtests on its own every 30 min (`PLAYTEST_LOOP=1`, now on in .env). Paid orders always come first, and it never runs while another phone task is active. It plays our own newest levels in Safari when they exist; otherwise it runs a market study of a free web puzzle game (2048, Gemline match-3, Water Sort, Flood), each checked on a phone screenshot. A blank-screen detector (`mobile/screen.ts`, node:zlib only) fails a run instead of "playing" a white page, and the board is left on screen afterwards (never a blank tab). Console labels: market studies read "Now playtesting 2048, a web puzzle game" instead of "X's app". I corrected the one invalid row: a Water Sort "win" recorded while the page was blank on the phone is now logged as a failed run, result discarded.
+- **Why:** The phone should be doing real work all night; Noel saw a blank screen labeled "water-sort for Water Sort".
+- **Files:** `business/src/mobile/{loop.ts,screen.ts}`, `business/src/server.ts`, `business/test/playtest-loop.test.ts`, `demo/src/moments.ts`, `demo/public/index.html`, `demo/test/moments.test.ts`
+- **State:** works; 2048 run task 924dfb94… completed with the board visible; business and demo tests pass; server restarted with the loop on.
+- **Next / heads-up:** Phone runs of our own levels will post player events from the page with no "phone" tag.
+
 ### 2026-11-07 5:56 PM PT · Noel · Claude Code (research-UI subagent) · main
 - **What:** Live market research on the website ("What players are saying right now": reviews and games read, too hard / too easy / want more levels / repetitive, a card per chart with the strongest example; polls `/market-research` every 60 s; empty state "Our agents are reading the charts now"; new stats tile "Player reviews our agents read", hidden at 0). Console: "Market research" card that opens a drawer of every pass, backed by `/api/market-research` from Neon; rehearsal data is labeled invented. The in-place outreach board now has "← Back to the company", a "Press O or Esc to go back" hint, and the logo closes it too.
 - **Why:** Noel: more visible market research; he got stuck on the outreach board with no way back.

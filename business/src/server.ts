@@ -4,6 +4,7 @@ import { buildContext, createHandler, MAX_BODY_BYTES } from "./app.js";
 import { agentMailLister, pollOnce } from "./outreach/poll.js";
 import { startSession } from "./naive.js";
 import { runOutreachCycle } from "./outreach/autopilot.js";
+import { startPlaytestLoop } from "./mobile/loop.js";
 
 /**
  * The business server on Node: `npm run webhooks` (dev) or `npm start` (built, `node dist/server.js`).
@@ -49,6 +50,11 @@ if (config.OUTREACH_AUTOPILOT === "1" && config.OUTREACH_SEND === "1") {
   };
   setTimeout(cycle, 20_000);
   setInterval(cycle, config.OUTREACH_AUTOPILOT_MINUTES * 60_000);
+}
+
+// Playtest loop: between paid orders, the phone playtests our newest level or studies a free web puzzle game.
+if (config.PLAYTEST_LOOP === "1" && ctx.mobilerun && config.MOBILERUN_DEVICE_ID) {
+  startPlaytestLoop(ctx, config.PLAYTEST_LOOP_MINUTES);
 }
 
 async function readBody(req: IncomingMessage): Promise<string> {
