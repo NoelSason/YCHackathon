@@ -26,6 +26,25 @@ This is the team's build log. It isn't the company's agent activity log, which t
 - **Files:** `business/src/mobile/loop.ts`, `business/test/playtest-loop.test.ts`, `demo/src/moments.ts`
 - **State:** works; business 174/174 and demo 17/17 tests pass, server restarted.
 - **Next / heads-up:** The second phone ("Level AI App Store iPhone") still needs a person to sign in to an Apple Account in Settings before any App Store download.
+### 2026-11-07 7:29 PM PT · Pinara · Claude Code · main
+- **What:** The auto-tuner resumes a tune that stopped mid-way. A version left `solving` (worker stopped or crashed) is taken again by any worker once it has been untouched for 20 minutes and has no queued or running measurement and no newer version, so a live tune is never taken. Its log rows say "resumed". A version whose measurement stopped twice is rejected instead of retried. Saving a new version and retiring the old one is now one statement. README: "at most 4 rounds" corrected to 6. Also fixed my 7:16 PM log merge (a stray heading, and the 7:14 → 7:09 PM correction landing on the right entry).
+- **Why:** A worker restart mid-tune (needed after every pull) left the level `solving` forever: never accepted or rejected, so the Designer's work was lost and the pipeline numbers stayed off.
+- **Files:** `solver/src/autotune.ts`, `solver/test/autotune.test.ts`, `solver/README.md`.
+- **State:** works; solver 27/27 (2 new tests: what is and isn't resumed; a resumed tune finishes, and a version that stopped twice is rejected). Removing the live-tune guards makes the new test fail, so it checks them. Typecheck clean.
+- **Next / heads-up:** none for others. Next push reworks the tuner's steps (the 7:01 PM match-3 tune jumped from 90% to 0% and was rejected).
+
+### 2026-11-07 19:40 PT · Abhinav (Claude) · branch `main`
+
+**What:** Approver also approves Naïve's own `board_read`/`board_write` when held with
+`read_people`: `ses_dgf2ak…` got past the platform calls (approved by hand in the Studio) and was
+then held on `board_write`, the team board comment. The board is internal; nothing that sends,
+posts, pays, or touches a phone is approvable.
+**Why:** The rule holds Naïve's internal board writes too, so the loop would stall one step later.
+**Files:** `platform/naive/src/approver.ts`.
+**State:** Typechecks. Approver still not started on a laptop.
+**Next / heads-up:** **Abhinav:** `caffeinate -i npm run approver` now. **Whoever approved
+`ses_dgf2ak…` by hand:** that's a step-in; add a row to `interventions` (who/what/why) so the
+count is honest.
 
 ### 2026-11-07 7:28 PM PT · Noel · Claude Code (pricing + App Store subagents + main) · main
 - **What:** (1) **Billing is LIVE.** Stripe account activated as an individual (no Atlas), charges and payouts enabled. Live webhook we_1UZMf3… (checkout.session.completed, invoice.paid, customer.subscription.deleted). Server uses `STRIPE_SECRET_KEY_LIVE` when `BILLING_ALLOW_LIVE=1` (`activeStripeKey` in config.ts) and verifies both test and live webhook secrets. Verified: a live $5 payment link from /playtest-orders, live checkout sessions for the pack and subscription; nothing was paid. (2) **Every product has a price:** $5 iPhone playtest, $49 level pack (20 tuned levels in 48 h), $199/month subscription (40 levels + 4 playtests a month + API). `POST /orders` (Checkout, one-time or subscription, prices reused by lookup key), webhook handling for purchases, renewals, and cancellations, honest confirmation emails, "delivery owed" log lines, `biz_subscriptions` table. `/pricing` page, a pricing section on home, "Pricing" in every nav. (3) **App Store installs:** second cloud iPhone "Level AI App Store iPhone" (`MOBILERUN_APPSTORE_DEVICE_ID`, from Mobilerun's granted 3-day subscription). When the API install 404s (Mobilerun's catalog lacks our games; the 9 queued apps still 404), the agent installs through the phone's App Store and the playtest runs there.
@@ -66,8 +85,6 @@ the approver off and say so.
 - **State:** works; checked against a local Postgres: during a 75 s match-3 run the heartbeat advanced every 30 s (3:13:26, 3:13:56, 3:14:26 UTC); one Ctrl-C mid-run kept the job going, a second quit at once; one Ctrl-C while idle stopped in 5 s with `stopped: true`. Solver 25/25, typecheck clean.
 - **Next / heads-up:** **Pinara:** restart your worker to pick this up (Ctrl-C twice if it's mid-tune; the next push resumes an interrupted tune). Noel's worker is from before the auto-tuner; restarting it after a pull gives it both.
 
-### 2026-11-07 7:09 PM PT · Pinara · Claude Code · main
-
 ### 2026-11-07 19:35 PT · Abhinav (Claude) · branch `main`
 
 **What:** **Catalog split did not fix `read_people`.** Probe `ses_e9f0pnhfdr12kghsmgp2k4bssm`
@@ -96,7 +113,7 @@ service is at capacity". Platform redeployed at 19:12 with the two catalogs.
 **State:** Typechecks. Vault/setup/approval-test not yet run with the split.
 **Next / heads-up:** Abhinav: `npm run vault && npm run setup && npm run approval-test`.
 
-### 2026-11-07 7:14 PM PT · Pinara · Claude Code · main
+### 2026-11-07 7:09 PM PT · Pinara · Claude Code · main
 - **What:** The speed tests in Splash Sort and Turbo Lanes measure CPU time (`process.cpuUsage`) instead of wall time. The limits are the same (3 s and 4 s).
 - **Why:** Turbo Lanes' test failed 4 of 5 runs while a solver worker was using the laptop's cores (load average about 30 on 8 cores): 6.0 s wall time, but only 2.1 s of CPU. A test that fails on a busy machine says nothing about the game.
 - **Files:** `games/racer/test/racer.test.ts`, `games/watersort/test/watersort.test.ts`.

@@ -58,25 +58,44 @@ export interface Design {
   game_id: string;
   level: Record<string, unknown>;
   target: number;
+  resumed: boolean; // an earlier tune of this version stopped mid-way (worker stopped or crashed)
 }
 
-/** Atomically take the oldest untuned Designer level for a game this worker can tune. */
+/** A version left mid-tune is picked up again this long after its last change. */
+export const RESUME_AFTER_MINUTES = 20;
+
+/**
+ * Atomically take the oldest level to tune, for a game this worker can tune: a new Designer level,
+ * or a version whose tune stopped mid-way. That one is still 'solving' RESUME_AFTER_MINUTES after
+ * its last change, with no queued or running measurement and no newer version. A live tune always
+ * has a running measurement or saves a new version within seconds, so it is never taken.
+ */
 export async function claimDesign(q: Query, games: string[]): Promise<Design | null> {
   const tunable = games.filter((g) => KNOBS[g]);
   if (!tunable.length) return null;
   const [r] = await q(
-    `update levels set status = 'solving', updated_at = now()
-      where level_id = (select level_id from levels
-                         where status = 'draft' and parent_level_id is null and created_by = 'designer'
-                           and game_id = any($1) and created_at < now() - interval '15 seconds'
-                         order by created_at
-                         for update skip locked
-                         limit 1)
-      returning level_id::text as level_id, game_id, level, target_win_rate`,
-    [tunable],
+    `with pick as (
+       select l.level_id, l.status as was from levels l
+        where l.game_id = any($1)
+          and ((l.status = 'draft' and l.parent_level_id is null and l.created_by = 'designer'
+                and l.created_at < now() - interval '15 seconds')
+            or (l.status = 'solving' and l.created_by in ('designer', 'tuner')
+                and l.updated_at < now() - make_interval(mins => $2::int)
+                and not exists (select 1 from solver_runs r where r.level_id = l.level_id and r.status in ('queued', 'running'))
+                and not exists (select 1 from levels c where c.parent_level_id = l.level_id)))
+        order by l.created_at
+        for update of l skip locked
+        limit 1)
+     update levels set status = 'solving', updated_at = now()
+       from pick where levels.level_id = pick.level_id
+     returning levels.level_id::text as level_id, levels.game_id, levels.level, levels.target_win_rate, pick.was`,
+    [tunable, RESUME_AFTER_MINUTES],
   );
   if (!r) return null;
-  return { level_id: String(r.level_id), game_id: String(r.game_id), level: asJson(r.level) as Record<string, unknown>, target: Number(r.target_win_rate) };
+  return {
+    level_id: String(r.level_id), game_id: String(r.game_id), level: asJson(r.level) as Record<string, unknown>,
+    target: Number(r.target_win_rate), resumed: r.was === "solving",
+  };
 }
 
 /** One measurement, recorded as a solver_runs row like any other, with the same seeds. */
@@ -122,8 +141,8 @@ export function nextEase(seen: Array<{ e: number; rate: number }>, e: number, ra
 
 export type TuneOutcome =
   | { kind: "idle" }
-  | { kind: "accepted"; level_id: string; game_id: string; target: number; measured: number; rounds: number }
-  | { kind: "rejected"; level_id: string; game_id: string; target: number; reason: string; rounds: number };
+  | { kind: "accepted"; level_id: string; game_id: string; target: number; measured: number; rounds: number; resumed: boolean }
+  | { kind: "rejected"; level_id: string; game_id: string; target: number; reason: string; rounds: number; resumed: boolean };
 
 export async function tuneNextDesign(
   q: Query, workerId: string, getAdapter: GetAdapter, opts: { games: string[]; threads?: number; maxSeconds?: number },
@@ -138,13 +157,19 @@ export async function tuneNextDesign(
   const reject = async (levelId: string, reason: string, rounds: number): Promise<TuneOutcome> => {
     await q(`update levels set status = 'rejected', updated_at = now() where level_id = $1`, [levelId]);
     await log(q, "tuner", "reject_level", `auto-tuner (program): ${reason}`, "rejected", "level", levelId);
-    return { kind: "rejected", level_id: levelId, game_id: d.game_id, target: d.target, reason, rounds };
+    return { kind: "rejected", level_id: levelId, game_id: d.game_id, target: d.target, reason, rounds, resumed: d.resumed };
   };
 
   let level = d.level;
   let levelId = d.level_id;
   const v0 = a.validate(level);
   if (!v0.ok) return reject(levelId, `invalid level: ${v0.errors[0]}`, 0);
+  if (d.resumed) {
+    // A measurement that never finished is marked failed (failStale). Two of them on one version
+    // means it may be what stops the harness, so it isn't retried again.
+    const [f] = await q(`select count(*)::int as n from solver_runs where level_id = $1 and status = 'failed'`, [levelId]);
+    if (Number(f!.n) >= 2) return reject(levelId, "tuning stopped mid-way twice on this version, so it isn't retried", 0);
+  }
 
   // Work in "ease" coordinates e = dir * value, so a higher e always means an easier level.
   let lo = knob.dir === 1 ? knob.lo : -knob.hi;
@@ -161,11 +186,11 @@ export async function tuneNextDesign(
     }
     if (knob.solverFloor && typeof m.out.min_moves === "number" && knob.dir === 1) lo = Math.max(lo, m.out.min_moves);
     seen.push({ e, rate: m.r.win_rate });
-    const why = `${bot} ${m.r.wins}/${m.r.runs} = ${Math.round(m.r.win_rate * 100)}% (95% ${Math.round(m.r.ci95_low * 100)}-${Math.round(m.r.ci95_high * 100)}%), ${knob.path.join(".")} = ${getKnob(level, knob.path)}, target ${Math.round(d.target * 100)}%, round ${round}`;
+    const why = `${bot} ${m.r.wins}/${m.r.runs} = ${Math.round(m.r.win_rate * 100)}% (95% ${Math.round(m.r.ci95_low * 100)}-${Math.round(m.r.ci95_high * 100)}%), ${knob.path.join(".")} = ${getKnob(level, knob.path)}, target ${Math.round(d.target * 100)}%, round ${round}${d.resumed ? " (resumed after the tune stopped mid-way)" : ""}`;
     if (Math.abs(m.r.win_rate - d.target) <= TOLERANCE + 1e-9 && m.out.solvable !== false) {
       await q(`update levels set status = 'accepted', measured_win_rate = $2, updated_at = now() where level_id = $1`, [levelId, m.r.win_rate]);
       await log(q, "tuner", "accept_level", `auto-tuner (program): ${why}`, `measured ${m.r.win_rate}`, "level", levelId);
-      return { kind: "accepted", level_id: levelId, game_id: d.game_id, target: d.target, measured: m.r.win_rate, rounds: round };
+      return { kind: "accepted", level_id: levelId, game_id: d.game_id, target: d.target, measured: m.r.win_rate, rounds: round, resumed: d.resumed };
     }
     if (round === MAX_ROUNDS) return reject(levelId, `not within ${TOLERANCE * 100} pts after ${MAX_ROUNDS} rounds: ${why}`, round);
 
@@ -178,13 +203,16 @@ export async function tuneNextDesign(
     const v = a.validate(nextLevel);
     if (!v.ok) return reject(levelId, `retuned level invalid: ${v.errors[0]}`, round);
 
-    // Save the new version (status 'solving' so nothing else picks it up); retire the old one.
+    // Save the new version (status 'solving' so nothing else picks it up) and retire the old one,
+    // in one statement so a stop between the two can't leave the old one 'solving'.
     const [child] = await q(
-      `insert into levels(game_id, level, target_win_rate, status, parent_level_id, created_by, notes)
-       values ($1, $2, $3, 'solving', $4, 'tuner', $5) returning level_id::text as level_id`,
+      `with child as (
+         insert into levels(game_id, level, target_win_rate, status, parent_level_id, created_by, notes)
+         values ($1, $2, $3, 'solving', $4, 'tuner', $5) returning level_id),
+       retired as (update levels set status = 'rejected', updated_at = now() where level_id = $4 returning level_id)
+       select child.level_id::text as level_id from child, retired`,
       [d.game_id, JSON.stringify(nextLevel), d.target, levelId, `auto-tune round ${round + 1}: ${knob.path.join(".")} ${getKnob(level, knob.path)} → ${knob.dir * e}`],
     );
-    await q(`update levels set status = 'rejected', updated_at = now() where level_id = $1`, [levelId]);
     await log(q, "tuner", "save_level", `auto-tuner (program): ${why}; trying ${knob.path.join(".")} = ${knob.dir * e}`, "retuned version saved", "level", String(child!.level_id));
     levelId = String(child!.level_id);
     level = nextLevel;
