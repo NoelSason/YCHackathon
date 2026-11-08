@@ -3,6 +3,9 @@
 // The `stub` adapter remains available for backward-compatible smoke runs.
 import { adapter as match3 } from "../../../games/match3/adapter/index.js";
 import { adapter as platformer } from "../../../games/platformer/adapter/index.js";
+// Pinara's games 4 and 5 (games/watersort, games/racer).
+import { adapter as watersort } from "../../../games/watersort/adapter/index.js";
+import { adapter as racer } from "../../../games/racer/adapter/index.js";
 
 export interface ValidateOk { ok: true }
 export interface ValidateErr { ok: false; errors: string[] }
@@ -68,6 +71,8 @@ export const stubAdapter: Adapter = {
 const registry = new Map<string, Adapter>([
   [match3.game_id, match3],
   [platformer.game_id, platformer],
+  [watersort.game_id, watersort],
+  [racer.game_id, racer],
   [stubAdapter.game_id, stubAdapter],
 ]);
 

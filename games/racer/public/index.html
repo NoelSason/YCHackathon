@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#07060f">
+  <title>Turbo Lanes</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main id="app">
+    <header class="hud">
+      <div class="brand">TURBO<span>LANES</span></div>
+      <div class="stat time" aria-live="off"><small>TIME</small><b id="time">0.0</b></div>
+      <div class="stat"><small>COINS</small><b id="coins">0</b></div>
+    </header>
+    <div class="progress" aria-hidden="true"><div class="progress-fill" id="progress"></div></div>
+    <p class="notice hidden" id="notice" role="status"></p>
+
+    <section class="road" id="road" aria-label="Road">
+      <div class="world" id="world"></div>
+      <div class="car" id="car" aria-label="Your car"><i class="flame"></i><i class="body"></i></div>
+      <div class="speedlines" aria-hidden="true"></div>
+      <div class="float" id="float" aria-hidden="true"></div>
+    </section>
+
+    <section class="controls">
+      <button class="steer" id="left" type="button" aria-label="Steer left">◀</button>
+      <button class="steer" id="right" type="button" aria-label="Steer right">▶</button>
+    </section>
+
+    <nav class="samples" id="samples" aria-label="Practice tracks"></nav>
+  </main>
+
+  <div id="overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="ov-title">
+    <div class="card">
+      <h2 id="ov-title">Turbo Lanes</h2>
+      <p id="ov-text"></p>
+      <div class="stars" id="ov-stars" aria-hidden="true"></div>
+      <button class="btn" id="ov-btn" type="button">Start</button>
+      <p class="keys">Tap ◀ ▶, swipe, or use the arrow keys</p>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -49,6 +49,18 @@
       "availability": "attached_mcp_required",
       "operations": ["submit_bounded_agent_task", "read_task_result", "inspect_trajectory_screenshots"],
       "verification": "Mobilerun may confirm editor navigation, local save, and visual loading. It cannot prove frame-exact completion or difficulty."
+    },
+    "watersort_adapter": {
+      "mode": "programmatic",
+      "availability": "planned_not_connected",
+      "operations": ["validate_level", "solve_level", "save_level"],
+      "verification": "Schema and rules validation, exact breadth-first solve (solvable within move_limit, minimum pours), then seeded bot simulation (human, greedy, random). The adapter is in games/watersort/adapter but not registered in platform/mcp/src/adapters.ts yet; do not claim results until the platform returns them."
+    },
+    "racer_adapter": {
+      "mode": "programmatic",
+      "availability": "planned_not_connected",
+      "operations": ["validate_level", "solve_level", "save_level"],
+      "verification": "Schema and rules validation, exact fastest-finish solve (solvable within time_limit, minimum ticks), then seeded bot simulation (human, greedy, random). The adapter is in games/racer/adapter but not registered in platform/mcp/src/adapters.ts yet; do not claim results until the platform returns them."
     }
   },
   "games": {
@@ -77,6 +89,24 @@
         "design": "games/editors/geometry-dash/SKILL.md",
         "evaluate": "games/editors/geometry-dash/SKILL.md",
         "implement": "games/editors/geometry-dash/SKILL.md"
+      }
+    },
+    "watersort": {
+      "label": "Splash Sort (water-sort puzzle)",
+      "interface": "watersort_adapter",
+      "skills": {
+        "design": "games/watersort/SKILL.md",
+        "evaluate": "games/watersort/SKILL.md",
+        "implement": "games/watersort/SKILL.md"
+      }
+    },
+    "racer": {
+      "label": "Turbo Lanes (lane racer)",
+      "interface": "racer_adapter",
+      "skills": {
+        "design": "games/racer/SKILL.md",
+        "evaluate": "games/racer/SKILL.md",
+        "implement": "games/racer/SKILL.md"
       }
     }
   }

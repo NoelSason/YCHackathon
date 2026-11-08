@@ -20,6 +20,66 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:55 PT · Pinara (Claude Code) · branch `main`
+
+**What:**
+- **Two new games, built from scratch** (Pinara's games 4 and 5; Max keeps games 1 to 3, per
+  Pinara). Each has our own name and look:
+  - **Splash Sort** (`games/watersort/`): a water-sort puzzle with an exact breadth-first solver
+    (fewest pours, and proof of unsolvable levels).
+  - **Turbo Lanes** (`games/racer/`): a lane racer whose rules run in fixed ticks, with an exact
+    fastest-finish solver.
+- **What each game has:**
+  - The adapter (`platform/CONTRACTS.md` §1, default and named `adapter` export).
+  - Bots `human` (the reference), `greedy`, and `random`, all seeded.
+  - A phone UI with labeled buttons, `?autoplay=1`, and `window.*` hooks for CDP checks.
+  - 4 practice levels and a `SKILL.md`.
+- **Registered both adapters** in `platform/mcp/src/adapters.ts` (two imports, same pattern as
+  Max's), and added both to `games/skill-routing.json` (additions only, marked
+  `planned_not_connected`).
+- **Tuner prompt fix:** the reference bot is now the first of `human`, `search`, `greedy` the game
+  has, never `random`. Before this, Max's games (bots `random`, `greedy`) would have been tuned
+  against `random`.
+
+**Why:** More genres on one platform, with numbers that can be proven: solvable, minimum moves, and
+human-bot win rates that respond smoothly to one knob each.
+**Files:** `games/watersort/`, `games/racer/`, `platform/mcp/src/adapters.ts`,
+`platform/naive/src/roster.ts`, `games/skill-routing.json`, `AGENTS.md`.
+**State:** Works locally.
+- `npm test`: 8/8 pass in each game. This includes a run through `solver/src/run.ts`.
+- Typecheck is clean in both games, `platform/mcp`, `platform/naive`, and `solver`.
+  `solver` tests pass 13/13 with the new registry.
+- Played in headless Chromium at iPhone 13 size:
+  - Splash Sort autoplay won in 14 pours, which is the solver's minimum.
+  - Turbo Lanes autoplay won in 82 ticks, also the solver's minimum, with 0 crashes.
+  - The only console error was the expected 404 from the missing `/levels/:id` route.
+- Measured knobs, human-bot win rate:
+
+  | Game | Knob | Values | Human win rate |
+  |---|---|---|---|
+  | Splash Sort | `move_limit`, at min / +2 / +4 / +6 | 23 / 25 / 27 / 29 | 2% / 26% / 84% / 98% |
+  | Turbo Lanes | `time_limit`, at min / +10 / +20 | 82 / 92 / 102 | 2% / 47% / 97% |
+  | Turbo Lanes | `speed` | 5 / 14 | 71% / 13% |
+
+**Next / heads-up:**
+- **Abhinav:**
+  1. Redeploy the platform so the MCP server sees `watersort` and `racer`.
+  2. Insert their `games` rows (SQL in each game's README). Only `stub` exists in Neon, so
+     `save_level` fails for match3 and platformer too.
+  3. Add a public `GET /levels/:id` returning `{ level_id, game_id, level }`, so any browser game can
+     open `?level=<id>`.
+  4. Push `game-watersort` and `game-racer` skills.
+  5. Re-run `npm run setup` for the Tuner fix.
+- **Max:**
+  - Please host `games/watersort/dist` and `games/racer/dist` at `${GAMES_BASE_URL}/<game_id>/`. Build
+    them with `npm run build`; `dist/` is git-ignored.
+  - Your bots are `random` and `greedy`, so the Tuner now uses `greedy` as the reference. Add a
+    `human` or `search` bot if you want a closer match to people.
+- **Everyone:** the master plan still lists three games. This adds games 4 and 5 as Pinara's; the
+  team should confirm.
+- **Pinara:** restart the solver worker (Ctrl-C, `caffeinate -i npm run worker`), so it loads the
+  new registry with match3, platformer, watersort, and racer.
+
 ### 2026-11-07 17:00 PT · Noel (Claude Code) · branch `main`
 
 **What:**

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b1026">
+  <title>Splash Sort</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main id="app">
+    <header class="top">
+      <div class="brand"><span class="drop" aria-hidden="true"></span>Splash Sort</div>
+      <div class="level-title" id="title"></div>
+    </header>
+
+    <section class="hud">
+      <div class="pill" id="moves" aria-live="polite">Pours 0 / 0</div>
+      <div class="meter" aria-hidden="true"><div class="meter-fill" id="meter"></div></div>
+      <button id="restart" class="btn ghost" type="button" aria-label="Restart level">Restart</button>
+    </section>
+
+    <section id="board" class="board" aria-label="Tubes"></section>
+    <p class="hint" id="hint">Tap a tube, then tap the tube to pour into.</p>
+    <p class="notice hidden" id="notice" role="status"></p>
+
+    <nav class="samples" id="samples" aria-label="Practice levels"></nav>
+  </main>
+
+  <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ov-title">
+    <div class="card">
+      <div class="burst" aria-hidden="true"></div>
+      <h2 id="ov-title"></h2>
+      <p id="ov-text"></p>
+      <div class="stars" id="ov-stars" aria-hidden="true"></div>
+      <button class="btn" id="ov-btn" type="button"></button>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

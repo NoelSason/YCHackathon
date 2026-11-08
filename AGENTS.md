@@ -219,6 +219,8 @@ After a pull, read the new entries at the top of `log.md` before you start work.
 
 - `platform/`: Abhinav. Neon schema, the MCP server, contracts. See `platform/README.md`.
 - `games/<game_id>/`: Max. One directory per game; adapter at `games/<game_id>/adapter/`.
+  Exceptions: `games/watersort/` (Splash Sort) and `games/racer/` (Turbo Lanes) are Pinara's
+  (games 4 and 5). Each has its own `README.md`, `SKILL.md`, tests, and phone UI.
 - `business/` (Noel): business ops. Research, outreach and replies, CRM, billing, finance, the lead
   form, phone playtests, and the business MCP server. It writes to the platform's tables;
   `business/src/db/schema.sql` adds a few columns and tables on top. Its agents are in
