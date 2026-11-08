@@ -257,11 +257,47 @@
         <p class="live"><span aria-hidden="true"></span>Live</p>
       </div>
       <dl class="stat-grid" id="stat-grid">
+        <div class="stat wide" data-key="reviewsRead"><dt>Player reviews our agents read</dt><dd>0</dd></div>
         <div class="stat" data-key="studiosAudited"><dt>Studios whose reviews we read</dt><dd>0</dd></div>
         <div class="stat" data-key="playtestsRun"><dt>Playtests run on a real iPhone</dt><dd>0</dd></div>
         <div class="stat" data-key="emailsSent"><dt>Emails sent to studios</dt><dd>0</dd></div>
         <div class="stat" data-key="signups"><dt>Studios who signed up</dt><dd>0</dd></div>
       </dl>
+    </div>
+  </section>
+
+  <section class="section research" id="players" aria-labelledby="players-title" hidden>
+    <div class="wrap">
+      <div class="stats-head">
+        <h2 id="players-title">What players are saying right now</h2>
+        <p class="live"><span aria-hidden="true"></span>Live</p>
+      </div>
+      <p class="intro">Our agents read the newest Google Play reviews of the top puzzle, casual, board, and word games. They count every review that talks about the levels.</p>
+
+      <div class="rs-empty" id="rs-empty" hidden>
+        <div class="rs-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div>
+          <p class="rs-empty-title">Our agents are reading the charts now.</p>
+          <p>The first numbers show up here as soon as a chart is read.</p>
+        </div>
+      </div>
+
+      <div class="rs-grid" id="rs-main" hidden>
+        <div class="rs-panel">
+          <dl class="rs-nums">
+            <div><dt>Player reviews read</dt><dd id="rs-reviews">0</dd></div>
+            <div><dt>Games read</dt><dd id="rs-games">0</dd></div>
+          </dl>
+          <h3 class="rs-h">Reviews about the levels</h3>
+          <ul class="rs-bars" id="rs-bars"></ul>
+          <p class="rs-key">One review can count in more than one row.</p>
+        </div>
+
+        <div class="rs-side">
+          <h3 class="rs-side-h">The latest read of each chart</h3>
+          <ol class="rs-charts" id="rs-charts"></ol>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -431,10 +467,14 @@
       var shown = [];
       section.querySelectorAll('.stat').forEach(function (stat) {
         var v = data ? data[stat.getAttribute('data-key')] : null;
-        if (typeof v === 'number' && isFinite(v) && v >= 0) shown.push([stat, Math.round(v)]);
+        // The reviews tile waits for its first read rather than showing a big zero.
+        var wideZero = stat.classList.contains('wide') && v === 0;
+        if (typeof v === 'number' && isFinite(v) && v >= 0 && !wideZero) shown.push([stat, Math.round(v)]);
         else stat.hidden = true;
       });
       if (!shown.length || shown.every(function (s) { return s[1] === 0; })) return;
+      var wide = section.querySelector('.stat.wide');
+      if (wide && wide.hidden) section.querySelector('.stat-grid').classList.add('no-wide');
       section.hidden = false;
       shown.forEach(function (s) { countUp(s[0].querySelector('dd'), s[1]); });
     })

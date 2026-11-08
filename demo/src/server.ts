@@ -8,7 +8,7 @@ import { timingSafeEqual } from "node:crypto";
 import { loadOutreach, loadStageStudios, PIPELINE_STAGES, sampleOutreach, sampleStageStudios } from "./outreach.js";
 import { momentFor } from "./moments.ts";
 import { computeStats, type StageEvent } from "./events.ts";
-import { DEFAULT_ACTIVITY, DEFAULT_STEPINS, LiveFeed, RehearsalFeed, ReplayFeed, parseTables, type Feed, type HealthItem, type Pipeline } from "./feeds.ts";
+import { DEFAULT_ACTIVITY, DEFAULT_STEPINS, LiveFeed, RehearsalFeed, ReplayFeed, loadResearch, parseTables, sampleResearch, type Feed, type HealthItem, type Pipeline } from "./feeds.ts";
 import { PhoneView } from "./phone.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -208,6 +208,15 @@ const server = createServer(async (req, res) => {
         const totalUsd = Math.round(list.reduce((sum, e) => sum + (e.costUsd ?? 0), 0) * 100) / 100;
         res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
         res.end(JSON.stringify({ type, count: list.length, totalUsd, rows: annotate(list.slice(-300)).reverse() }));
+        return;
+      }
+      case "/api/market-research": {
+        // The Research agent's store-chart passes. Rehearsal is invented (and the page labels it);
+        // a replay has no research table to read, so it says so instead of mixing in live numbers.
+        const research =
+          feed.mode === "sample" ? sampleResearch() : feed.mode === "replay" ? null : await loadResearch(env.DATABASE_URL);
+        res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+        res.end(JSON.stringify({ mode: feed.mode, research }));
         return;
       }
       case "/api/studios": {

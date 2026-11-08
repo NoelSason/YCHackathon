@@ -197,6 +197,7 @@
   .qr.second img { width: 7rem; height: 7rem; }
 
   /* ---------- team ---------- */
+  .team-col { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--gap); min-height: 0; min-width: 0; }
   .team { display: flex; flex-direction: column; }
   .agents { list-style: none; margin: 0; padding: 0 0.75rem 0.8rem; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(4.4rem, auto); align-content: start; gap: 0.55rem; flex: 1; min-height: 0; }
   .agent {
@@ -300,6 +301,28 @@
   .stage-n.money .c { color: var(--mint-l); }
   .stage-n.test .c { color: var(--sun); }
   .stage-n.money .l { white-space: normal; }
+  /* Market research: the Research agent's store-chart passes. Click for every pass. */
+  .research-card { display: grid; grid-template-rows: auto 1fr; gap: 0.45rem; padding: 0.7rem 1rem 0.8rem; align-content: start; }
+  .research-card .card-h { padding: 0; white-space: nowrap; }
+  .research-card .card-h .aside { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .research-card .card-h .tile { width: 1.15rem; height: 1.15rem; border-radius: 0.3rem; }
+  .research-card.clickable:hover { box-shadow: 0 0.5rem 0 var(--ink-deep); background: var(--ink-2); }
+  .research-card.clickable:active { box-shadow: 0 0.1rem 0 var(--ink-deep); }
+  .rs-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.9rem; align-items: center; min-width: 0; }
+  .rs-big .c { font: 800 1.85rem/1 var(--display); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--sun); }
+  .rs-big .l { font: 700 0.78rem/1.2 var(--body); color: var(--on-ink-2); margin-top: 0.3rem; white-space: nowrap; }
+  .rs-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.3rem 0.7rem; min-width: 0; padding-left: 0.9rem; border-left: 2px solid var(--ink-3); }
+  .rs-split > div { display: flex; align-items: baseline; gap: 0.35rem; min-width: 0; font: 700 0.76rem/1.15 var(--body); color: var(--on-ink-2); }
+  .rs-split > div > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .rs-split b { flex: none; font: 800 0.9rem/1 var(--display); color: var(--l); font-variant-numeric: tabular-nums; }
+  .rs-note { grid-column: 1 / -1; font: 600 0.88rem/1.3 var(--body); color: var(--on-ink-3); }
+  .rs-tot { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 0.5rem 0.7rem; align-items: center; margin-bottom: 1.1rem; font: 700 1rem/1.2 var(--body); }
+  .rs-tot i { width: 1.1rem; height: 1.1rem; border-radius: 0.3rem; background: var(--c); box-shadow: inset 0 -2px 0 var(--cd); }
+  .rs-tot .bar { height: 0.55rem; border-radius: 999px; background: rgba(255, 255, 255, 0.09); overflow: hidden; }
+  .rs-tot .bar span { display: block; height: 100%; width: var(--w); background: var(--c); border-radius: 999px; }
+  .rs-tot b { font: 800 1rem/1 var(--display); font-variant-numeric: tabular-nums; text-align: right; }
+  .rs-fine { margin: -0.4rem 0 1.1rem; font: 600 0.85rem/1.35 var(--body); color: var(--on-ink-3); }
+  .studio .ev { font: 600 0.95rem/1.35 var(--body); color: var(--mint-l); }
   .steps-card { background: #fff; color: var(--ink); border: 3px solid var(--ink); border-radius: var(--r-lg); box-shadow: 0 0.4rem 0 var(--ink); padding: 0.65rem 1rem 0.7rem; display: grid; gap: 0.45rem; align-content: start; min-width: 0; }
   .steps-card h3 { margin: 0; display: flex; align-items: center; gap: 0.55rem; font: 700 1rem/1.1 var(--display); letter-spacing: -0.015em; }
   .steps-card h3 .tile { width: 1.15rem; height: 1.15rem; border-radius: 0.3rem; }
@@ -359,8 +382,19 @@
   #phone-big p { margin: 0; font: 600 1.4rem/1.4 var(--body); color: var(--on-ink-2); }
   #phone-big .livetag { font-size: 1rem; padding: 0.5rem 0.8rem; }
 
-  #outreach-view { top: var(--ov-top, 4.5rem); background: var(--paper); }
-  #outreach-view iframe { width: 100%; height: 100%; border: 0; background: transparent; }
+  #outreach-view { top: var(--ov-top, 4.5rem); background: var(--paper); grid-template-rows: auto minmax(0, 1fr); }
+  #outreach-view iframe { width: 100%; height: 100%; border: 0; background: transparent; display: block; }
+  .ov-bar { display: flex; align-items: center; gap: 1rem; padding: 0.15rem 1.3rem 0.35rem; }
+  .ov-back {
+    display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.6rem 1.05rem 0.55rem;
+    background: #fff; color: var(--ink); border: 3px solid var(--ink); border-radius: 0.9rem; box-shadow: 0 0.3rem 0 var(--ink);
+    font: 800 1rem/1 var(--display); letter-spacing: -0.02em;
+  }
+  .ov-back:hover { background: var(--sun); box-shadow: 0 0.42rem 0 var(--ink); }
+  .ov-back:active { box-shadow: 0 0.08rem 0 var(--ink); }
+  .ov-hint { font: 600 0.92rem/1 var(--body); color: var(--ink-soft); display: inline-flex; align-items: center; gap: 0.35rem; }
+  .ov-frame { min-height: 0; }
+  .brand.closes { cursor: pointer; }
 
   #help { background: rgba(12, 14, 34, 0.7); place-items: center; }
   #help .hb { background: #fff; border: 4px solid var(--ink); border-radius: 1.8rem; box-shadow: 0 0.6rem 0 var(--ink); padding: 1.8rem 2.2rem 1.6rem; width: min(44rem, calc(100vw - 2rem)); }
@@ -485,10 +519,16 @@
       </div>
 
       <div class="bottom">
-        <section class="card team" aria-label="The team">
-          <div class="card-h">The team <span class="aside" id="team-n"></span></div>
-          <ul class="agents scroll" id="agents"></ul>
-        </section>
+        <div class="team-col">
+          <section class="card team" aria-label="The team">
+            <div class="card-h">The team <span class="aside" id="team-n"></span></div>
+            <ul class="agents scroll" id="agents"></ul>
+          </section>
+          <section class="card research-card clickable" id="research-card" role="button" tabindex="0" aria-label="Market research" title="See every chart the Research agent read">
+            <div class="card-h"><span class="tile" data-s="circle" style="--c:var(--cobalt);--cd:var(--cobalt-d)"></span>Market research <span class="aside" id="rs-when"></span></div>
+            <div class="rs-body" id="rs-body"><span class="rs-note">Loading…</span></div>
+          </section>
+        </div>
         <section class="card feed-card" aria-label="What the agents are doing">
           <div class="card-h">What the agents are doing <span class="aside" id="feed-n"></span><span class="filters" id="filters" hidden></span></div>
           <ul class="feed scroll" id="feed"><li class="empty">Waiting for the first agent action.</li></ul>
@@ -545,7 +585,13 @@
   </div>
 </div>
 
-<div class="overlay" id="outreach-view" aria-label="Outreach board"></div>
+<div class="overlay" id="outreach-view" role="dialog" aria-label="Outreach board">
+  <div class="ov-bar">
+    <button type="button" class="ov-back clickable" id="ov-back">← Back to the company</button>
+    <span class="ov-hint">Press <kbd>O</kbd> or <kbd>Esc</kbd> to go back</span>
+  </div>
+  <div class="ov-frame" id="ov-frame"></div>
+</div>
 
 <div class="overlay" id="help" role="dialog" aria-label="Keys">
   <div class="hb">
@@ -558,7 +604,7 @@
       <dt><kbd>D</kbd></dt><dd>Setup details (only for you)</dd>
       <dt><kbd>?</kbd></dt><dd>Show or hide these keys</dd>
       <dt><kbd>Esc</kbd></dt><dd>Close whatever is open</dd>
-      <dt>Click</dt><dd>An agent filters the feed. A number, a studio stage, or the phone opens its details.</dd>
+      <dt>Click</dt><dd>An agent filters the feed. A number, a studio stage, market research, or the phone opens its details.</dd>
     </dl>
     <p id="help-note">Everything on this screen comes from the company's activity log. Nothing is typed in.</p>
   </div>
@@ -677,7 +723,7 @@ function fit(el) {
   el.style.fontSize = "";
   for (let i = 0; i < 12 && el.scrollWidth > el.clientWidth + 1; i++) el.style.fontSize = `${parseFloat(getComputedStyle(el).fontSize) * 0.92}px`;
 }
-const refit = () => ["actions", "decisions", "stepins", "spend", "pb-title"].forEach((id) => fit($(id)));
+const refit = () => ["actions", "decisions", "stepins", "spend", "pb-title", "rs-reviews"].forEach((id) => { if ($(id)) fit($(id)); });
 addEventListener("resize", refit);
 document.fonts?.ready.then(refit);
 
@@ -1052,6 +1098,60 @@ async function openStage(stage) {
 document.querySelectorAll("[data-rows]").forEach((el) => el.addEventListener("click", () => openRows(el.dataset.rows)));
 $("pipe").addEventListener("click", (e) => { const el = e.target.closest("[data-stage]"); if (el) openStage(el.dataset.stage); });
 
+// ---- Market research: what the players of the chart games say about levels -------------------------
+// Counts from the Research agent's store-chart passes (/api/market-research). A review can raise
+// more than one complaint, so the four kinds are shown side by side, not added up as reviews.
+const RS_KINDS = [["tooHard", "Too hard", "tomato", "too hard"], ["tooEasy", "Too easy", "sun", "too easy"], ["wantsMoreLevels", "More levels", "cobalt", "want more levels"], ["repetitive", "Repetitive", "grape", "repetitive"]];
+const RS_LIGHT = { tomato: "#ffb0a8", sun: "var(--sun)", cobalt: "#b3c0ff", grape: "#c9b5ff" };
+const cap = (t) => String(t || "").charAt(0).toUpperCase() + String(t || "").slice(1);
+let research = null;
+function renderResearch(r) {
+  research = r;
+  const body = $("rs-body"), when = $("rs-when");
+  const R = r && r.research;
+  if (r && r.mode === "replay") { when.textContent = ""; body.innerHTML = '<span class="rs-note">Not part of this replay.</span>'; return; }
+  if (!R || !R.available) { when.textContent = ""; body.innerHTML = '<span class="rs-note">No research logged yet.</span>'; return; }
+  const t = R.totals, latest = R.runs[0];
+  when.textContent = latest ? `${t.gamesRead.toLocaleString()} games, latest ${hm(latest.at)}` : "";
+  if (!t.passes) { body.innerHTML = '<span class="rs-note">The Research agent is reading the store charts. The first pass shows here when it lands.</span>'; return; }
+  const n = t.reviewsRead.toLocaleString();
+  const old = body.querySelector("#rs-reviews");
+  if (!old) {
+    body.innerHTML = `<div class="rs-big"><div class="c" id="rs-reviews"></div><div class="l" id="rs-games"></div></div><div class="rs-split" id="rs-split"></div>`;
+  }
+  bump($("rs-reviews"), n);
+  $("rs-games").textContent = "reviews read";
+  $("rs-split").innerHTML = RS_KINDS.map(([k, label, tone, words]) =>
+    `<div style="--l:${RS_LIGHT[tone]}" title="${t[k].toLocaleString()} reviews: ${words}"><b>${t[k].toLocaleString()}</b><span>${label}</span></div>`).join("");
+}
+async function loadResearch() {
+  try { renderResearch(await (await fetch("/api/market-research", { cache: "no-store" })).json()); }
+  catch { if (!research) { $("rs-body").innerHTML = '<span class="rs-note">Couldn\'t load the research. Retrying.</span>'; } }
+}
+async function openResearch() {
+  openDrawer("Market research", "Every store chart the Research agent read, newest first.");
+  await loadResearch();
+  const R = research && research.research;
+  if (research && research.mode === "replay") { $("dr-body").innerHTML = '<div class="dr-empty">Market research isn\'t part of this replay.</div>'; return; }
+  if (!R || !R.available || !R.totals.passes) { $("dr-body").innerHTML = '<div class="dr-empty">No chart passes yet. The Research agent reads one store chart about every 20 minutes.</div>'; return; }
+  const t = R.totals;
+  const max = Math.max(1, ...RS_KINDS.map(([k]) => t[k]));
+  const fake = research.mode === "sample" ? "Rehearsal data: invented. " : "";
+  $("dr-sub").textContent = `${fake}${t.reviewsRead.toLocaleString()} player reviews of ${t.gamesRead.toLocaleString()} games, across ${t.passes} chart pass${t.passes === 1 ? "" : "es"}. ${t.gamesWithEvidence.toLocaleString()} games showed a clear level problem.`;
+  const tot = `<div class="rs-tot">${RS_KINDS.map(([k, label, tone]) => {
+    const [c, cd] = TONES[tone];
+    return `<i style="--c:${c};--cd:${cd}"></i><span>${k === "wantsMoreLevels" ? "Want more levels" : label}</span><span class="bar" style="--c:${c}"><span style="--w:${(t[k] / max) * 100}%"></span></span><b>${t[k].toLocaleString()}</b>`;
+  }).join("")}</div><p class="rs-fine">Reviews about the levels, by kind. One review can count toward more than one kind.</p>`;
+  const when = (iso) => `${pt(iso, { weekday: "short", hour: "numeric", minute: "2-digit" })} PT`;
+  const runs = R.runs.map((x) => `<div class="studio"><b>${esc(cap(x.chart))}</b>
+      <span class="g">${esc(when(x.at))}: ${x.reviewsRead.toLocaleString()} reviews of ${x.gamesRead} games</span>
+      <span class="r">${RS_KINDS.map(([k, , , words]) => `${x[k]} ${words}`).join(", ")}</span>
+      ${x.topReason ? `<span class="ev">${esc(x.topReason)}</span>` : '<span class="t">No game on this chart showed a clear level problem.</span>'}</div>`).join("");
+  const more = R.runs.length < t.passes ? `<p class="rs-fine" style="margin-top:1rem">Showing the newest ${R.runs.length} of ${t.passes} passes.</p>` : "";
+  $("dr-body").innerHTML = tot + runs + more;
+}
+$("research-card").addEventListener("click", openResearch);
+
 // The latest playtest steps, shown beside the enlarged phone.
 const PLAYTEST_KINDS = new Set(["playtest_ordered", "playtest_started", "playtest_done", "report_sent"]);
 function renderPlaytestSteps() {
@@ -1073,11 +1173,12 @@ function toggle(id, force) {
     const b = $("banner");
     const top = (b.hidden ? document.querySelector("header") : b).getBoundingClientRect().bottom + 8;
     $("outreach-view").style.setProperty("--ov-top", `${top}px`);
-    if (!el.firstChild) el.innerHTML = '<iframe src="/outreach?embed=1" title="Outreach board"></iframe>';
+    if (!$("ov-frame").firstChild) $("ov-frame").innerHTML = '<iframe src="/outreach?embed=1" title="Outreach board"></iframe>';
   }
+  if (id === "outreach-view") document.querySelector(".brand").classList.toggle("closes", on);
   if (id === "phone-big" && on) { $("phone-card").classList.remove("spot"); $("dim").classList.remove("on"); fit($("pb-title")); }
 }
-function closeAll() { for (const o of overlays) $(o).classList.remove("show"); }
+function closeAll() { for (const o of overlays) $(o).classList.remove("show"); document.querySelector(".brand").classList.remove("closes"); }
 function handleKey(key) {
   const k = key.length === 1 ? key.toLowerCase() : key;
   // While a drawer is open, keys belong to it: only Esc does anything (closes it).
@@ -1100,6 +1201,9 @@ document.addEventListener("keydown", (e) => {
 });
 window.addEventListener("message", (e) => { if (e.origin === location.origin && e.data && typeof e.data.key === "string") handleKey(e.data.key); });
 $("open-outreach").addEventListener("click", () => toggle("outreach-view", true));
+// The in-place outreach board: the back button and the logo both return to the company.
+$("ov-back").addEventListener("click", () => toggle("outreach-view", false));
+document.querySelector(".brand").addEventListener("click", () => { if ($("outreach-view").classList.contains("show")) toggle("outreach-view", false); });
 
 // ---- Boot ------------------------------------------------------------------------------------
 async function boot() {
@@ -1167,6 +1271,8 @@ async function boot() {
   };
   setInterval(tickClock, 1000);
   setInterval(() => renderAgents(state.stats.perAgent), 5000);
+  loadResearch();
+  setInterval(loadResearch, 20_000);
   tickClock();
 
   // Rehearsal and screenshot helpers. ?view= opens a view; ?show=<moment kind> replays the newest
@@ -1182,6 +1288,7 @@ async function boot() {
   if (params.has("expand")) $("feed").querySelector(".item")?.classList.add("open");
   if (params.get("drawer") && ROWS[params.get("drawer")]) openRows(params.get("drawer"));
   if (params.get("stage")) openStage(params.get("stage"));
+  if (params.get("drawer") === "research") openResearch();
   if (params.get("scroll") === "bottom") setTimeout(() => window.scrollTo(0, document.documentElement.scrollHeight), 300);
   const want = params.get("show");
   if (want && state.mode === "sample") {

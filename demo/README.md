@@ -16,7 +16,7 @@ Keys on the stage (press **?** to see them on screen):
 | Key | What it does |
 |---|---|
 | **F** | Full screen |
-| **O** | Switch between the company and the outreach board, in place |
+| **O** | Switch between the company and the outreach board, in place (its "← Back to the company" button, Esc, or the logo also go back) |
 | **Q** | Show the "Become a customer" QR code full screen for the room to scan |
 | **P** | Spotlight the phone (also: click the phone) |
 | **D** | Setup details (only you see them) |
@@ -76,6 +76,7 @@ moment.
 | Become a customer | A QR code for `DEMO_JOIN_URL`: the signup page. Someone enters their game, and the agents audit its reviews and email them live. |
 | Play it yourself | A QR code for `DEMO_PLAY_URL` |
 | Studios | `studios` counts by stage, plus paid `payments` (real earnings and test payments shown separately; test is always labeled "not real") |
+| Market research (under the team) | `biz_market_research`: every store-chart pass the Research agent logged, totalled (reviews read, and how many reviews say the levels are too hard, too easy, need more levels, or repetitive). Click it for each pass with its strongest example. Rehearsal shows invented passes; a replay says research isn't part of it |
 | Outreach board (O, or `/outreach`) | Every studio with the evidence sentence, the player quote, the email subject and time, reply status, and stage, refreshed every 5 s, with totals on top |
 
 Nothing is typed in. Without a log the stage says so and shows the setup details.
@@ -117,6 +118,6 @@ Names are made up and addresses use the reserved `.example` domain. The outreach
 drawers show matching invented studios.
 
 Screenshot helpers (rehearsal or live, they only open views): `?view=help|qr|phone|outreach|details`,
-`?agent=<agent>`, `?drawer=actions|decisions|stepins|spend`, `?stage=<stage>`, `?expand=1`,
+`?agent=<agent>`, `?drawer=actions|decisions|stepins|spend|research`, `?stage=<stage>`, `?expand=1`,
 `?still=1` (polls instead of streaming, for headless Chrome). `?show=<moment kind>` replays a moment
 from history, and only in rehearsal mode.

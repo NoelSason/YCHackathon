@@ -195,6 +195,12 @@ async function refresh() {
 refresh();
 setInterval(refresh, 5000);
 
+// Inside the stage, links back to "/" would load the console inside this frame. Close the board instead.
+if (embed) document.addEventListener("click", (e) => {
+  const a = e.target.closest('a[href="/"]');
+  if (a) { e.preventDefault(); parent.postMessage({ key: "Escape" }, location.origin); }
+});
+
 // Keys: inside the stage, pass them up so O, Q, P, and the rest keep working. On its own, O goes back.
 document.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;

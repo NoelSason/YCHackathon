@@ -368,3 +368,149 @@ export class RehearsalFeed implements Feed {
 
 /** The old name; `--sample` still works and means the same rehearsal story. */
 export const SampleFeed = RehearsalFeed;
+
+// ---------------------------------------------------------------------------------------------
+// Market research: one row per store-chart pass by the outreach loop (business ops' table
+// biz_market_research). Counts only, plus the strongest game's evidence sentence. No review text.
+
+export interface ResearchRun {
+  at: string;
+  chart: string;
+  gamesRead: number;
+  reviewsRead: number;
+  tooHard: number;
+  tooEasy: number;
+  wantsMoreLevels: number;
+  repetitive: number;
+  gamesWithEvidence: number;
+  topGame: string | null;
+  topReason: string | null;
+}
+
+export interface ResearchTotals {
+  passes: number;
+  gamesRead: number;
+  reviewsRead: number;
+  tooHard: number;
+  tooEasy: number;
+  wantsMoreLevels: number;
+  repetitive: number;
+  gamesWithEvidence: number;
+}
+
+/** `available` is false when there's no database or the table doesn't exist yet. */
+export interface Research {
+  available: boolean;
+  totals: ResearchTotals;
+  runs: ResearchRun[];
+}
+
+const RESEARCH_TABLE = "biz_market_research";
+
+export function totalsOf(runs: ResearchRun[]): ResearchTotals {
+  const sum = (k: keyof Omit<ResearchTotals, "passes">) => runs.reduce((n, r) => n + r[k], 0);
+  return {
+    passes: runs.length,
+    gamesRead: sum("gamesRead"),
+    reviewsRead: sum("reviewsRead"),
+    tooHard: sum("tooHard"),
+    tooEasy: sum("tooEasy"),
+    wantsMoreLevels: sum("wantsMoreLevels"),
+    repetitive: sum("repetitive"),
+    gamesWithEvidence: sum("gamesWithEvidence"),
+  };
+}
+
+const num = (v: unknown): number => (typeof v === "number" ? v : Number(v ?? 0)) || 0;
+const text = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
+const isoOf = (v: unknown): string => (v instanceof Date ? v.toISOString() : new Date(String(v)).toISOString());
+
+/** Every pass in the table, totalled, plus the newest `limit` passes. */
+export async function loadResearch(databaseUrl: string | undefined, limit = 60): Promise<Research> {
+  const empty: Research = { available: false, totals: totalsOf([]), runs: [] };
+  if (!databaseUrl) return empty;
+  const sql = neon(databaseUrl);
+  const ok = (await sql.query("select to_regclass($1) is not null as ok", [RESEARCH_TABLE])) as Array<{ ok: boolean }>;
+  if (ok[0]?.ok !== true) return empty;
+  const [agg, rows] = await Promise.all([
+    sql.query(
+      `select count(*)::int as passes, coalesce(sum(games_read), 0)::int as games_read, coalesce(sum(reviews_read), 0)::int as reviews_read,
+              coalesce(sum(too_hard), 0)::int as too_hard, coalesce(sum(too_easy), 0)::int as too_easy,
+              coalesce(sum(wants_more_levels), 0)::int as wants_more_levels, coalesce(sum(repetitive), 0)::int as repetitive,
+              coalesce(sum(games_with_evidence), 0)::int as games_with_evidence
+       from ${RESEARCH_TABLE}`,
+    ) as Promise<Array<Record<string, unknown>>>,
+    sql.query(`select * from ${RESEARCH_TABLE} order by ts desc limit $1`, [limit]) as Promise<Array<Record<string, unknown>>>,
+  ]);
+  const a = agg[0] ?? {};
+  return {
+    available: true,
+    totals: {
+      passes: num(a.passes),
+      gamesRead: num(a.games_read),
+      reviewsRead: num(a.reviews_read),
+      tooHard: num(a.too_hard),
+      tooEasy: num(a.too_easy),
+      wantsMoreLevels: num(a.wants_more_levels),
+      repetitive: num(a.repetitive),
+      gamesWithEvidence: num(a.games_with_evidence),
+    },
+    runs: rows.map((r) => ({
+      at: isoOf(r.ts),
+      chart: String(r.chart ?? ""),
+      gamesRead: num(r.games_read),
+      reviewsRead: num(r.reviews_read),
+      tooHard: num(r.too_hard),
+      tooEasy: num(r.too_easy),
+      wantsMoreLevels: num(r.wants_more_levels),
+      repetitive: num(r.repetitive),
+      gamesWithEvidence: num(r.games_with_evidence),
+      topGame: text(r.top_game),
+      topReason: text(r.top_reason),
+    })),
+  };
+}
+
+/** Rehearsal: invented passes, one every 20 minutes through the night. Every game here is made up. */
+const SAMPLE_CHARTS = ["top free puzzle", "top-grossing puzzle", "top free casual", "top free board", "top free word", "top-grossing casual", "top paid puzzle"];
+const SAMPLE_GAMES: Array<[string, string]> = [
+  ["Teacup Tiles", "say a level is too hard or impossible"],
+  ["Lantern Lane", "say the levels are too easy or take too long to get challenging"],
+  ["Marble Orchard", "ask for more levels"],
+  ["Pebble Path", "say the levels feel repetitive"],
+  ["Honeycomb Hop", "say a level is too hard or impossible"],
+  ["Word Willow", "ask for more levels"],
+  ["Cozy Hex", "say the levels feel repetitive"],
+];
+
+export function sampleResearch(now = Date.now(), passes = 18): Research {
+  const slot = 20 * 60_000;
+  const last = Math.floor(now / slot) * slot + 3 * 60_000;
+  const newest = last > now ? last - slot : last;
+  const runs: ResearchRun[] = [];
+  for (let i = 0; i < passes; i++) {
+    // A fixed pattern by slot number, so the numbers stay put between page refreshes.
+    const k = Math.floor(newest / slot) - i;
+    const h = (n: number) => ((k * 7919 + n * 104_729) % 997 + 997) % 997;
+    const games = 12 + (h(1) % 9);
+    const reviews = games * (110 + (h(2) % 50));
+    const evidence = h(3) % 4;
+    const [game, phrase] = SAMPLE_GAMES[(k % SAMPLE_GAMES.length + SAMPLE_GAMES.length) % SAMPLE_GAMES.length]!;
+    const analyzed = 120 + (h(4) % 4) * 10;
+    const count = 4 + (h(5) % 7);
+    runs.push({
+      at: new Date(newest - i * slot).toISOString(),
+      chart: SAMPLE_CHARTS[(k % SAMPLE_CHARTS.length + SAMPLE_CHARTS.length) % SAMPLE_CHARTS.length]!,
+      gamesRead: games,
+      reviewsRead: reviews,
+      tooHard: 6 + (h(6) % 22),
+      tooEasy: 2 + (h(7) % 9),
+      wantsMoreLevels: 3 + (h(8) % 14),
+      repetitive: 1 + (h(9) % 8),
+      gamesWithEvidence: evidence,
+      topGame: evidence ? game : null,
+      topReason: evidence ? `${count} of the ${analyzed} newest Google Play reviews of ${game} ${phrase}.` : null,
+    });
+  }
+  return { available: true, totals: totalsOf(runs), runs };
+}
