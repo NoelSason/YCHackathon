@@ -160,3 +160,28 @@ allowance, measured with the game's `human` bot. The ceiling is the shortest rou
 a wrong turn on a long trail can cost many steps. Titles are `Trail 0001` …, with the same
 deterministic ids, so the Mosslight page walks the verified series in order.
 
+## Re-measuring after a rules change (added Nov 8, 00:25)
+
+When a game's rules change, its production levels' stored difficulty describes the old rules.
+`src/production/remeasure.ts` replays each accepted or published production level 200 times with
+the game's reference bot. It uses fresh seeds derived from the level id and a label, so reruns
+match.
+
+- **Dry run (default):** prints how many levels are still on target and lists the rest.
+- **`--write`:** in one transaction, adds a new done `solver_runs` row per level (`claimed_by =
+  remeasure:<label>`), sets `measured_win_rate` to the new number, and logs one
+  `production.remeasured` activity row.
+
+Content, status, ids, and older solver runs are never changed. Off-target levels are reported, not
+retuned. Honors both kill switches.
+
+```bash
+cd solver
+node --env-file=.env --import tsx src/production/remeasure.ts --game racer --label racer-rules-2026-11-08
+node --env-file=.env --import tsx src/production/remeasure.ts --game racer --label racer-rules-2026-11-08 --write
+```
+
+Turbo Lanes after the 23:58 and 00:07 rule fixes (dry run, 00:20): 65 of 100 still on target, with
+a mean change of 4.6 points. The challenge levels got easier, for example Circuit 0010 went from
+43.5% to 73.5%.
+

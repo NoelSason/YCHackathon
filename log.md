@@ -20,6 +20,54 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 00:28 PT · Pinara (Claude Code) · branch `main`
+
+**What:** **`solver/src/production/remeasure.ts`**: re-measures a game's production levels after a
+rules change.
+- It replays each accepted or published production level 200 times with the reference bot, using
+  fresh reproducible seeds.
+- Dry run by default. With `--write`, in one transaction, it adds new evidence rows, updates
+  `measured_win_rate`, and logs one `production.remeasured` row.
+- It never changes level content, status, ids, or older evidence.
+
+This closes the Codex audit item "validate old racer difficulty evidence against the corrected
+mechanics".
+**Why:** The racer fixes (Codex 23:58 cleared traffic, 00:07 boost refresh) changed difficulty more
+than expected.
+- **Dry run on the 100 production Turbo Lanes levels:** 65 still on target, with a mean change of
+  4.6 points.
+- **Challenge levels got easier:** Circuit 0010 went from 43.5% to 73.5%, and 0020 from 38.5% to
+  66.5%.
+- The list API and the hub show the old numbers until the evidence is written.
+
+**Files:** `solver/src/production/remeasure.ts`, `solver/test/remeasure.test.ts`,
+`solver/PRODUCTION.md`.
+**State:** Works:
+- Tests 2/2 (PGlite: reproducible numbers, new evidence plus updated rate, content, status and old
+  evidence unchanged, kill switch writes nothing).
+- Solver typecheck is clean; on clean `main`, solver 43/43 and evals 12/12.
+- **The production write was not run:** Claude Code's permission check blocked writing shared
+  production rows, so the evidence is unrecorded until Pinara runs it or allows it (command in
+  `solver/PRODUCTION.md`).
+
+**Also checked:**
+- **Racer production under the corrected rules:** positions 101–160 succeed 60/60, so future
+  100-ahead stock is fine. Only early challenge level 10 can't be tuned on any of its 8 layouts
+  (lumpy finish times; it already exists from before the fix).
+- **Readiness:** `solver_queue` and `design_tune_solve` are green (read-only run).
+- **Runtime:** I restarted my own two processes with SIGINT on the current code, so they include
+  Codex's racer and production fixes: Pinara's solver worker (it had been down for about 4 h) and
+  the lot/platformer watcher. Codex's three-game watcher was not touched.
+- **Lot 0001's win (23:59)** is a lone `win` with no `attempt`, during Codex's QA run. It wasn't a
+  player, but it advanced Lot Escape stock to 101. Don't present it as player progress.
+
+**Next / heads-up:**
+- **Noel:** his solver worker still runs the pre-23:58 racer rules for Designer tuning; restart it
+  after pulling.
+- **Pinara:** decide on `remeasure.ts --write` for racer, and on the test events in
+  `player_events` (racer and watersort 19:56–20:12 from my earlier browser tests, and the 23:59
+  Lot win).
+
 ### 2026-11-08 00:11 PT · Pinara (Codex) · branch `pinara/game-ui`
 
 **What:** Completed runtime rollout for Codex's three-game stock watcher on committed `6d91752`, preserving its checkpoint and 100-ahead rule; Claude's lot/platformer watcher untouched. Recorded maintenance as a human intervention and platform activity. Match-3 fallback now also handles the public proxy returning 400/404, with draft/wrong-game rejection preserved. Build probes keep known-working game cards during failed API requests.
