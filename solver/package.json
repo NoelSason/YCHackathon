@@ -1,0 +1,23 @@
+{
+  "name": "@studio/solver",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Solver harness: claims queued solver_runs, plays each level with the game's bots through its adapter, and writes the results. See platform/CONTRACTS.md.",
+  "scripts": {
+    "worker": "node --env-file-if-exists=.env --import tsx src/worker.ts",
+    "drain": "node --env-file-if-exists=.env --import tsx src/worker.ts --once",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.15.4",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}

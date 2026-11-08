@@ -1,4 +1,4 @@
-# Autonomous level studio (working name)
+# Level AI
 
 An entry for the Naïve Autonomous Company Hackathon (YC, Nov 7–8, 2026).
 

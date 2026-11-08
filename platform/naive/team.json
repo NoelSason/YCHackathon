@@ -1,0 +1,31 @@
+{
+  "model": "vetta/auto",
+  "agents": {
+    "designer": "agt_p3y4cv4d3jwryxp480djbtbq75",
+    "tuner": "agt_q8kzfxh9acw4848mtrj9ds8nvm",
+    "playtest": "agt_beat1fc57avas890e621ar27bw",
+    "research": "agt_jjxz9kz0cav46w1r82wcbyjvbh",
+    "sales_reader": "agt_0ts52mnrf6d4wtbgmfx3bhb5xh",
+    "sales_sender": "agt_kpq3yr45pewae9pwtcygf76q9f",
+    "finance": "agt_q7ma9myk8gakvx949y6h6ekkdt",
+    "marketing": "agt_vtnnkbp6tpvb4xggaakdt36tqt",
+    "ceo": "agt_tyrbqjyp9v1k3xrdnp1t13rcag"
+  },
+  "versions": {
+    "designer": 4,
+    "tuner": 4,
+    "playtest": 4,
+    "research": 4,
+    "sales_reader": 4,
+    "sales_sender": 4,
+    "finance": 4,
+    "marketing": 1
+  },
+  "deployments": {
+    "research": "dep_71hgm7qph0x4yd232efkn31ne9",
+    "finance": "dep_2d3kj15nrv066s30d0wze6v58v",
+    "marketing": "dep_yz1an1cq9zks2qe8mkvgeqz2f7",
+    "ceo": "dep_8hq07mr0wrxz240r96fhggmxt1"
+  },
+  "mcp": "https://br-broad-violet-bem8cpy5-platform.compute.c-9.us-east-2.aws.neon.tech/mcp"
+}

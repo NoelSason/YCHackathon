@@ -20,21 +20,351 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
-### 2026-11-07 16:30 PT · Max (Codex) · branch `max-game-adapters-fruit-patch`
+### 2026-11-07 16:40 PT · Abhinav (Claude) · branch `main`
 
-**What:** Added the match-3 and platformer adapter prototypes, a local Fruit Patch client using the shared Gem Swap engine, three mask-shaped match-3 layouts with clearable crate blockers, and saved-level read routes. Updated game routing and integration docs.
-**Why:** Deliver playable, measurable game integration work for the studio demo while keeping all game art and level designs original.
-**Files:** `games/match3/`, `games/platformer/adapter/`, `games/editors/geometry-dash/`, `games/skill-routing.json`, `platform/mcp/`, shared game docs and contracts.
-**State:** Works locally. `npm run typecheck` passed; all three layouts loaded through the engine; match-3 bots validated the level settings; `git diff --check` passed. Demo server is local only and is not hosted.
-**Next / heads-up:** Max: deploy the browser client and connect it to saved-level URLs/player events before claiming hosted end-to-end playtests. Abhinav: review the additive public `GET /levels/:id` route and adapter registry wiring. Platformer remains a grid-step prototype; Geometry Dash remains an editor workflow, not a product adapter.
+**What:** `npm run ceo-now` in `platform/naive`: starts one CEO session with the cron's input and
+streams its tool calls, decisions, and stop reason for up to 15 minutes.
+**Why:** The CEO cron fires at :00, so after the 6:00 switch-on the first run would be 7:00; this
+kicks it immediately and lets us watch it.
+**Files:** `platform/naive/src/run-ceo.ts`, `package.json`, `README.md`.
+**State:** Typechecks. Not run yet (needs the switch-on).
+**Next / heads-up:** Switch-on plan: 6:00 `npm run kill -- on`, then `npm run ceo-now`, then
+`EXPECT_RUNNING=1 npm run check` from `platform/checks`.
 
-### 2026-11-07 15:44 PT · Max (Codex) · branch `main`
+### 2026-11-07 16:35 PT · Abhinav (Claude) · branch `main`
 
-**What:** Added registered match-3 and platformer adapter prototypes, integrated Houseki's MIT headless Gem Swap engine, added a public read endpoint for saved-level URLs, and updated the Geometry Dash Mobilerun editor workflow documentation. Updated routing and plan docs to replace the board game with a platformer adapter.
-**Why:** Implement the requested Candy Crush-style, Mario-style, and Geometry Dash workflows without using proprietary game content.
-**Files:** `games/match3/adapter/`, `games/platformer/adapter/`, `games/skill-routing.json`, `platform/mcp/src/adapters.ts`, `platform/mcp/src/server.ts`, contracts and game docs.
-**State:** Partly works. Platform typecheck and build passed after installing locked dev dependencies; `git diff --check` passed. Routing JSON parsed with Node. Python route-interpreter check could not run because `python.exe` is unavailable. No browser clients or Mobilerun tools/device were available. Platformer rules are a grid-step prototype, not a forked game's rules.
-**Next / heads-up:** Abhinav: `/levels/:level_id` is an additive public read route for random UUID level IDs. Max: Systematic was reviewed but not integrated because its DOM-driven physics and editor-specific multilayer levels do not share the adapter rules. Houseki's headless engine is integrated, but its demo UI/campaigns are excluded; connect a browser client using the same engine before claiming a playable fork. Noel: Mobilerun agent/tools are not attached in this session, so no phone task was run.
+**What:** Business bearer re-vaulted for the permanent URL `https://levelai.vercel.app/mcp`
+(`vcr_jfk2s7kf…`; the tunnel entry deleted). `npm run setup` re-applied nine agents (Noel's
+`marketing` created, with its cron deployment `dep_yz1an1cq…`, disabled). Four deployments total,
+all disabled until switch-on.
+**Why:** Noel's 17:05 heads-up; the agents had been pointing at a dead tunnel URL.
+**Files:** `platform/naive/team.json` (Abhinav commits from laptop).
+**State:** Works.
+**Next / heads-up:** **Abhinav:** first readiness run against Neon (`platform/checks`), then the
+6:00 PM switch-on turns on all four deployments.
+
+### 2026-11-07 16:30 PT · Abhinav (Claude) · branch `main`
+
+**What:** `npm run vault` fix: Naïve credentials are immutable and unique by label, so a changed
+URL under the same label is now delete + recreate (it used to fail with "already holds a
+credential named …"). `ROTATE=1` is only needed to replace a credential whose URL is unchanged.
+**Why:** Re-pointing the business bearer at `https://levelai.vercel.app/mcp` failed.
+**Files:** `platform/naive/src/vault.ts`.
+**State:** Typechecks.
+**Next / heads-up:** Abhinav: `npm run vault && npm run setup` (no ROTATE needed).
+
+### 2026-11-07 16:40 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Demo-readiness checks runner** (`platform/checks/`, package: demo-readiness). `npm run
+check` runs 12 checks (platform health, MCP tools, solver queue, levels flow, publish → play,
+player events, CEO decision, deployments, kill switch, business health, outreach cap, autonomy
+number), prints a table, writes a `checks` row per check, exits 1 on red. `EXPECT_RUNNING=1` after
+the 6 PM switch-on makes the "loop is producing" checks required.
+**Why:** Master plan: every demo path has an automated check, run at 6 PM / 10 PM / 1:30 AM / 8 AM
+/ 10:30 AM; nothing deploys after 8 AM unless all green.
+**Files:** `platform/checks/`.
+**State:** Typechecks. Ran against a local Postgres + the local function handler: 8/12 green, the
+4 reds correct for that environment (no solver draining, no pack, Naïve unreachable from the
+sandbox, no business URL). Not yet run against Neon from a laptop.
+**Next / heads-up:** **Noel:** owed checks: phone playtest, billing (Stripe test payment →
+delivery), live phone view. **Max:** owed: dashboard numbers all from Neon. Add each as one file in
+`platform/checks/src/checks/` (see its README). **Max:** the dashboard's "checks" panel reads the
+latest `checks` row per `name`.
+
+### 2026-11-07 17:25 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Fully automatic intake, App Store support, a developer integration, an always-on outreach loop, and "Now testing" on the demo stage.**
+- **Live progress:** `/leads` and `/playtest-orders` now return an `id`. `GET /signup-status?id=` streams each step ("Reading
+  Parking Loop's newest App Store reviews" → "Found it: …" → "Email sent"), and `GET /offer` gives the playtest price.
+  The new site pages (being built now) show this as a live checklist.
+- **App Store support:** App Store links (`apps.apple.com/…/id123`) are read through Monid's dataforseo
+  `/app-store/app-reviews`, and every email and audit names the right store.
+- **Developer integration:** `POST /developer-keys` emails a studio a key (`lvl_…`, stored only as a hash in the new table
+  `biz_api_keys`, already applied to Neon). The **studio MCP** at `https://levelai.vercel.app/studio-mcp` lets a studio's
+  own coding agent call `request_playtest`, `audit_reviews`, `request_free_levels`, and `get_status`.
+- **Contact lookup through Monid:** Hunter.io domain search, generic role addresses only (`business@`, `contact@`,
+  `support@`; never a person's own address).
+- **Outreach loop** (`OUTREACH_AUTOPILOT=1`, every 45 minutes on the live server): research the top puzzle games, find each
+  studio's public contact, and send the evidence email through the same guarded tools (daily cap, opt-outs, honest
+  numbers), at most 2 per run.
+- **Demo stage:** the phone panel shows "Now testing <app> for <team>" while a playtest runs, then "Last tested".
+- `live.sh`: the site's forwarding rules now cover the new endpoints, plus `cleanUrls`.
+**Files:** `business/src/` (`leads/progress.ts`, `studio/`, `research/contacts.ts`, `outreach/autopilot.ts`, App Store
+handling), `business/src/db/schema.sql`, `business/live.sh`, `demo/public/index.html`.
+**State:** 67 business tests and the typecheck pass. The studio MCP and keys are tested through the real request
+handler. Not yet verified live: the Hunter response shape (the first loop run will show it).
+**Next / heads-up:** **Abhinav:** I'm adding my 3 checks to `platform/checks` next.
+
+---
+
+### 2026-11-07 17:05 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Business MCP now has a permanent URL: `https://levelai.vercel.app/mcp`.** The site forwards it to the laptop's
+current tunnel, the same way it forwards `/join` and `/playtest`. `live.sh` writes it to `.env` as `BUSINESS_MCP_URL`.
+**Why:** Abhinav vaulted the tunnel URL at 16:20, but that URL changes on every restart, and it has restarted since. The
+agents were pointing at a dead address.
+**Files:** `business/live.sh`.
+**State:** Verified: through `levelai.vercel.app/mcp`, all 15 tools are listed with the bearer, and the server returns
+401 without it.
+**Next / heads-up:** **Abhinav:** one last time, run `ROTATE=1 npm run vault && npm run setup` with
+`BUSINESS_MCP_URL=https://levelai.vercel.app/mcp`. The bearer is unchanged (in `.env`). After this, restarts don't
+need a re-vault.
+
+---
+
+### 2026-11-07 16:20 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Naïve Team setup complete.** Both MCP bearers are in the vault (platform
+`vcr_sx1891qk…`, business `vcr_s34ythd5…`, keyed to their URLs). `npm run setup` re-applied all
+eight agents with Noel's business tools attached (research, sales, finance, playtest). Cron
+deployments still **disabled** until the 6:00 PM switch-on. `team.json` is in the repo.
+**Why:** Package 6 done. Agents can now reach both servers unattended.
+**Files:** `platform/naive/team.json` (committed from Abhinav's laptop).
+**State:** Works: approval test OK, business bearer stored, agents updated.
+**Next / heads-up:** **Noel:** the business URL is a `trycloudflare.com` tunnel; if `live.sh`
+restarts, the URL changes and Abhinav must `ROTATE=1 npm run vault && npm run setup` with the new
+one. Keep the tunnel up from 6 PM, or deploy the server as a Neon Function for a fixed URL.
+**Abhinav:** building the demo-readiness checks runner (`platform/checks/`) next.
+
+### 2026-11-07 16:55 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Permanent public links:** https://levelai.vercel.app/playtest and https://levelai.vercel.app/join. The site
+forwards these pages (and their form posts and webhooks) to the laptop's current tunnel. On each start, `business/live.sh`
+rewrites `site/vercel.json` and redeploys the site, so links in emails, social posts, and QR codes survive restarts.
+`PUBLIC_BASE_URL` and `DEMO_JOIN_URL` now use the site's address. Agent tools (`/mcp`) stay on the tunnel URL.
+**Files:** `business/live.sh`, `site/.vercelignore`, `.gitignore` (`site/vercel.json` is generated).
+**State:** Verified live: `/`, `/playtest`, and `/join` return 200 through the site, and form posts reach the server.
+**Next / heads-up:** use `levelai.vercel.app/playtest` and `/join` everywhere instead of tunnel links.
+
+---
+
+### 2026-11-07 16:45 PT · Noel (Claude Code) · branch `main`
+
+**What:** **The Marketing agent posts automatically through Naïve's Social API.**
+- **New `post_update` business tool:** it publishes a short "[For Hire]" post, offering either levels for studios or an
+  iPhone playtest for app teams, on Level AI's connected LinkedIn, X, Threads, Bluesky, and Reddit accounts, through
+  `client.social.createPost`. Each post is labeled as AI-generated, uses only numbers from our own records, fits X's
+  280 characters, and is capped at 2 per network per day.
+- **New `marketing` agent in `platform/naive/src/roster.ts`**, on Naïve cron every 6 hours. It alternates between the
+  levels and playtest angles.
+- **Naïve identity "Level AI" created** (`NAIVE_IDENTITY_ID` in `.env`). Social isn't on yet: the current API key lacks
+  the `billing:write` scope.
+**Files:** `business/src/marketing/posts.ts`, `business/src/mcp/`, `business/src/config.ts`,
+`platform/naive/src/roster.ts`.
+**State:** 62 business tests pass, and the roster typechecks. No posts published yet (blocked on Social activation).
+**Next / heads-up:**
+- **Noel:** turn on Social for the "Level AI" identity in Naïve Studio, or make an API key with `billing:write`. Then
+  open the connect link and sign in to LinkedIn, X, Reddit, Threads, and Bluesky. Only a person can do that step.
+- **Abhinav:** rerun `npm run setup` in `platform/naive` to create the `marketing` agent and its cron.
+
+---
+
+### 2026-11-07 16:10 PT · Pinara (Claude Code) · branch `main`
+
+**What:**
+- **Solver harness v1** (`solver/`, package 8). A worker claims queued `solver_runs`, plays each
+  level with each requested bot through the platform's adapter registry
+  (`platform/mcp/src/adapters.ts`, imported, not changed), and writes `results`, `solvable`, and
+  `min_moves`, or a readable `error`.
+- Each finished or failed run adds one `activity_log` row as agent `platform`.
+- Runs stuck in `running` for over 15 minutes are marked failed.
+- Designer and Tuner prompts tightened in `platform/naive/src/roster.ts`.
+
+**Why:** `solve_level` only queues work. Without the harness, no level gets a difficulty number,
+and the Tuner polls forever.
+**Files:** `solver/`, `platform/naive/src/roster.ts`, `AGENTS.md` (repo layout).
+**State:** Works on the stub game.
+- `npm test`: 13/13 pass, including the queue against `platform/db/schema.sql` in PGlite.
+- Typecheck is clean.
+- End to end on a throwaway local Postgres 17 with the real schema, using `npm run drain`: 300 stub
+  games in 2 ms, written back as `random 40% (120/300)`. An unknown bot failed with a readable
+  error.
+- **Verified on Neon at 3:57 PM:** `npm run drain` processed the 3 stub runs queued by the smoke
+  tests (about 130 ms each, `done`, results in the contract's shape, 3 `solver_run.done` rows in
+  `activity_log`).
+- The roster changes are not applied in Naïve until `npm run setup` runs again.
+
+**Next / heads-up:**
+- **Abhinav:**
+  - `get_solver_run` results now carry additive per-bot fields `ci95_low`, `ci95_high`, and
+    `first_seed`. The contract's fields are unchanged.
+  - Real adapters registered in `adapters.ts` reach the harness with no change on my side.
+  - Please re-run `npm run setup` (or send me the key) so the new prompts apply.
+  - Open question: where the worker runs overnight. Render was dropped, and a Neon Function can't
+    poll. Until we decide, it runs on my laptop.
+- **Max:** the harness needs `simulate` to be deterministic per seed and fast (200 games per bot by
+  default). If `solve` exists, it runs inline, so it needs its own step limit.
+- **Prompt changes:**
+  - The Tuner's reference bot is `search` when the game has one, otherwise the game's first bot,
+    because the stub only has `random`.
+  - A failed solver run is retried once, then the level is rejected with the error.
+  - The Designer falls back to `validate_level` errors while game skills aren't attached, and uses
+    the game's default target when a card gives none.
+
+### 2026-11-07 16:10 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Approval-rule test: PASSED.** With the platform bearer in Naïve's vault
+(`vlt_enhfan4mcnhqwfrp221sc0ebjy`, keyed to the MCP URL), probe session
+`ses_8yjzg4jxb16n8p2ex57jwdxp7a` called `platform.log_action` unattended: the session ended
+`end_turn`, no approval card, and the `approval_test` row is in `activity_log`. Allow-listed MCP
+tools (`tools.configs["platform.<tool>"] = allow`) run without a human.
+**Why:** Package 6 / agent-plan step 1. Decides whether the 2–8 AM run needs clicks.
+**Files:** none (verification). `platform/naive/team.json` has the agent and deployment ids.
+**State:** Works. Vault needs an **admin-scoped** API key; agents/sessions scopes aren't enough
+(cost two keys to learn). The earlier two NOT REACHED results were the missing credential.
+**Next / heads-up:** **Everyone:** this covers MCP tools only. Still untested: the "chat that has
+read people's data asks on every send" rule. **Noel:** that's your Sales Reader / Sender split;
+run the second half (send the probe one inbound email, then a tool call) when the business server
+is attached. **Noel:** send Abhinav `BUSINESS_MCP_URL` and `BUSINESS_MCP_TOKEN` by DM; the
+repo-root `.env` is only on your laptop. Then `npm run vault && npm run setup` attaches your
+tools to the agents.
+
+### 2026-11-07 16:30 PT · Noel (Claude Code) · branch `main`
+
+**What:** **A revenue product and a real website.**
+- **Phone playtest offer (`/playtest` on the business server):** a team enters its app link and gets the app played
+  on our real cloud iPhone, with a report emailed in about 10 minutes. With `PLAYTEST_PRICE_USD` and a Stripe key set,
+  the team pays through a Stripe link and the paid webhook starts the playtest. Without them, it's free during the
+  hackathon. Orders queue, because there's one phone.
+- **Website redesigned and live at https://levelai.vercel.app**: a puzzle-game look, an original animated level being
+  tuned on a difficulty meter, and new privacy and terms pages. This is the business URL for Stripe.
+**Files:** `business/src/leads/playtest-offer.ts`, `business/src/leads/playtest-page.ts`, `business/src/app.ts`,
+`business/src/billing/stripe.ts`, `site/`.
+**State:** 59 business tests and the typecheck pass. The playtest offer is tested with a fake phone, and the real phone
+path was verified earlier this afternoon. The site was checked live: home, privacy, and terms all return 200, with
+screenshots.
+**Next / heads-up:** Noel: set `PLAYTEST_PRICE_USD`, add the Stripe key, and set `BILLING_ALLOW_LIVE=1` to charge real money.
+
+---
+
+### 2026-11-07 16:10 PT · Abhinav (Claude) · branch `main`
+
+**What:** Fixed `approval-test` events page size (Naïve caps `limit` at 100). Second probe
+(`ses_2cxbawayev51zaga2qjbzkxw6z`): NOT REACHED again. `npm run setup` re-applied all eight agents.
+**Why:** The vault credential still isn't stored: the new API key also lacks the `admin` scope.
+**Files:** `platform/naive/src/approval-test.ts`.
+**State:** Blocked on a Naïve credential with the `admin` scope (or a CLI login) to run `vault`.
+**Next / heads-up:** Abhinav: get an admin-scoped key or `naive login --email --password`, then
+vault → approval-test.
+
+### 2026-11-07 16:05 PT · Abhinav (Claude) · branch `main`
+
+**What:** `approval-test` now prints the probe session's events (tool.*, message.completed, and
+anything mentioning an error) after the verdict, and says so when no tool call was attempted.
+**Why:** The second probe said NOT REACHED; the events show whether the MCP server was offered,
+connected, or refused.
+**Files:** `platform/naive/src/approval-test.ts`.
+**State:** Typechecks.
+**Next / heads-up:** Abhinav re-runs vault + approval-test and reads the events.
+
+### 2026-11-07 16:10 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Outreach is live, with a dashboard and a website.**
+- **4 cold emails sent** from `levelai@agentmail.to` to Loop Games, Rotatelab, GOODROID, and ABI Games. Each email cites
+  a real review count and quotes the sentence that shows the problem. Before sending, the drafts caught two problems,
+  both fixed and tested: a quote taken out of context (now the matching sentence is quoted), and "isn't too easy or
+  too hard" counted as a complaint.
+- **Outreach board for the demo: `/outreach` on the demo stage** (`./demo.sh`, then open `/outreach`, or use the
+  "see outreach" link). It lists every studio with the evidence, the email sent, and replies, read live from `studios`
+  and `emails`.
+- **Replies come in by themselves:** the live business server checks the inbox every minute (no webhook needed
+  while the tunnel URL changes), handles opt-outs, saves the reply, and wakes the Sales Reader.
+- **New tool: `audit_game`** (research one specific game). Outreach can now go out without a sample link; the email
+  offers to make a free sample set instead.
+- **Website: https://levelai.vercel.app** (Vercel project `level-ai`, from `site/`). It's the business URL for Stripe.
+  An agent is polishing the design now.
+**Files:** `business/`, `demo/src/outreach.ts`, `demo/src/server.ts`, `demo/public/outreach.html`,
+`demo/public/index.html`, `site/`.
+**State:** 55 business tests and 6 demo tests pass. The outreach board was checked live against Neon, with a
+screenshot. Sends confirmed: all 4 studios are at stage `emailed`.
+**Next / heads-up:** **Max:** still no `DEMO_PLAY_URL`. Once it exists, sample-first emails and the free-levels link
+in welcomes turn on automatically.
+
+---
+
+### 2026-11-07 16:00 PT · Abhinav (Claude) · branch `main`
+
+**What:** `npm run vault` now stores both bearers in one run: the platform's (`PLATFORM_MCP_URL`
++ `MCP_BEARER_TOKEN`) and Noel's business server's (`BUSINESS_MCP_URL` + `BUSINESS_MCP_TOKEN`),
+each keyed to its URL, idempotent by URL. Replaces the env-override trick in `business/README.md`
+step 3. Noel's roster changes (business tools on playtest, research, sales, finance) typecheck.
+**Why:** One command for all MCP credentials before `npm run setup`.
+**Files:** `platform/naive/src/vault.ts`, `platform/naive/.env.example`.
+**State:** Typechecks. Not yet run with the admin key; the approval test is still pending.
+**Next / heads-up:** **Noel:** two things from your 15:40 entry: `save_level` URLs come from
+`GAMES_BASE_URL`, which is `http://localhost:3000` in Abhinav's `.env` until Max has a hosted URL
+(then redeploy); and the smoke test's `validate_level` failure is intentional, it tests the error
+path with a bad level. **Abhinav:** vault (both bearers) → setup (with `BUSINESS_MCP_URL`) →
+approval test → commit `team.json`.
+
+### 2026-11-07 15:55 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Demo centerpiece ready: a judge becomes a customer on stage.**
+- **"Become a customer" QR on the demo stage** (`DEMO_JOIN_URL`). A judge scans it, enters any Google Play puzzle game,
+  and within about 30 s gets an email with that game's real review evidence and free levels. The feed shows each
+  agent step.
+- **`business/live.sh`** runs the business server on Noel's laptop behind a Cloudflare quick tunnel. It writes
+  `DEMO_JOIN_URL`, `BUSINESS_MCP_URL`, and `PUBLIC_BASE_URL` into `.env` and keeps the laptop awake. It's running now.
+- **Separate email caps:** signup welcomes no longer count against the 20-a-day cold-outreach cap
+  (`INBOUND_DAILY_CAP`, default 200).
+- **`docs/demo-script.md` is now the full run of show**: 3 minutes, the night-before checklist, the decisions Noel owes,
+  and what to do if something breaks.
+**Files:** `business/`, `demo/src/server.ts`, `demo/public/index.html`, `demo/README.md`, `docs/demo-script.md`.
+**State:** 53 business tests and 6 demo tests pass. The tunnel serves `/join` and `/health` publicly, and
+`./demo.sh --check` passes.
+**Next / heads-up:**
+- **Everyone:** the signup page URL changes whenever `live.sh` restarts. It's in `.env` as `DEMO_JOIN_URL`.
+- **Max:** `DEMO_PLAY_URL` feeds both the "Play it yourself" QR and the free-levels link in every welcome email.
+- **Abhinav:** if you run `npm run setup` in `platform/naive`, `BUSINESS_MCP_URL` in `.env` now points at the live
+  business server. The bearer goes in the vault.
+
+---
+
+### 2026-11-07 15:40 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Live signup → audit → email in 30 seconds, verified for real.** The QR page (`GET /join`) takes a
+studio's game. The agents then read that game's newest Google Play reviews through Monid, find what players complain
+about, and email the evidence plus free levels from `levelai@agentmail.to`. Each step writes an `activity_log` row, so
+the demo stage shows it happening. A real run took 30 s and reached Noel's Gmail.
+- **Fixed:** AgentMail rejected our idempotency keys (`first-touch:<id>`), so keys are now hex hashes.
+- **Research is more honest:** fixed all 11 false-positive patterns found by hand (negations like "aren't too hard",
+  other games, ads and crashes, "more levels" meaning access, "pay to win"). Each one has a test.
+- **New tool:** `recent_activity` (read the business log).
+- **New doc:** `docs/business-targets.md` lists 7 studios to pitch, each with a hand-checked reason and a public
+  contact source.
+- **Deploy prep:** `business/` can deploy as a Neon Function like the platform (`npm run deploy`). Research
+  (Monid CLI) and the draft step don't work in a function, so for the demo the business server runs on Noel's laptop
+  behind a tunnel.
+- **Live data:** Neon now has the business additions (`business/src/db/schema.sql`, additive). The platform smoke
+  test passes against the deployed MCP server. `./demo.sh --check` passes: database, log tables, phone.
+**Files:** `business/`, `docs/business-targets.md`, `log.md`.
+**State:** 52 business tests and the typecheck pass. Live signup verified end to end with real Monid, AgentMail, and
+Gmail (in-memory store, so no test rows in Neon).
+**Next / heads-up:** **Abhinav:** the deployed platform's `save_level` returns `http://localhost:3000/...` URLs (the
+game base URL isn't set on the function), and the smoke test's sample level fails `validate_level`. **Max:** the
+welcome email links `DEMO_PLAY_URL` as "free levels", so send it to me when it's live.
+
+---
+
+### 2026-11-07 15:30 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Naïve Team created** with `npm run setup`: designer, tuner, playtest, research,
+sales_reader, sales_sender, finance, and the CEO coordinator (board on, roster pinned), each with
+platform MCP tools allow-listed by name and daily budgets. Cron deployments created **disabled**:
+CEO hourly (`dep_8hq07mr0wrxz240r96fhggmxt1`), Research every 4h, Finance every 3h. Ids in
+`platform/naive/team.json`. First approval probe (`ses_2grj3v1g3crmfp7052b6yq00hb`) ended with
+`end_turn`, no approval card.
+**Why:** Package 6 in the master plan.
+**Files:** `platform/naive/team.json`.
+**State:** Agents and deployments exist. **Approval verdict is provisional:** `npm run vault`
+failed (`API key is missing the admin scope`), so the agents have no bearer for the platform yet
+and the probe may not have reached it. Checked `activity_log`: **no row**, so the probe never reached the platform; the clean `end_turn`
+means a dead MCP connection does not raise an approval card, it does nothing. `approval-test` now
+checks the row itself and reports NOT REACHED instead of OK. Fixing the vault with the CLI or an
+admin-scoped key, then re-running.
+**Next / heads-up:** **Pinara:** the agents exist; edit prompts in `platform/naive/src/roster.ts`
+and re-run `npm run setup`, don't edit them in the Studio or setup will overwrite. **Everyone:**
+deployments stay disabled until the 6:00 PM switch-on (`npm run kill -- on`).
 
 ### 2026-11-07 15:25 PT · Abhinav (Claude) · branch `main`
 
@@ -95,6 +425,45 @@ Postgres (health, events, 401 without bearer, schema, all tool calls). **Not dep
 test against the invocation URL, then the Naïve setup. **Max:** the games POST events to
 `https://<invocation_url>/events`; CORS is open.
 
+### 2026-11-07 15:16 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Synced business ops with the platform, and set up Level AI.**
+- **Company name: Level AI.** Sales inbox `levelai@agentmail.to`. The postal address in the email footer is
+  set in `.env` (not committed).
+- **One set of tables.** Business ops now writes to the platform's tables: `studios`, `emails`, `payments`,
+  `activity_log`, and `interventions`. The `biz_leads`, `biz_outreach`, `biz_payments`, and `biz_activity`
+  tables are gone. `business/src/db/schema.sql` is now additive: four studio columns, three more stages
+  (`pilot_offered`, `lost`, `opted_out`), one payment row per Stripe event, opt-outs, and deliveries. It's
+  tested against the real platform schema in an in-process Postgres.
+- **One agent roster.** The business tools are attached to Abhinav's roster (`platform/naive/src/roster.ts`)
+  through a new `businessTools` list, and `setup-team.ts` adds the business MCP server when
+  `BUSINESS_MCP_URL` is set. Research, Sales Reader, Sales Sender, Finance, and Playtest now have real tools
+  for what their prompts already described: `find_targets` and `save_lead`; `record_reply`;
+  `draft_outreach`, `send_outreach`, and the new `send_reply`; `finance_snapshot`; and `run_playtest`.
+  My standalone `agents:apply` is disabled so it can't overwrite these.
+- **New `send_reply`** answers a studio in the same thread. It adds the legal footer, blocks any number
+  without a source, and respects opt-outs. Inbound replies are now saved to `emails` as they arrive.
+- **Demo stage** reads `studios` and `payments` for its pipeline panel.
+- Pulled Abhinav's three commits and resolved the conflicts in `AGENTS.md` and this log, keeping both sides.
+**Why:** Teammates' work and mine wrote to separate tables and separate agents with the same names.
+**Files:** `business/`, `platform/naive/src/roster.ts`, `platform/naive/src/setup-team.ts`,
+`demo/src/feeds.ts`, `demo/README.md`, `README.md`, `AGENTS.md`.
+**State:** 41 business tests, 6 demo tests, and all three typechecks pass. **Mobilerun works:** "Noel's
+iPhone" is ready, and `./demo.sh --check` shows live screenshots. **AgentMail works:** the key reads the inbox,
+which holds only the welcome email (nothing to answer). The key is inbox-scoped, so it can't read
+organization status or change labels. Nothing was sent. **Not done:** `DATABASE_URL` (Abhinav), `DEMO_PLAY_URL`
+(Max), a public URL for the business server, and the AgentMail webhook.
+**Next / heads-up:**
+- **Abhinav:** apply `business/src/db/schema.sql` after the platform schema (or add it to `migrate.ts`). I edited
+  `roster.ts` and `setup-team.ts` (additive: `businessTools`, a second MCP server). Look them over before
+  your next `npm run setup`. I removed `platform.create_payment_link` from `sales_sender`, because it lets the
+  agent pick the amount; `business.create_payment_link` uses the team's price. The business server's bearer
+  also goes in Naïve's vault, keyed to `BUSINESS_MCP_URL`.
+- **Pinara:** the research, sales, finance, and playtest prompts in `roster.ts` changed to name the business tools.
+- **Max:** the demo QR reads `DEMO_PLAY_URL`.
+
+---
+
 ### 2026-11-07 14:55 PT · Abhinav (Claude) · branch `main`
 
 **What:** Platform verified against Neon. `neon deploy` on project `raspy-bread-00151777`, branch
@@ -151,6 +520,66 @@ each agent uses must be `allow` by name in that agent's `tools.configs`. **Max:*
 CONTRACTS §1; `simulate`/`solve` must run in Node with no DOM. **Noel:** `crm_*`, `record_email`,
 `create_payment_link`, `get_spend` are yours to extend; Stripe is a placeholder until a key exists.
 **Everyone:** human actions (kill switch, step-ins) are not MCP tools; they write to `interventions`.
+
+### 2026-11-07 14:42 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Business ops, first working version: `business/`.**
+- **Research:** reads the top free puzzle games on Google Play and their newest reviews through
+  Monid, finds level-design complaints, and ranks studios with a checkable reason.
+- **Outreach:** writes the first email from that evidence, checks it (postal address, opt-out
+  line, daily cap of 20, one first email per lead, no number without a source), and sends through
+  AgentMail. Drafts only until `OUTREACH_SEND=1`.
+- **Replies:** Svix-verified AgentMail webhook, opt-outs, and a fresh Sales Reader session.
+- **CRM:** Naïve's own CRM, with our stages mapped onto its stages.
+- **Billing:** a Stripe payment link at the team's set price, and an idempotent webhook that queues
+  delivery. Live keys are refused unless allowed.
+- **Finance:** a snapshot that keeps real and test-mode revenue apart.
+- **Also:** the table QR lead form, the phone-playtest plan runner (Mobilerun Tasks API with a
+  structured result per level), and an 11-tool business MCP server.
+- **Five Naïve agents defined:** Research, Sales Sender, Sales Reader, Finance, and Playtest Lead.
+  Each denies built-in tools by default and has a budget.
+- `npm run smoke` covers the business rows of the demo checks. Also added `docs/demo-script.md`
+  (a draft) and `node_modules/` to `.gitignore`.
+**Why:** Business ops is my top priority in the master plan. The organizers said Stripe credits
+come later, so billing is kept minimal.
+**Files:** `business/`, `docs/demo-script.md`, `AGENTS.md` (repo layout), `.gitignore`.
+**State:** 35 tests and the typecheck pass. **A real Monid run worked** (8 games, about $0.01).
+Top target: Parking Loop (Loop Games), where 7 of 86 newest reviews say it's too easy. False
+positives found in that run ("not too hard") are fixed. The server ran locally: MCP auth, 11
+tools, and the lead form all checked. **Not verified yet:** AgentMail, Stripe, Naïve CRM and
+agent creation, Mobilerun, and Neon. Each needs keys or accounts we don't have yet (list in
+`business/README.md`). Nothing was sent, charged, or claimed.
+**Next / heads-up:**
+- **Abhinav:** my business tools are their own MCP server (`/mcp` in `business/src/server.ts`), not
+  part of the platform MCP. If you'd rather merge them, the tool names are the contract. The
+  `biz_` tables need `business/src/db/schema.sql` applied to Neon.
+- **Abhinav and Pinara:** the CEO's roster gets my five agents (`npm run agents:apply`).
+- **Team decisions needed:** the pilot price (`PILOT_PRICE_USD`), the company postal address for
+  emails (US email law), and whether Stripe goes live.
+
+---
+
+### 2026-11-07 14:45 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Demo stage: `./demo.sh` opens one full-screen live view of the company running.** It
+reads the activity log in Neon and shows: how long the company has run without a person, agent
+actions, decisions (with Saw / Why / Expected / Result), human step-ins, spend, each agent lighting
+up as it works, a live feed, the Mobilerun phone's screen about once a second, a QR code to play a
+level, and the studio pipeline. `--replay <file>` plays back a saved run (the backup), `--sample`
+rehearses the layout under a "SAMPLE DATA" banner, and `--check` is the "Live phone view"
+readiness check.
+**Why:** The demo needs to start with one command and show the automation without explaining it.
+Every number is counted from log rows, so nothing is typed in.
+**Files:** `demo.sh`, `demo/` (own `package.json`), `AGENTS.md` (repo layout).
+**State:** Works in sample and replay modes, checked in Chrome. 5 unit tests and the typecheck
+pass. **Live mode isn't verified against a real database yet:** no `DATABASE_URL` locally, and
+`biz_activity` isn't applied. The phone panel isn't verified against a real device either.
+**Next / heads-up:** The stage reads the shared `activity_log`, `decisions`, and `interventions`
+(step-ins) tables from `platform/db/schema.sql` by default, plus `biz_activity`. It needs only
+`DATABASE_URL` in the repo's `.env`. **Abhinav:** if `log_decision` also writes an `activity_log` row,
+tell me so the stage doesn't count decisions twice. **Max:** this is the demo-day stage, not the heartbeat dashboard. Reuse
+any of it (it's one HTML file plus `demo/src/events.ts`) or embed it. **Everyone:** don't present
+`--sample` as real.
 
 ### 2026-11-07 14:19 PT · Noel (Claude Code) · branch `main`
 

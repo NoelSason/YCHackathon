@@ -3,13 +3,18 @@
 // Writes platform/naive/team.json (ids only, no secrets) for the other scripts and the dashboard.
 import { writeFileSync } from "node:fs";
 import { naive, PLATFORM_MCP_URL } from "./client.js";
-import { ROSTER, CEO, MODEL, PLATFORM_MCP_NAME, toolsFor, budgetFor, type RosterAgent } from "./roster.js";
+import { ROSTER, CEO, MODEL, PLATFORM_MCP_NAME, BUSINESS_MCP_NAME, toolsFor, budgetFor, type RosterAgent } from "./roster.js";
 
 if (!PLATFORM_MCP_URL) {
   console.error("PLATFORM_MCP_URL is not set (the deployed MCP server, ending in /mcp)");
   process.exit(1);
 }
 const mcp_servers = [{ name: PLATFORM_MCP_NAME, url: PLATFORM_MCP_URL }];
+// Noel's business MCP server. Its bearer also goes in Naïve's vault, keyed to BUSINESS_MCP_URL.
+const BUSINESS_MCP_URL = process.env.BUSINESS_MCP_URL;
+const serversFor = (a: RosterAgent) =>
+  a.businessTools?.length && BUSINESS_MCP_URL ? [...mcp_servers, { name: BUSINESS_MCP_NAME, url: BUSINESS_MCP_URL }] : mcp_servers;
+if (!BUSINESS_MCP_URL) console.warn("BUSINESS_MCP_URL is not set: agents get platform tools only (no research, email, billing, or phone tools).");
 // Auth for that server is NOT set here: Naïve rejects inline Authorization headers. Put the bearer
 // in Naïve's vault keyed to PLATFORM_MCP_URL (static_bearer) from the dashboard or CLI.
 
@@ -22,7 +27,7 @@ async function findByName(name: string): Promise<Created | undefined> {
 }
 
 async function upsert(a: RosterAgent, extra: Record<string, unknown> = {}): Promise<Created> {
-  const body = { name: a.name, model: MODEL, system: a.system, tools: toolsFor(a), mcp_servers, budget: budgetFor(a), window: "immediate" as const, ...extra };
+  const body = { name: a.name, model: MODEL, system: a.system, tools: toolsFor(a), mcp_servers: serversFor(a), budget: budgetFor(a), window: "immediate" as const, ...extra };
   const existing = await findByName(a.name);
   if (existing) {
     const r = await naive.agents.update(existing.id, body);

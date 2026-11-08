@@ -8,7 +8,8 @@ An entry for the **Naïve Autonomous Company Hackathon** at YC (560 20th St., Sa
 Nov 7–8, 2026. The goal is a company that agents run end to end: they find customers, deliver
 the product, and handle day-to-day operations.
 
-- **Company:** an autonomous level studio for games. Any game plugs in through an adapter.
+- **Company:** **Level AI**, an autonomous level studio for puzzle games. Sales inbox:
+  `levelai@agentmail.to`. Any game plugs in through an adapter.
   Agents design levels, test each one hundreds of times with bot players or exact solvers, tune
   the difficulty, playtest on real phones, and ship. We run
   two programmatic game adapters (match-3 and platformer) plus a separate Geometry Dash editor
@@ -218,3 +219,12 @@ After a pull, read the new entries at the top of `log.md` before you start work.
 
 - `platform/`: Abhinav. Neon schema, the MCP server, contracts. See `platform/README.md`.
 - `games/<game_id>/`: Max. One directory per game; adapter at `games/<game_id>/adapter/`.
+- `business/` (Noel): business ops. Research, outreach and replies, CRM, billing, finance, the lead
+  form, phone playtests, and the business MCP server. It writes to the platform's tables;
+  `business/src/db/schema.sql` adds a few columns and tables on top. Its agents are in
+  `platform/naive/src/roster.ts` (`businessTools`). See `business/README.md`.
+- `demo/` and `demo.sh` (Noel): the demo stage. `./demo.sh` opens one live screen built from the
+  activity log, with the phone view and the step-ins. See `demo/README.md`.
+- `solver/` (Pinara): the Solver harness. It claims queued `solver_runs`, plays each level with the
+  game's bots through the platform's adapter registry, and writes the results. See
+  `solver/README.md`.

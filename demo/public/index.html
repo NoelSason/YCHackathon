@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Company Live</title>
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --panel: #12151a;
+    --panel-2: #171b21;
+    --line: #232831;
+    --text: #eceef1;
+    --muted: #8b94a1;
+    --faint: #5a626e;
+    --go: #3ddc84;
+    --human: #ffb547;
+    --decide: #b49cff;
+    --live: #ff4d5e;
+    --sans: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    --gap: clamp(10px, 1vw, 20px);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 400 clamp(13px, 0.85vw, 17px)/1.4 var(--sans);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Heartbeat line: flashes each time an agent does something. */
+  #beat { height: 3px; background: var(--go); transform-origin: left; transform: scaleX(0); opacity: 0; }
+  #beat.on { animation: beat 1.4s ease-out; }
+  @keyframes beat { 0% { transform: scaleX(0); opacity: 1; } 60% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+
+  header {
+    display: flex; align-items: center; gap: var(--gap);
+    padding: clamp(10px, 1vw, 18px) clamp(16px, 1.6vw, 32px) 0;
+  }
+  .mode { font: 700 0.8em/1 var(--mono); letter-spacing: .12em; padding: .45em .7em; border-radius: 4px; display: inline-flex; align-items: center; gap: .5em; }
+  .mode.live { color: var(--live); background: rgba(255,77,94,.12); }
+  .mode.live::before { content: ""; width: .6em; height: .6em; border-radius: 50%; background: var(--live); animation: blink 1.6s infinite; }
+  .mode.replay { color: var(--decide); background: rgba(180,156,255,.12); }
+  .mode.sample { color: #111; background: var(--human); }
+  @keyframes blink { 50% { opacity: .25; } }
+  .company { font-weight: 650; font-size: 1.25em; letter-spacing: -.01em; }
+  .company small { color: var(--muted); font-weight: 400; margin-left: .5em; }
+  .clock { margin-left: auto; font: 500 1.05em var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .banner {
+    margin: clamp(8px, .8vw, 14px) clamp(16px, 1.6vw, 32px) 0;
+    padding: .7em 1em; border-radius: 6px; font-weight: 600;
+  }
+  .banner.sample { background: var(--human); color: #111; font-size: 1.35em; text-align: center; }
+  .banner.replay { background: rgba(180,156,255,.12); color: var(--decide); }
+
+  /* Hero numbers. Every one is computed from the log. */
+  .hero {
+    display: grid; grid-template-columns: 1.6fr repeat(4, 1fr); gap: var(--gap);
+    padding: clamp(12px, 1.2vw, 22px) clamp(16px, 1.6vw, 32px);
+  }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: clamp(12px, 1vw, 20px) clamp(14px, 1.2vw, 22px); }
+  .stat .k { color: var(--muted); font-size: .85em; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+  .stat .v { font: 650 clamp(30px, 2.8vw, 58px)/1.1 var(--mono); font-variant-numeric: tabular-nums; margin-top: .25em; letter-spacing: -.02em; }
+  .stat .s { color: var(--faint); font-size: .85em; margin-top: .3em; min-height: 1.4em; }
+  .stat.own { border-color: rgba(61,220,132,.35); background: linear-gradient(180deg, rgba(61,220,132,.07), transparent 70%), var(--panel); }
+  .stat.own .v { color: var(--go); font-size: clamp(38px, 3.8vw, 78px); }
+  .stat.human .v { color: var(--human); }
+  .stat.decide .v { color: var(--decide); }
+  .bump { animation: bump .6s ease-out; }
+  @keyframes bump { 30% { transform: translateY(-3px); color: #fff; } }
+
+  main {
+    flex: 1; min-height: 0;
+    display: grid; grid-template-columns: minmax(240px, 22%) 1fr minmax(260px, 23%); gap: var(--gap);
+    padding: 0 clamp(16px, 1.6vw, 32px);
+  }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .panel > h2 { margin: 0; padding: .9em 1.1em .6em; font-size: .85em; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: .6em; }
+  .panel > h2 .n { margin-left: auto; color: var(--faint); font-family: var(--mono); letter-spacing: 0; text-transform: none; }
+
+  /* Agents */
+  .agents { list-style: none; margin: 0; padding: 0 .6em .6em; overflow: auto; }
+  .agent { display: grid; grid-template-columns: auto 1fr auto; gap: .2em .7em; align-items: center; padding: .45em .6em; border-radius: 8px; transition: background .4s; }
+  .agent + .agent { border-top: 1px solid var(--line); }
+  .agent .dot { width: .7em; height: .7em; border-radius: 50%; background: var(--faint); grid-row: span 2; align-self: start; margin-top: .35em; }
+  .agent .name { font-weight: 600; }
+  .agent .count { font: 600 1em var(--mono); color: var(--muted); }
+  .agent .last { grid-column: 2 / 4; color: var(--muted); font-size: .88em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .agent.idle .name { color: var(--muted); }
+  .agent.recent .dot { background: var(--c); box-shadow: 0 0 0 0 var(--c); }
+  .agent.working { background: var(--panel-2); }
+  .agent.working .dot { background: var(--c); animation: ring 1.2s ease-out infinite; }
+  .agent.working .last { color: var(--text); }
+  @keyframes ring { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 70%, transparent); } 100% { box-shadow: 0 0 0 .7em transparent; } }
+
+  /* Feed */
+  .feed { list-style: none; margin: 0; padding: 0 1em 1em; overflow: hidden; flex: 1; }
+  .item { display: grid; grid-template-columns: 6.2em 1fr; gap: .9em; padding: .75em 0; border-top: 1px solid var(--line); }
+  .item:first-child { border-top: 0; }
+  .item.new { animation: arrive .7s ease-out; }
+  @keyframes arrive { from { opacity: 0; transform: translateY(-10px); background: rgba(61,220,132,.08); } }
+  .item time { font: 500 .92em var(--mono); color: var(--faint); padding-top: .15em; font-variant-numeric: tabular-nums; }
+  .who { display: inline-flex; align-items: center; gap: .45em; font-size: .82em; font-weight: 600; color: var(--c); text-transform: uppercase; letter-spacing: .06em; }
+  .who::before { content: ""; width: .55em; height: .55em; border-radius: 50%; background: var(--c); }
+  .what { font-weight: 550; font-size: 1.12em; margin-top: .1em; }
+  .why, .res { color: var(--muted); margin-top: .15em; }
+  .res::before { content: "→ "; color: var(--faint); }
+  .item.decision { border-left: 3px solid var(--decide); padding-left: .9em; margin-left: -1em; }
+  .item.decision .tag, .item.step_in .tag { font-size: .75em; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-left: .6em; }
+  .item.decision .tag { color: var(--decide); }
+  .item.step_in { border-left: 3px solid var(--human); padding-left: .9em; margin-left: -1em; }
+  .item.step_in .tag { color: var(--human); }
+  .dl { display: grid; grid-template-columns: auto 1fr; gap: .15em .7em; margin-top: .35em; color: var(--muted); }
+  .dl b { color: var(--faint); font-weight: 600; font-size: .85em; text-transform: uppercase; letter-spacing: .06em; padding-top: .12em; }
+  .empty { color: var(--muted); padding: 2em 1em; text-align: center; }
+
+  /* Phone */
+  .side { display: flex; flex-direction: column; gap: var(--gap); min-height: 0; }
+  .phone-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: .4em 1em 1.1em; }
+  .phone { height: 100%; max-height: 100%; aspect-ratio: 9 / 19.5; border-radius: 2.2em; padding: .6em; background: #1d2128; border: 1px solid #2c323c; box-shadow: 0 20px 50px rgba(0,0,0,.5); position: relative; }
+  .phone img, .phone .off { width: 100%; height: 100%; border-radius: 1.7em; object-fit: cover; display: block; background: #000; }
+  .phone .off { display: flex; align-items: center; justify-content: center; text-align: center; color: var(--faint); padding: 1.5em; font-size: .9em; }
+  .live-tag { color: var(--live); font: 700 .78em var(--mono); letter-spacing: .12em; display: inline-flex; align-items: center; gap: .4em; }
+  .live-tag::before { content: ""; width: .55em; height: .55em; border-radius: 50%; background: var(--live); animation: blink 1.6s infinite; }
+  .now-testing { display: flex; align-items: baseline; flex-wrap: wrap; gap: .35em .5em; margin: 0 1.1em .6em; padding: .55em .8em; border-radius: 10px; background: rgba(124,92,255,.14); font-size: .95em; }
+  .now-testing .nt-label { color: var(--muted); font: 600 .78em var(--mono); text-transform: uppercase; letter-spacing: .05em; }
+  .now-testing b { word-break: break-all; }
+  .now-testing small { color: var(--muted); width: 100%; }
+  .now-testing .nt-dot { width: .55em; height: .55em; border-radius: 50%; background: #3ddc97; align-self: center; animation: ntp 1.2s ease-in-out infinite; }
+  .now-testing.idle { background: rgba(255,255,255,.05); } .now-testing.idle .nt-dot { background: var(--muted); animation: none; }
+  @keyframes ntp { 50% { opacity: .25; } }
+  @media (prefers-reduced-motion: reduce) { .now-testing .nt-dot { animation: none; } }
+  .qr { display: flex; gap: 1em; align-items: center; padding: 0 1.1em 1.1em; }
+  .qr img { width: clamp(90px, 7vw, 150px); height: auto; border-radius: 8px; background: #fff; padding: 4px; }
+  .qr p { margin: 0; font-weight: 600; font-size: 1.1em; }
+  .qr small { display: block; color: var(--muted); font: 400 .82em var(--mono); margin-top: .4em; word-break: break-all; }
+
+  footer {
+    display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap);
+    padding: var(--gap) clamp(16px, 1.6vw, 32px) clamp(14px, 1.4vw, 26px);
+  }
+  footer .panel { flex-direction: row; align-items: center; gap: 1em; padding: .8em 1.1em; overflow: hidden; }
+  footer h3 { margin: 0; font-size: .82em; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .steps { display: flex; gap: .6em; overflow: hidden; flex: 1; }
+  .step { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); background: rgba(255,181,71,.1); border: 1px solid rgba(255,181,71,.25); padding: .3em .7em; border-radius: 999px; font-size: .9em; max-width: 26em; }
+  .step time { color: var(--human); font-family: var(--mono); margin-right: .4em; }
+  .pipe { display: flex; align-items: center; gap: .35em; flex-wrap: nowrap; overflow: hidden; flex: 1; }
+  .stage { text-align: center; padding: .2em .6em; }
+  .stage .c { font: 650 1.4em/1.1 var(--mono); }
+  .stage .l { color: var(--muted); font-size: .78em; white-space: nowrap; }
+  .stage.zero .c { color: var(--faint); }
+  .arrow { color: var(--faint); }
+  .none { color: var(--faint); }
+
+  /* Setup details (D). Operator-only. */
+  #health { position: fixed; right: 20px; bottom: 20px; width: min(560px, calc(100vw - 32px)); background: #0f1216; border: 1px solid var(--line); border-radius: 10px; padding: 1em 1.2em; display: none; box-shadow: 0 20px 60px rgba(0,0,0,.6); z-index: 5; }
+  #health.show { display: block; }
+  #health h4 { margin: 0 0 .6em; font-size: .85em; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  #health-list > div { display: grid; grid-template-columns: 1.2em 9em 1fr; gap: .5em; padding: .25em 0; font-size: .9em; }
+  #health .ok { color: var(--go); } #health .bad { color: var(--human); }
+  #health p { color: var(--faint); font-size: .8em; margin: .8em 0 0; }
+
+  @media (max-width: 1000px) {
+    body { overflow: auto; }
+    .hero { grid-template-columns: 1fr 1fr; }
+    .stat.own { grid-column: 1 / -1; }
+    main { grid-template-columns: 1fr; }
+    .phone { height: 60vh; }
+    footer { grid-template-columns: 1fr; }
+    .feed { max-height: 70vh; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="beat"></div>
+<header>
+  <span id="mode" class="mode live">LIVE</span>
+  <span class="company"><span id="company">Level Studio</span><small>run by its agents</small></span>
+  <span class="clock" id="clock"></span>
+</header>
+<div id="banner" class="banner" hidden></div>
+
+<section class="hero">
+  <div class="stat own">
+    <div class="k">Running on its own for</div>
+    <div class="v" id="own">—</div>
+    <div class="s" id="own-s"></div>
+  </div>
+  <div class="stat"><div class="k">Agent actions</div><div class="v" id="actions">0</div><div class="s" id="actions-s"></div></div>
+  <div class="stat decide"><div class="k">Decisions</div><div class="v" id="decisions">0</div><div class="s">made by agents, with reasons</div></div>
+  <div class="stat human"><div class="k">Human step-ins</div><div class="v" id="stepins">0</div><div class="s" id="stepins-s">every one is logged</div></div>
+  <div class="stat"><div class="k">Spent</div><div class="v" id="spend">$0</div><div class="s" id="spend-s"></div></div>
+</section>
+
+<main>
+  <section class="panel">
+    <h2>The team <span class="n" id="team-n"></span></h2>
+    <ul class="agents" id="agents"></ul>
+  </section>
+  <section class="panel">
+    <h2>What the agents are doing <span class="n" id="feed-n"></span></h2>
+    <ul class="feed" id="feed"><li class="empty">Waiting for the first agent action.</li></ul>
+  </section>
+  <div class="side">
+    <section class="panel" style="flex:1">
+      <h2><span class="live-tag" id="phone-live">LIVE</span> Phone playtest</h2>
+      <div class="now-testing" id="now-testing" hidden><span class="nt-dot"></span><span class="nt-label">Now testing</span> <b id="nt-app"></b><small id="nt-who"></small></div>
+      <div class="phone-wrap"><div class="phone" id="phone"><div class="off">Phone not connected</div></div></div>
+    </section>
+    <section class="panel" id="join-panel" hidden>
+      <h2>Become a customer</h2>
+      <div class="qr"><img id="join-qr" alt="QR code to sign up for free levels"><p>Scan, enter your game, and watch our agents audit it live<small id="join-url"></small></p></div>
+    </section>
+    <section class="panel" id="qr-panel" hidden>
+      <h2>Play it yourself</h2>
+      <div class="qr"><img id="qr" alt="QR code to play a level"><p>Play a level our agents made<small id="qr-url"></small></p></div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <section class="panel"><h3>Where a person stepped in</h3><div class="steps" id="steps"><span class="none">None logged</span></div></section>
+  <section class="panel" id="pipe-panel"><h3>Studios <a href="/outreach" style="color:var(--muted);font-weight:500;text-decoration:none;margin-left:.5em">see outreach →</a></h3><div class="pipe" id="pipe"><span class="none">No studios yet</span></div></section>
+</footer>
+
+<div id="health"><h4>Setup details (press D to hide)</h4><div id="health-list"></div><p>Only you see this. It isn't part of the demo.</p></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const ROSTER = [
+  ["ceo", "CEO", "Sets the plan", "#ffd166"],
+  ["research", "Research", "Finds studios to pitch", "#4cc9f0"],
+  ["designer", "Designer", "Drafts new levels", "#f72585"],
+  ["tuner", "Tuner", "Tunes difficulty", "#4ade80"],
+  ["playtest_lead", "Playtest Lead", "Plays levels on real phones", "#ff8c42"],
+  ["sales_reader", "Sales Reader", "Reads studio replies", "#7dd3fc"],
+  ["sales_sender", "Sales Sender", "Emails studios", "#38bdf8"],
+  ["finance", "Finance", "Watches spend", "#a3e635"],
+];
+const EXTRA = ["#e879f9", "#fb7185", "#2dd4bf", "#facc15", "#93c5fd", "#fdba74"];
+const meta = new Map(ROSTER.map(([k, n, r, c]) => [k, { name: n, role: r, color: c }]));
+function info(agent) {
+  if (agent === "human") return { name: "Human", role: "", color: "#ffb547" };
+  if (!meta.has(agent)) {
+    const name = agent.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    meta.set(agent, { name, role: "", color: EXTRA[meta.size % EXTRA.length] });
+  }
+  return meta.get(agent);
+}
+
+const STAGES = [["found", "Found"], ["sample_made", "Sample made"], ["emailed", "Emailed"], ["replied", "Replied"], ["pilot_offered", "Offered"], ["pilot_paid", "Paid"], ["delivered", "Delivered"]];
+
+let state = null;
+let clockOffset = 0;        // server clock minus browser clock, so the timer matches the log
+let clockTicks = true;
+let frozenClock = null;
+const stepIns = [];
+const MAX_FEED = 40;
+
+const pt = (iso, opts) => new Date(iso).toLocaleString("en-US", { timeZone: "America/Los_Angeles", ...opts });
+const hms = (iso) => pt(iso, { hour: "numeric", minute: "2-digit", second: "2-digit" }).replace(/\s?[AP]M$/, "");
+function stageNow() { return clockTicks ? Date.now() + clockOffset : new Date(frozenClock).getTime(); }
+function setClock(iso) { clockOffset = new Date(iso).getTime() - Date.now(); frozenClock = iso; }
+function duration(ms) {
+  if (ms < 0) ms = 0;
+  const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  return `${h}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
+function bump(el, value) {
+  if (el.textContent === String(value)) return;
+  el.textContent = value; el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
+}
+
+function renderStats(s) {
+  bump($("actions"), s.agentActions.toLocaleString());
+  bump($("decisions"), s.decisions.toLocaleString());
+  bump($("stepins"), s.stepIns.toLocaleString());
+  bump($("spend"), "$" + s.spendUsd.toFixed(2));
+  const total = s.agentActions + s.stepIns;
+  $("actions-s").textContent = total ? `${Math.round((s.agentActions / total) * 100)}% of all logged work` : "";
+  $("spend-s").textContent = s.agentActions ? `$${(s.spendUsd / s.agentActions).toFixed(3)} per action` : "";
+  $("own-s").textContent = !s.unattendedSince ? "" : s.lastStepInAt
+    ? `since the last human step-in at ${pt(s.lastStepInAt, { weekday: "short", hour: "numeric", minute: "2-digit" })} PT`
+    : `since the first logged action at ${pt(s.unattendedSince, { weekday: "short", hour: "numeric", minute: "2-digit" })} PT, no step-ins yet`;
+  renderAgents(s.perAgent);
+}
+
+function renderAgents(perAgent) {
+  const byKey = new Map(perAgent.map((a) => [a.agent, a]));
+  const keys = [...ROSTER.map((r) => r[0]), ...perAgent.map((a) => a.agent).filter((k) => !ROSTER.some((r) => r[0] === k))];
+  const now = stageNow();
+  $("agents").innerHTML = [...new Set(keys)].map((k) => {
+    const a = byKey.get(k), m = info(k);
+    const age = a?.lastAt ? now - new Date(a.lastAt).getTime() : Infinity;
+    const cls = !a ? "idle" : age < 45_000 ? "working recent" : age < 10 * 60_000 ? "recent" : "";
+    return `<li class="agent ${cls}" style="--c:${m.color}">
+      <span class="dot"></span><span class="name">${esc(m.name)}</span><span class="count">${a ? a.count : ""}</span>
+      <span class="last">${a ? esc(a.lastAction) : esc(m.role || "No activity yet")}</span></li>`;
+  }).join("");
+  $("team-n").textContent = `${perAgent.length} active`;
+}
+
+function itemHtml(e, isNew) {
+  const m = info(e.agent);
+  const tag = e.kind === "decision" ? '<span class="tag">Decision</span>' : "";
+  const who = e.kind === "step_in" ? (e.agent === "human" ? "Human step-in" : `Human step-in · ${m.name}`) : m.name;
+  let body = `<div class="what">${esc(e.action)}</div>`;
+  if (e.kind === "decision") {
+    const rows = [["Saw", e.saw], ["Why", e.why], ["Expected", e.expected], ["Result", e.result]].filter(([, v]) => v);
+    body += `<div class="dl">${rows.map(([k, v]) => `<b>${k}</b><span>${esc(v)}</span>`).join("")}</div>`;
+  } else {
+    if (e.why) body += `<div class="why">${esc(e.why)}</div>`;
+    if (e.result) body += `<div class="res">${esc(e.result)}</div>`;
+  }
+  return `<li class="item ${e.kind}${isNew ? " new" : ""}" style="--c:${m.color}">
+    <time>${hms(e.at)}</time><div><span class="who">${esc(who)}</span>${tag}${body}</div></li>`;
+}
+
+// What the phone is testing right now: the newest "playtesting …" step with no finish after it.
+const playtests = [];
+function trackPlaytests(list) {
+  for (const e of list) {
+    const a = e.action || "";
+    if (/^playtesting /i.test(a) || /^phone playtest /i.test(a)) playtests.push({ at: e.at, app: e.why || "", who: a.replace(/^playtesting /i, "").replace(/'s app on the iPhone$/i, ""), open: true });
+    else if (/^(playtested|playtest failed|emailed the playtest report)/i.test(a) && playtests.length) playtests[playtests.length - 1].open = false;
+  }
+  const last = playtests[playtests.length - 1];
+  const box = $("now-testing");
+  if (!last) { box.hidden = true; return; }
+  box.hidden = false;
+  box.classList.toggle("idle", !last.open);
+  box.querySelector(".nt-label").textContent = last.open ? "Now testing" : "Last tested";
+  $("nt-app").textContent = last.app.replace(/^https?:\/\//, "");
+  $("nt-who").textContent = last.who ? `for ${last.who} · started ${pt(last.at, { hour: "numeric", minute: "2-digit" })}` : "";
+}
+
+function addEvents(list, isNew) {
+  trackPlaytests(list);
+  if (!list.length) return;
+  const feed = $("feed");
+  if (feed.querySelector(".empty")) feed.innerHTML = "";
+  const html = list.slice(-MAX_FEED).reverse().map((e) => itemHtml(e, isNew)).join("");
+  feed.insertAdjacentHTML("afterbegin", html);
+  while (feed.children.length > MAX_FEED) feed.lastElementChild.remove();
+  if (isNew) { for (const e of list) if (e.human) stepIns.push(e); renderSteps(); }
+  if (isNew) { const b = $("beat"); b.classList.remove("on"); void b.offsetWidth; b.classList.add("on"); }
+}
+
+function renderSteps() {
+  if (!stepIns.length) { $("steps").innerHTML = '<span class="none">None logged</span>'; return; }
+  $("steps").innerHTML = stepIns.slice(-6).reverse().map((e) =>
+    `<span class="step" title="${esc(e.why || "")}"><time>${pt(e.at, { hour: "numeric", minute: "2-digit" })}</time>${esc(e.action)}</span>`).join("");
+}
+
+function renderPipeline(p) {
+  if (!p) { $("pipe-panel").hidden = state?.mode !== "live"; return; }
+  $("pipe-panel").hidden = false;
+  const parts = STAGES.map(([k, l]) => {
+    const n = p.stages[k] ?? 0;
+    return `<div class="stage${n ? "" : " zero"}"><div class="c">${n}</div><div class="l">${l}</div></div>`;
+  });
+  let html = parts.join('<span class="arrow">›</span>');
+  const pay = p.payments;
+  if (pay.live) html += `<div class="stage"><div class="c" style="color:var(--go)">$${(pay.liveAmountMinor / 100).toFixed(0)}</div><div class="l">earned</div></div>`;
+  else if (pay.test) html += `<div class="stage"><div class="c">${pay.test}</div><div class="l">test payments</div></div>`;
+  $("pipe").innerHTML = html;
+}
+
+function renderHealth(items) {
+  $("health-list").innerHTML = (items || []).map((h) =>
+    `<div><span class="${h.ok ? "ok" : "bad"}">${h.ok ? "✓" : "✗"}</span><span>${esc(h.name)}</span><span>${esc(h.detail)}</span></div>`).join("");
+}
+
+function renderMode(s) {
+  const mode = $("mode");
+  mode.className = "mode " + s.mode;
+  mode.textContent = { live: "LIVE", replay: "REPLAY", sample: "SAMPLE" }[s.mode];
+  $("company").textContent = s.company;
+  const banner = $("banner");
+  banner.hidden = !s.banner;
+  banner.className = "banner " + s.mode;
+  banner.textContent = s.banner || "";
+  $("phone-live").textContent = s.mode === "live" ? "LIVE" : "PHONE";
+}
+
+function tickClock() {
+  const now = stageNow();
+  $("clock").textContent = pt(new Date(now).toISOString(), { weekday: "short", hour: "numeric", minute: "2-digit", second: "2-digit" }) + " PT";
+  const since = state?.stats?.unattendedSince;
+  $("own").textContent = since ? duration(now - new Date(since).getTime()) : "—";
+}
+
+// Phone: fetch the next screenshot only after the last one finished, so a slow network can't pile up requests.
+function startPhone() {
+  const box = $("phone");
+  const img = new Image();
+  img.alt = "Live screen of the cloud phone";
+  let shown = false;
+  const next = () => setTimeout(load, 1000);
+  img.onload = () => { if (!shown) { box.innerHTML = ""; box.appendChild(img); shown = true; } next(); };
+  img.onerror = () => { if (!shown) box.innerHTML = '<div class="off">Waiting for the phone…</div>'; setTimeout(load, 4000); };
+  function load() { img.src = "/api/phone.png?t=" + Date.now(); }
+  load();
+}
+
+async function boot() {
+  state = await (await fetch("/api/state")).json();
+  clockTicks = state.clockTicks;
+  setClock(state.clock);
+  renderMode(state);
+  renderStats(state.stats);
+  addEvents(state.events, false);
+  stepIns.push(...state.stepIns);
+  renderSteps();
+  renderPipeline(state.pipeline);
+  renderHealth(state.health);
+  $("feed-n").textContent = state.stats.agentActions + state.stats.stepIns ? "newest first" : "";
+  if (state.phone) startPhone();
+  else $("phone-live").hidden = true;
+  if (state.joinUrl) { $("join-panel").hidden = false; $("join-qr").src = "/api/join-qr.svg"; $("join-url").textContent = state.joinUrl.replace(/^https?:\/\//, ""); }
+  if (state.playUrl) { $("qr-panel").hidden = false; $("qr").src = "/api/qr.svg"; $("qr-url").textContent = state.playUrl.replace(/^https?:\/\//, ""); }
+  // Open the setup details automatically when there's nothing to show yet.
+  let autoHealth = state.mode === "live" && !state.events.length;
+  if (autoHealth) $("health").classList.add("show");
+
+  const es = new EventSource("/api/stream");
+  es.onmessage = (msg) => {
+    const m = JSON.parse(msg.data);
+    if (m.clock) setClock(m.clock);
+    if (m.type === "events") {
+      state.stats = m.stats;
+      if (autoHealth) { autoHealth = false; $("health").classList.remove("show"); }
+      addEvents(m.events, true);
+      renderStats(m.stats);
+      $("feed-n").textContent = "newest first";
+    } else if (m.type === "status") {
+      state.pipeline = m.pipeline;
+      renderPipeline(m.pipeline);
+      renderHealth(m.health);
+    }
+  };
+  setInterval(tickClock, 1000);
+  setInterval(() => renderAgents(state.stats.perAgent), 5000);
+  tickClock();
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "f" || e.key === "F") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  if (e.key === "d" || e.key === "D") $("health").classList.toggle("show");
+});
+
+boot().catch((err) => {
+  $("feed").innerHTML = `<li class="empty">The stage server isn't responding. Restart it with ./demo.sh</li>`;
+  console.error(err);
+});
+</script>
+</body>
+</html>
