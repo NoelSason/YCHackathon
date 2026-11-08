@@ -18,6 +18,7 @@ export async function verifiedLevel(q:Query, id:string, game?:string):Promise<Ve
   const results=(typeof r.results==='string'?JSON.parse(r.results):r.results) as Record<string,EvidenceInput>;
   const evidence=results[referenceBot(a)];const target=Number(l.target_win_rate);
   const problem=evidenceProblem(a.game_id,level,target,evidence);if(problem)throw Error(problem);
+  if(evidence!.wins===0 && r.solvable!==true)throw Error('no winning bot replay or exact solvability proof');
   return{id,game:a.game_id,level,target,measured:evidence!.win_rate,run_id:String(r.id)};
 }
 export async function acceptVerified(q:Query,id:string,reported:number):Promise<VerifiedLevel> {

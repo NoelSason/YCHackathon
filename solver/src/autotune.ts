@@ -215,7 +215,7 @@ export async function tuneDesign(q: Query, workerId: string, getAdapter: GetAdap
     if (knob.solverFloor && typeof m.out.min_moves === "number" && knob.dir === 1) lo = Math.max(lo, m.out.min_moves);
     seen.push({ e, rate: m.r.win_rate });
     const why = `${bot} ${m.r.wins}/${m.r.runs} = ${Math.round(m.r.win_rate * 100)}% (95% ${Math.round(m.r.ci95_low * 100)}-${Math.round(m.r.ci95_high * 100)}%), ${knob.path.join(".")} = ${knobText(level, knob.path)}, target ${Math.round(d.target * 100)}%, round ${round}${d.resumed ? " (resumed after the tune stopped mid-way)" : ""}`;
-    if (!evidenceProblem(d.game_id, level, d.target, m.r) && m.out.solvable !== false) {
+    if (!evidenceProblem(d.game_id, level, d.target, m.r) && m.out.solvable !== false && (m.r.wins>0 || m.out.solvable===true)) {
       await q(`update levels set status = 'accepted', measured_win_rate = $2, updated_at = now() where level_id = $1`, [levelId, m.r.win_rate]);
       await log(q, "tuner", "accept_level", `auto-tuner (program): ${why}`, `measured ${m.r.win_rate}`, "level", levelId);
       return { kind: "accepted", level_id: levelId, game_id: d.game_id, target: d.target, measured: m.r.win_rate, rounds: round, resumed: d.resumed };

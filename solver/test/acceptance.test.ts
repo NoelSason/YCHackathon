@@ -10,4 +10,9 @@ const[r]=await q("insert into solver_runs(level_id,bots,status,results,solvable,
 await assert.rejects(acceptVerified(q,id,.9),/differs/);await acceptVerified(q,id,.5);
 await q("update solver_runs set results=$2 where run_id=$1",[r!.id,JSON.stringify({human:{...result,rules_version:'old'}})]);await assert.rejects(acceptVerified(q,id,.5),/stale/);
 await q("update solver_runs set results=$2 where run_id=$1",[r!.id,JSON.stringify({human:{...result,runs:20,wins:10}})]);await assert.rejects(acceptVerified(q,id,.5),/200/);
+await q("update levels set target_win_rate=0 where level_id=$1",[id]);
+await q("update solver_runs set results=$2,solvable=null where run_id=$1",[r!.id,JSON.stringify({human:{...result,wins:0,win_rate:0}})]);
+await assert.rejects(acceptVerified(q,id,0),/no winning bot replay/);
+await q("update solver_runs set solvable=true where run_id=$1",[r!.id]);await acceptVerified(q,id,0);
+
 }finally{await db.close()}});

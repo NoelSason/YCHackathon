@@ -395,4 +395,4 @@ void (async () => {
   autoplay,
   state: () => ({ mode, title: level.title, verified: mode === "verified" ? verifiedAt : null, levelId: levelId ?? null, moves: state.moves, won: state.won, badge: indicator.textContent }),
 };
-window.addEventListener("beforeunload", () => { if (!ended) event("quit"); });
+window.addEventListener("pagehide", () => { if (!ended) event("quit"); });

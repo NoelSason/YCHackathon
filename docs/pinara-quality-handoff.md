@@ -10,6 +10,7 @@ Scope: master-plan packages 8, 10 and 11 and Pinara's two game clients. The sepa
   the Designer's target, records each version/measurement, and accepts only current payload/rules
   evidence with at least 200 completed reference games. Twelve bounded tuning rounds; rejection
   is an honest outcome when the target cannot be reached.
+- A zero-win measurement without an exact solvability proof cannot be accepted.
 - Shared MCP acceptance/publication guards. Old APIs retain their signatures. Old unversioned
   evidence remains historical and cannot pass a new acceptance check.
 - Five explicit Designer schedules and a scoped rollout command that preserves other agents,
@@ -34,15 +35,23 @@ Executed from committed source `c8defba`, with separate human-intervention recor
   with 200 independent verification games. Together with the 69 originals, **100/100** opening
   catalog positions satisfy current policy. The committed manifest selects these revisions.
   The new pack remains unpublished until the corrected client is deployed.
-- Pinara's worker and both buffer watchers run committed `5b4468a`; all five buffers are healthy
+- Pinara's processes run committed source; the two buffer watchers are pinned to `5b4468a`.
+  The solver worker's heartbeat id identifies its exact quality commit. All five buffers are healthy
   without new generation. No surplus stock was removed. Other people's processes were untouched.
-- Designer and Tuner reached Naïve **v13**, with five game-specific Designer schedules. Existing
-  caps/tools preserved. The five initial verification sessions consumed **$0.228678**, not $2.50.
+- Designer reached Naïve **v14** and Tuner **v13**, with five game-specific Designer schedules. Existing
+  caps/tools preserved. The five initial verification sessions consumed **$0.228678**.
   Four authored roots were saved. Lot Escape's save failed because its live backend adapter is
   missing. An older remote worker accepted match-3/racer without current evidence; a guarded
-  repair rechecks those leaves. Platformer's current result is **45.5% vs 50%, 200 games**.
+  repair rechecked those leaves. Current 200-game results versus the unchanged 50% target:
+  **match-3 56%**, **racer 51%**, **platformer 45.5%**, **watersort 53.5%**. The match-3
+  result uses the documented confidence-interval allowance; it is 6 points from target.
+  Splash Sort accepted on the third authored layout; the two genuinely untunable layouts remain
+  rejected, not hidden. All **seven** verification sessions consumed **$0.340456** total.
+  See [machine-readable proof](evidence/pinara-quality-2026-11-08.json) for sessions, roots and run ids.
 - Pinara's readiness check now excludes compiler stock and incomplete/old rules evidence; it
-  reports missing real authored proof honestly.
+  reports missing real authored proof honestly. At 04:03 PT only **Lot Escape** lacks the live
+  authored path because the hosted backend has no adapter for it; the five-game local harness
+  and generator regressions pass. This is an external deployment handoff, not a passed demo gate.
 
 The rollout/repair commands below are idempotent or resumable. A source-code change, dry run or
 cleanly ended session is not production proof.
@@ -54,6 +63,9 @@ adapter and the acceptance/publication guards. The live `/games/lotescape/schema
 while the other four schemas returned 200. Repin the CEO roster's Designer/Tuner versions after
 the scoped quality rollout; do not rerun the entire team setup just to deploy Pinara's prompts.
 Restart your own old worker from committed source. Our worker restart does not update Noel's.
+Old public packs remain playable. New acceptance/publication requires current evidence: to use
+legacy unversioned stock in a new pack, remeasure it first with `solver/src/production/remeasure.ts`
+(`--game <id> --write`) and retune any off-target result. Do not relabel old evidence as fresh.
 
 **Noel/Max:** deploy the committed `site/` (all game bundles, `play.js`, and
 `games/catalog-overrides.json`) through the existing Vercel project. This machine has no Vercel
@@ -96,3 +108,12 @@ retry). All human-requested operations are interventions, not autonomous achieve
 - The CEO's expected-vs-result check needs real scoped before/after data. `not_enough_data`
   remains the correct result until it exists. No guessed uplift or autonomy number is inserted.
 - Abhinav runs the full company demo readiness suite, and Noel records the backup demo.
+
+## Final verification
+
+146 tests passed: solver 61, evals 13, racer 23, watersort 14, lotescape 20, platformer 7,
+match-3 8. The final playability guard also passed 14 targeted acceptance/tuner regressions and
+the explicit zero-win/no-exact-proof case. All affected packages typecheck. Browser checks cover
+manual takeover, cancellation, undo, full solver replay, first-input telemetry, paired outcomes,
+restart identity and engine isolation; match-3 won a real saved level with seven pointer swaps,
+advanced and resumed. QA transports were intercepted.

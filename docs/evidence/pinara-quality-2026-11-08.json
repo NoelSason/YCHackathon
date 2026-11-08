@@ -1,0 +1,222 @@
+{
+  "recorded_at": "2026-11-08T12:05:55.067901+00:00",
+  "scope": "Human-requested Pinara quality verification, not unattended company operation",
+  "source_commits": [
+    "c8defba",
+    "5b4468a",
+    "8314a2e"
+  ],
+  "naive": {
+    "designer_version": 14,
+    "tuner_version": 13,
+    "verification_sessions": 7,
+    "consumed_micro_usd": 340456,
+    "note": "Provider consumed cost of these seven verification sessions only; not total team/coding credit use",
+    "latest_per_game": [
+      {
+        "game": "lotescape",
+        "session": "ses_tp948mgt92g2s0tq4n7x5b380n",
+        "agent_version": 13,
+        "status": "idle",
+        "stop_reason": "end_turn",
+        "consumed_micro_usd": 30431,
+        "roots": [],
+        "event_confirmed": false,
+        "accepted": [],
+        "unverified": [],
+        "passed": false
+      },
+      {
+        "game": "match3",
+        "session": "ses_v7k5k5dqe80esmvjt13q77cyq4",
+        "agent_version": 13,
+        "status": "idle",
+        "stop_reason": "end_turn",
+        "consumed_micro_usd": 54102,
+        "roots": [
+          "12e2ba91-b1ef-4de3-b6ec-b756114e816c"
+        ],
+        "event_confirmed": true,
+        "accepted": [
+          {
+            "id": "4df831fb-614c-4456-80fe-e3ffd2195d8f",
+            "target": 0.5,
+            "measured": 0.56,
+            "run_id": "8b8874c6-ba33-4297-8372-24896b562f72"
+          }
+        ],
+        "unverified": [],
+        "passed": true
+      },
+      {
+        "game": "platformer",
+        "session": "ses_7z902xwsxfz4evnn8m06b2ymzm",
+        "agent_version": 13,
+        "status": "idle",
+        "stop_reason": "end_turn",
+        "consumed_micro_usd": 57672,
+        "roots": [
+          "ff062752-dc7c-4c53-8b35-24771a2bb279"
+        ],
+        "event_confirmed": true,
+        "accepted": [
+          {
+            "id": "a2b7da72-3301-4abd-af75-48c47fca3c2f",
+            "target": 0.5,
+            "measured": 0.455,
+            "run_id": "a0144637-dd61-4fae-b2e4-33a50f1b62b7"
+          }
+        ],
+        "unverified": [],
+        "passed": true
+      },
+      {
+        "game": "racer",
+        "session": "ses_5v47w4fda31a4j3wywmdk6bnaa",
+        "agent_version": 13,
+        "status": "idle",
+        "stop_reason": "end_turn",
+        "consumed_micro_usd": 59049,
+        "roots": [
+          "3b2e42c6-65cb-4d34-8eb8-f876ce7dee9d"
+        ],
+        "event_confirmed": true,
+        "accepted": [
+          {
+            "id": "c6a15c5f-6c8f-4c95-aaba-061427cc2e3c",
+            "target": 0.5,
+            "measured": 0.51,
+            "run_id": "18e552f6-eca5-4875-9bc5-63d8010d0b99"
+          }
+        ],
+        "unverified": [],
+        "passed": true
+      },
+      {
+        "game": "watersort",
+        "session": "ses_bpk7dgxxmx9xm0e9ryvfn4xp43",
+        "agent_version": 14,
+        "status": "idle",
+        "stop_reason": "end_turn",
+        "consumed_micro_usd": 56048,
+        "roots": [
+          "54e24c99-30ab-471a-964a-f64301a0df0e"
+        ],
+        "event_confirmed": true,
+        "accepted": [
+          {
+            "id": "73aa1238-bdab-478e-b35b-3d70a476bc1f",
+            "target": 0.5,
+            "measured": 0.535,
+            "run_id": "d5c62c1b-4656-4b7a-bac1-41a00280aecd"
+          }
+        ],
+        "unverified": [],
+        "passed": true
+      }
+    ],
+    "rejected_watersort_attempts": [
+      {
+        "game": "watersort",
+        "session": "ses_k1epmxprbmmhrpf41fsf3ba27d",
+        "agent_version": 13,
+        "status": "idle",
+        "stop_reason": "end_turn",
+        "consumed_micro_usd": 27424,
+        "roots": [
+          "9f8fb172-c9e9-423b-8d78-d88ca0766a5c"
+        ],
+        "event_confirmed": true,
+        "accepted": [],
+        "unverified": [],
+        "passed": false
+      },
+      {
+        "game": "watersort",
+        "session": "ses_m1jeb7rfrnnaj7r9h5zk1v058d",
+        "agent_version": 14,
+        "status": "idle",
+        "stop_reason": "end_turn",
+        "consumed_micro_usd": 55730,
+        "roots": [
+          "e97e7d60-387c-498d-a926-a09886e91539"
+        ],
+        "event_confirmed": true,
+        "accepted": [],
+        "unverified": [],
+        "passed": false
+      }
+    ]
+  },
+  "racer": {
+    "canonical_positions": 100,
+    "remeasured_originals": 100,
+    "independent_games_each": 200,
+    "originals_on_target": 69,
+    "verified_child_revisions": 31,
+    "manifest": "site/games/catalog-overrides.json",
+    "new_pack_published": false,
+    "publication_blocker": "Corrected racer browser client not yet deployed by host owner"
+  },
+  "target_incidents": {
+    "original_target": 0.3,
+    "match3": {
+      "level_id": "ec64beed-57fd-423b-af9a-6744f0aaacd7",
+      "measured": 0.34,
+      "games": 200,
+      "status": "accepted"
+    },
+    "watersort": {
+      "invalid_acceptance_withdrawn": "53fda527-2e0d-4e90-8cc9-8e818e1611da",
+      "latest_status": "rejected",
+      "reason": "No integer move budget reached unchanged original target; history retained"
+    }
+  },
+  "readiness": {
+    "ran_at": "2026-11-08T12:03:06.265Z",
+    "expect_running": true,
+    "ok": false,
+    "checks": [
+      {
+        "name": "solver_queue",
+        "owner": "Pinara",
+        "path": "Design \u2192 tune \u2192 solve",
+        "ok": true,
+        "detail": "2 live worker(s) (pinara-quality-5b4468a, Noels-MacBook-Pro-557.local:14555) knowing lotescape, match3, platformer, racer, stub, watersort; done 201, failed 0 in 2h; stale queued 0; stuck running 0",
+        "ms": 613
+      },
+      {
+        "name": "design_tune_solve",
+        "owner": "Pinara",
+        "path": "Design \u2192 tune \u2192 solve",
+        "ok": false,
+        "detail": "Designer-authored acceptances with current on-target 200-game evidence in 3h: lotescape 0 (stale/incomplete excluded 0), match3 2 (stale/incomplete excluded 4), platformer 1 (stale/incomplete excluded 0), racer 1 (stale/incomplete excluded 2), watersort 1 (stale/incomplete excluded 2). Compiler stock is excluded. Missing: lotescape. Deploy missing adapters/update old workers; generate and verify real authored levels.",
+        "ms": 1777
+      }
+    ]
+  },
+  "human_calibration_points": {
+    "lotescape": 0,
+    "match3": 0,
+    "platformer": 0,
+    "racer": 0,
+    "watersort": 0
+  },
+  "ceo_expected_vs_result": {
+    "decision_id": "91d3b2a2-3b53-4612-9ab4-9702a2dc6fb5",
+    "verdict": "not_enough_data",
+    "note": "Real scoped before/after player data still insufficient"
+  },
+  "verification": {
+    "solver_tests": 61,
+    "evals_tests": 13,
+    "racer_tests": 23,
+    "watersort_tests": 14,
+    "lotescape_tests": 20,
+    "platformer_tests": 7,
+    "match3_tests": 8,
+    "all_passed": true,
+    "browser": "Four clients passed idle-load/paired-manual/restart/engine-source checks; mechanics regressions passed; actual saved match3 won via seven pointer swaps, progressed/resumed; all QA event transports blocked",
+    "final_guard_checks": "14 targeted acceptance/tuner regressions plus the explicit zero-win/no-exact-proof acceptance case passed after the full 146-test run"
+  }
+}

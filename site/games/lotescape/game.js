@@ -1116,6 +1116,6 @@ window.lotEscape = {
   autoplay,
   state: () => ({ mode, title: level.title, verified: mode === "verified" ? verifiedAt : null, levelId: levelId ?? null, moves: state.moves, won: state.won, badge: indicator.textContent })
 };
-window.addEventListener("beforeunload", () => {
+window.addEventListener("pagehide", () => {
   if (!ended) event("quit");
 });
