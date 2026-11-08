@@ -20,6 +20,18 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:35 PT · Abhinav (Claude) · branch `main`
+
+**What:** Business bearer re-vaulted for the permanent URL `https://levelai.vercel.app/mcp`
+(`vcr_jfk2s7kf…`; the tunnel entry deleted). `npm run setup` re-applied nine agents (Noel's
+`marketing` created, with its cron deployment `dep_yz1an1cq…`, disabled). Four deployments total,
+all disabled until switch-on.
+**Why:** Noel's 17:05 heads-up; the agents had been pointing at a dead tunnel URL.
+**Files:** `platform/naive/team.json` (Abhinav commits from laptop).
+**State:** Works.
+**Next / heads-up:** **Abhinav:** first readiness run against Neon (`platform/checks`), then the
+6:00 PM switch-on turns on all four deployments.
+
 ### 2026-11-07 16:30 PT · Abhinav (Claude) · branch `main`
 
 **What:** `npm run vault` fix: Naïve credentials are immutable and unique by label, so a changed
