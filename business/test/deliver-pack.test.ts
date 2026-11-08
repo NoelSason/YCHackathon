@@ -318,6 +318,18 @@ describe("the stage trigger: POST /orders/demo-run", () => {
     expect(mail.text).toContain(`https://levels.example/play?pack=${String(d!.pack_id)}`);
     expect(await actions(s.ctx)).toContainEqual("level pack ordered by Level AI demo studio (demo run)");
   });
+
+  it("names the pack for the company passed in and keeps the lead's contact name", async () => {
+    const s = await setup({ maker: fakeMaker(2) });
+    await s.ctx.store.upsertLead({ company: "Level AI billing check", appId: null, contactName: "Noel", email: body.email, source: "inbound_form", stage: "replied", reason: null, sampleUrl: null, crmContactId: null });
+    expect((await post(s, { ...body, company: "Level AI Test Agency" })).status).toBe(202);
+    await runDueDeliveries(s.ctx);
+    expect(await s.q(`select name, contact_name from studios`)).toEqual([{ name: "Level AI Test Agency", contact_name: "Noel" }]);
+    expect(await s.q(`select name from packs`)).toEqual([{ name: "Level AI Test Agency: match-3 level pack" }]);
+    const mail = s.sent.at(-1)!;
+    expect(mail.text).toContain("Hi Noel,");
+    expect(await actions(s.ctx)).toContainEqual("delivered level pack to Level AI Test Agency");
+  });
 });
 
 describe("the phone: study first, play level 1 last", () => {

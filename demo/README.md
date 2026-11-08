@@ -74,6 +74,7 @@ moment.
 |---|---|
 | Running on its own for | Time since the newest human step-in in the log (or since the first logged action if there are none) |
 | Agent actions | Log rows from agents. Not counted: the level compiler's rows (one per accepted level; shown below the number as "+N levels compiled") and the auto-approver's (shown under step-ins). Both are programs that can log dozens of rows a minute |
+| Data line (header) | "Data: serverless Postgres (Neon) · N rows of company history": `count(*)` of `activity_log`, `levels`, and `solver_runs`, read about once a minute. Live mode only |
 | Decisions | Decision records (`saw`/`chose`). The CEO's copy of each decision in `activity_log` (action `decision`) is hidden as a duplicate |
 | Human step-ins | `interventions` rows and `human` rows. Below the number: "+N auto-approved by policy", the `platform.auto_approve` rows (held tool calls our policy program approved; not people). The step-ins drawer links to them |
 | Spent | Naïve agent credits since Nov 7 (read every minute from Naïve's credits API with `NAIVE_API_KEY_SOCIAL`, which has `billing:read`; read-only, server-side) plus the data and tool costs logged as `cost_usd`. If Naïve can't be read, the tile is labeled "Data and tool spend" and shows only the logged costs |

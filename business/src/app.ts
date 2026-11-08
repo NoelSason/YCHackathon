@@ -333,7 +333,8 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       const company = s("company") ?? "Level AI demo studio";
       const difficulty = s("difficulty") ?? "medium";
       const lead = await ctx.store.upsertLead({
-        company, appId: s("bundleId"), contactName: s("name") ?? "Demo", email, source: "inbound_form", stage: "pilot_paid",
+        // contactName null keeps the lead's existing name (a "Demo" default here renamed the shared team lead).
+        company, appId: s("bundleId"), contactName: s("name"), email, source: "inbound_form", stage: "pilot_paid",
         reason: `Demo run: a ${GENRES[gameId].label} level pack calibrated to ${game ?? "their game"} (no payment).`, sampleUrl: null, crmContactId: null,
       });
       await ctx.store.logActivity({

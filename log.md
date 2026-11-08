@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 10:14 PM PT · Noel · Claude Code (console/phone agent, checkpoint) · main
+- **What:** Console and phone segment done (most code went out in ef87c91). Bulk compiler and auto-approver rows get their own cards and collapse into one feed line; Agent actions is an honest count; auto-approvals show under step-ins; Spent includes Naïve agent spend ($14.38 at 10:04 PM); a live Neon line in the header; team tests are tagged and left out of studio counts; the phone panel names App Store games, our levels, pack levels, and X posts correctly. X: `POST /social/post-now` (Bearer token) posts from the phone; the scheduled loop is quiet 3 AM–2 PM PT (`SOCIAL_QUIET_HOURS`), and post-now has 3 extra posts (`SOCIAL_DEMO_RESERVE`). Snapshots are scheduled for Sun 8:00 and 10:30 AM (`demo/snapshot-schedule.sh`).
+- **Why:** The console is the demo; X posting must not collide with the recording.
+- **Files:** `demo/**`, `business/src/{marketing,mobile}/`, `business/src/app.ts`, `business/.env.example`
+- **State:** works except X: the 9:51 PM post-now failed because x.com never loads in Safari on the main phone (black logo screen). Business 304/304, demo 21/21.
+- **Next / heads-up:** **Noel:** open x.com on the main phone in Mobilerun's live view and log in again (or clear Safari data for x.com). The "Running on its own" clock resets at each teammate step-in.
+
 ### 2026-11-07 10:05 PM PT · Noel · Claude Code (pack agent, Sentinel 4 levels, checkpoint) · main
 - **What:** (1) **Pack delivery done** (pack agent). A paid $49 pack or `POST /orders/demo-run` runs end to end: phone study → recap email → curve → 20 levels built one at a time (generator, bot, solver accept rule) → pack email → phone plays level 1. Real Candy Crush run 9:46–9:56 PM (pack bbe17794): study 4 min 4 s, build 82 s for 20 levels, 5 min 35 s start to delivered. The phone saw no ramp, so the default curve was used and the email says so. The closing playtest timed out at 240 s; the limit is now 6 min. Resume is capped at 2 per pack and adopts a phone study already running instead of queuing another. All pack emails go through the outbox. (2) **Levels** (Sentinel 4): 9 agent-made levels accepted (match3 7, watersort 1, racer 1). Customer packs no longer become the newest pack, so /play stays fixed; `/levels-latest?made_by=agents` and `/play?made_by=agents` show only Designer/Tuner levels. (3) Checkpoint of the console agent's in-progress edits (demo/, marketing/).
 - **Why:** The $49 pack is the main demo; /play must not flip to a test pack overnight.
