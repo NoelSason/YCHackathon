@@ -20,6 +20,25 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:50 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Switch-on at 16:45, and the first CEO run hit the people-data rule.** All four
+deployments enabled (`npm run kill -- on`, step-in logged). `npm run ceo-now` session
+`ses_vmxkc2naqzw9mjwc5tvzgxf3ff`: `platform.get_company_metrics` ran (allow), then
+`platform.list_games` and `platform.get_recent_decisions` were held with `tool.confirm
+read_people: true`; session `awaiting_approval`. The board read (`board_read`) was not held.
+Added `npm run inspect -- ses_<id>` to dump a session's full events.
+**Why:** This is the "chat that has read people's data asks on every call" rule, and it fired on
+our own metrics JSON (fields like `emails_sent`, `replies`), not on an inbound email.
+**Files:** `platform/naive/src/inspect-session.ts`, `package.json`.
+**State:** Company is switched on but the CEO stalls after its first tool call. Not approved yet.
+**Next / heads-up:** **Everyone:** this blocks the unattended run. Abhinav is asking the Naïve
+team what sets `read_people` and whether an MCP server can be exempt. Fallbacks, in order:
+rename/strip the fields that trip it from `get_company_metrics` and `get_player_stats`;
+`confirmTool(scope: "session")` once per session (a step-in per cron run, honestly logged);
+split the CEO into a reader thread and an actor thread like Sales. **Pinara:** the same will hit the
+Tuner the moment any tool output mentions a person.
+
 ### 2026-11-07 17:15 PT · Noel (Claude Code) · branch `main`
 
 **What:**
