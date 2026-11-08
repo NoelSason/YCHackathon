@@ -20,14 +20,21 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
-### 2026-11-07 7:22 PM PT · Noel · Claude Code (Turbo Lanes subagent) · main
+### 2026-11-07 6:51 PM PT · Noel · Claude Code · main
+- **What:** Corrected the timestamps on my 22 log entries from 5:32 to 6:47 PM, which had been written ahead of the clock (some by up to 35 min). They now match the commit times. Also: X still rejects @uselevelai posts (6:49 PM retry, after Noel posted manually); a fresh connect link went to Noel to reconnect.
+- **Why:** The log has to be accurate; it's what the demo and teammates rely on.
+- **Files:** `log.md`
+- **State:** works.
+- **Next / heads-up:** none.
+
+### 2026-11-07 6:47 PM PT · Noel · Claude Code (Turbo Lanes subagent) · main
 - **What:** Turbo Lanes follows lane-runner conventions (games/racer/RULES.md, with sources). Every vehicle is the same size (2 rows × 58% of a lane), centered in its lane. Hitboxes match sprites, with a test that on-screen overlap equals a rules collision. **Two rule changes:** traffic cars cover 2 rows, and steering into a car beside you is a crash (bounce back, lose time; a shield absorbs it). Pickups can't be collected twice by a quick left-right. Practice tracks re-tuned to keep their difficulty order (reference bot 96/97/60/18%). Smoother lane changes, clearer hazards and pickups, swipe and key fixes. Level JSON is unchanged.
 - **Why:** Noel: car sizes were inconsistent; fix the games to their real rules.
 - **Files:** `games/racer/**`, `site/games/racer/**`
 - **State:** works; racer 21/21, solver 25/25, typecheck clean, deployed.
 - **Next / heads-up:** **Pinara:** the two rule changes make saved racer levels harder than they were tuned, so the Tuner should re-measure them. Shields and oil hazards are intact.
 
-### 2026-11-07 7:15 PM PT · Noel · Claude Code (watch, docs, Gem Match subagents + main) · main
+### 2026-11-07 6:43 PM PT · Noel · Claude Code (watch, docs, Gem Match subagents + main) · main
 - **What:** (1) **Watch your playtest live:** when a paid playtest starts, the customer gets an email with a private link (`/watch?o=<43-char token>`). The page shows the iPhone's screen about once a second while their order runs (read-only, no device credentials leave the server), a step timeline, and the result. Endpoints `/watch-status` and `/watch-frame` (2/s per token, 404 for unknown). After paying, the buyer lands on their watch page. Copy says "a real iPhone in the cloud" (it's a rented cloud phone). Real test order eb983c9f… worked end to end. (2) **Paid playtests survive restarts:** orders record their payment, and on boot the server re-queues paid orders from the last 24 h that never finished. Table `biz_playtest_orders` (+ payment_id, focus), applied to Neon. (3) **Level API code** behind the new developer docs: `/api/games`, `/api/levels`, `/api/levels/:id`, `/api/packs/:id`, `/api/levels-latest`, key-auth `/api/studio/levels`, studio MCP `list_my_levels`. (4) **Gem Match** (/play) follows standard match-3 rules (games/match3/RULES.md). A dead board now reshuffles instead of ending the level (Houseki ended it as lost: the random bot went 58→100/100 on a practice level). Three labeled practice levels play when no agent-made levels exist. One shared level mapping (`games/match3/adapter/levels.ts`) for adapter and player. Visible swap-back, square tiles, idle hint, distinct loss screens. (5) Console phone shows the screenshot at its true ratio; the screenshot API maxes out at 393×852.
 - **Why:** Noel: email customers when testing starts and let them watch live; dev docs; fix the games.
 - **Files:** `business/src/{leads/watch.ts,leads/playtest-offer.ts,app.ts,server.ts,store.ts,types.ts,db/schema.sql,levels/public.ts,studio/mcp.ts}`, `business/live.sh`, `business/test/*`, `site/watch.html`, `site/play.*`, `player/src/*`, `games/match3/**`, `demo/public/index.html`, `demo/src/phone.ts`
@@ -63,7 +70,7 @@ This is the team's build log. It isn't the company's agent activity log, which t
 3. `git pull`
 4. `caffeinate -i npm run worker` (the start line shows `"autotune":true`)
 
-### 2026-11-07 7:08 PM PT · Noel · Claude Code (Splash Sort subagent) · main
+### 2026-11-07 6:39 PM PT · Noel · Claude Code (Splash Sort subagent) · main
 - **What:** Splash Sort follows standard water-sort rules (games/watersort/RULES.md, with sources incl. Ito et al. FUN 2022). The game and the bots now share one rule: a finished tube is sealed (the bots used to allow pouring out of it; re-measured win rates are unchanged). Undo (3 per attempt). A stuck board offers undo before it ends. Illegal taps say why. Keyboard play (1–9/0/-, arrows, Esc, U/Cmd+Z, R). Same-color units draw as one liquid band, tubes are exact capacity height, rows are balanced (an 11-tube board fits 390 px). Pour animation (respects reduced motion). `generateSolvableLevel` keeps only solver-proven deals. Level JSON is unchanged.
 - **Why:** Noel: fix every game to its real rules.
 - **Files:** `games/watersort/**`, `site/games/watersort/**`
@@ -122,7 +129,7 @@ design can run unattended under this rule.
 - **Abhinav:** `team.json` now has the `designer` deployment, so `npm run kill -- on/off` includes
   it.
 
-### 2026-11-07 7:02 PM PT · Noel · Claude Code · main
+### 2026-11-07 6:36 PM PT · Noel · Claude Code · main
 - **What:** Console pop-ups (moments) are a compact notification in the top-right corner in a normal window. Full screen keeps the big projector banner.
 - **Why:** Noel: the notifications looked zoomed in and covered the team and feed.
 - **Files:** `demo/public/index.html`
@@ -146,7 +153,7 @@ completed once; the business side is verified; `read_people` is the only P0. **N
 route is missing (404 after a pilot payment); pilot delivery is manual, say so on stage.
 **Abhinav:** redeploy for the tool change (`neon deploy --env .env`), `npm run kill -- on`.
 
-### 2026-11-07 6:58 PM PT · Noel · Claude Code (Lot Escape subagent) · main
+### 2026-11-07 6:35 PM PT · Noel · Claude Code (Lot Escape subagent) · main
 - **What:** Lot Escape fixed to standard sliding-vehicle rules (games/lotescape/RULES.md, with sources). Vehicles fill their cells exactly: car 2:1, truck 3:1, same thickness (vertical cars used to be drawn horizontally and rotated into slivers). System fonts replace the failing Google Fonts. Per-vehicle exit gates. The grid follows the lot size. Animated moves, live drag that stops at legal positions, keyboard (arrows/WASD, Tab/n/[ ]). The solver reports "unfinished" instead of "unsolvable" at its size cap. The rules stay in the shared engine; level JSON is unchanged. The Preview badge is gone from the hub.
 - **Why:** Noel: car sizes were wrong; fix the games to their real rules.
 - **Files:** `games/lotescape/**`, `site/games/lotescape/**`, `site/games/{index.html,published.json}`
@@ -169,14 +176,14 @@ show; the Stripe webhook endpoint must point at `levelai.vercel.app/webhooks/str
 the Designer cron (`dep_pf9e3h9p…`) was created after the 16:45 switch-on, so it is still
 disabled: run `npm run kill -- on "enable designer cron"`.
 
-### 2026-11-07 6:52 PM PT · Noel · Claude Code · main
+### 2026-11-07 6:32 PM PT · Noel · Claude Code · main
 - **What:** Social posting now waits for the network's real answer. A post that comes back "failed" after being "scheduled" is logged as "couldn't post on x", not "posted".
 - **Why:** All four X posts (6:11–6:28 PM) were accepted, then failed within ~4 s with no error. The log had called them posted.
 - **Files:** `business/src/marketing/posts.ts`, `business/test/marketing.test.ts`
 - **State:** works; tests pass, server restarted.
 - **Next / heads-up:** X still fails for @uselevelai on Naïve's side (account connected, no error given). Needs the X account checked or reconnected.
 
-### 2026-11-07 6:45 PM PT · Noel · Claude Code (+ docs subagent) · main
+### 2026-11-07 6:30 PM PT · Noel · Claude Code (+ docs subagent) · main
 - **What:** (1) New logo everywhere: three tiles with googly eyes (`site/logo.svg`, `site/logo.png`). Used for the header mark and favicon on every site page, the console and outreach board, the games hub and game pages (build-games.sh now links /logo.svg), the email header (PNG, since email clients block SVG), and the README. (2) Developer docs: `/developers` rewritten as real docs (quickstart, REST reference with live responses, level JSON per game, studio connector setup for Claude Code/Cursor/Codex, errors, how levels are made and tested, what isn't built) plus `docs/developers.md`. The new `/api/*` endpoints are already live from the running server; their code lands with the watch-live commit because it shares app.ts.
 - **Why:** Noel: use this logo everywhere; dev docs so studios can access level creations.
 - **Files:** `site/logo.{svg,png}`, `site/*.html`, `site/games/**/index.html`, `site/build-games.sh`, `demo/public/{index,outreach}.html`, `business/src/email/html.ts`, `README.md`, `docs/images/logo.png`, `site/developers.html`, `docs/developers.md`
@@ -215,35 +222,35 @@ now retry 429/503 with backoff instead of crashing.
 **Next / heads-up:** Abhinav: `npm run inspect -- ses_dgf2ak056kn4yqnr3gr0mme0jh` to read the
 result. **Everyone:** expect 429s from Naïve tonight; retry, don't rerun.
 
-### 2026-11-07 6:35 PM PT · Noel · Claude Code (games-hosting subagent) · main
+### 2026-11-07 6:23 PM PT · Noel · Claude Code (games-hosting subagent) · main
 - **What:** All games are on the site. Hub https://levelai.vercel.app/games, Splash Sort /games/watersort/, Turbo Lanes /games/racer/, Lot Escape /games/lotescape/ (Preview), Gem Match card → /play (Preview until match3 levels are accepted). "Games" link added to the header nav on index, join, play, playtest, privacy, and terms. `site/build-games.sh` rebuilds the bundles from games/*, without changing game code, and writes `site/games/published.json` (games the level API serves). Once the level API serves a game, its card links its newest agent-made level first.
 - **Why:** Noel: host the games so we can see them.
 - **Files:** `site/games/**`, `site/build-games.sh`, `site/*.html` (nav only), `site/styles.css` (additive)
 - **State:** works; deployed, headless Chrome at 1440×900 and 390×844 (touch): loads, no console errors, real moves, no horizontal scroll.
 - **Next / heads-up:** **Lot Escape owner:** the moving cars draw as thin slivers, and its two fonts don't load. That's a bug in the game's own render code. **Max/Pinara:** after changing a game, run `site/build-games.sh` and redeploy the site. The platformer has no browser UI, so it isn't hosted.
 
-### 2026-11-07 6:30 PM PT · Noel · Claude Code (README subagent) · main
+### 2026-11-07 6:19 PM PT · Noel · Claude Code (README subagent) · main
 - **What:** New public README.md in the style of Noel's other repos: hero console screenshot, how it works (mermaid diagrams for the agent loop and the level loop), agents, what's autonomous, live numbers with timestamps, honest status and limits, stack, repo layout, how to run it, team, and credits. The old README (the team plan) is now `docs/plan.md`, and references in AGENTS.md, docs/*, games/match3/README.md, and platform/CONTRACTS.md point there. (The move itself went out by accident in e90218b, which left the repo briefly without a README; this restores it.)
 - **Why:** Noel: a README like the rest of his profile.
 - **Files:** `README.md`, `docs/images/{console,site-research}.png`, `docs/plan.md`, `AGENTS.md`, `docs/{agent-plan,how-to-win,master-plan}.md`, `games/match3/README.md`, `platform/CONTRACTS.md`
 - **State:** works; mermaid rendered, links and images resolve, no emails or keys.
 - **Next / heads-up:** **Everyone:** the team plan moved to `docs/plan.md`. The outreach screenshot was left out on purpose, since it names real studios.
 
-### 2026-11-07 6:20 PM PT · Noel · Claude Code · main
+### 2026-11-07 6:16 PM PT · Noel · Claude Code · main
 - **What:** Playtest form: the link field now says what to paste ("Your game's link": an App Store link or a web link that opens in Safari; Google Play won't work yet). Mobilerun (ticket #373): they queued our apps into their hosted library (Royal Match and Block Blast still 404 as of 6:15 PM) and granted a 3-day iPhone subscription for a second phone where Apple sign-in works. That phone isn't created yet; it waits on Noel's OK.
 - **Why:** Noel didn't know what to put in "App link".
 - **Files:** `site/playtest.html`
 - **State:** works; deployed, /health ok before and after.
 - **Next / heads-up:** none.
 
-### 2026-11-07 6:18 PM PT · Noel · Claude Code · main
+### 2026-11-07 6:12 PM PT · Noel · Claude Code · main
 - **What:** Real spend is logged now. The Monid wrapper reads each run's `billing.reportedCost` (micro-dollars), and every research pass logs what it cost (chart, reviews, store listings, contact lookups) in `cost_usd`, so the console's "Spent" shows real money instead of $0.
 - **Why:** Noel: "why is it 0 cost". Our loops were paying for every call and logging $0.
 - **Files:** `business/src/research/monid.ts`, `business/src/outreach/autopilot.ts`, `business/test/research.test.ts`
 - **State:** works; 143 tests pass, server restarted. The first cost shows after the next pass completes (~10 min).
 - **Next / heads-up:** OpenAI checks and Mobilerun minutes aren't in "Spent" yet. Their prices aren't reported per call.
 
-### 2026-11-07 6:14 PM PT · Noel · Claude Code · main
+### 2026-11-07 6:12 PM PT · Noel · Claude Code · main
 - **What:** (1) Social is live: the first post went out on X (@uselevelai) at 6:11 PM, with the live research numbers (3,150 reviews, 12 level complaints: 8 too easy, 4 too hard) and the free audit link. (2) Automatic posting from our server every 2 h (`SOCIAL_LOOP=1`, `SOCIAL_LOOP_MINUTES=120`, on by default when the social key is set). It rotates research → levels → research → playtest, posts research only when there are new numbers (networks reject duplicates), retries when the service is "at capacity", and posts only to connected accounts. Cap is now 4 per network per day. Research posts show counts until there are 50+ complaints, then percentages. The levels post no longer says "hundreds of times" (the solver runs 50). The Marketing agent's `post_update` gains a 'research' angle. (3) Console text scale: full size in full screen only; in a window it's 84%, and the `-` and `=` keys adjust it (remembered per viewer).
 - **Why:** Noel: automate social now; the console looked zoomed in on a laptop.
 - **Files:** `business/src/marketing/{posts.ts,loop.ts}`, `business/src/{server.ts,config.ts,mcp/server.ts,mcp/tools.ts}`, `business/test/marketing.test.ts`, `business/.env.example`, `demo/public/index.html`
@@ -306,56 +313,56 @@ result. **Everyone:** expect 429s from Naïve tonight; retry, don't rerun.
 
   `greedy` still takes about 1.7 s a game.
 
-### 2026-11-07 6:08 PM PT · Noel · Claude Code · main
+### 2026-11-07 6:01 PM PT · Noel · Claude Code · main
 - **What:** One game's reviews failing to load, or a failed send, now skips that game instead of ending the whole chart pass. Confirmed the send-as-you-go change live: Hidden Folks B.V. was emailed at 5:57 PM the moment its game qualified.
 - **Why:** "couldn't read the top paid casual chart" at 5:57 PM came from one game's error mid-pass.
 - **Files:** `business/src/research/targets.ts`, `business/src/outreach/autopilot.ts`
 - **State:** works; 140 tests pass, server restarted.
 - **Next / heads-up:** `NEW_NAIVE_KEY` (added by Noel) is in his personal workspace (0 agents, identity idn_debsb…), not the team one. Social posting uses the team workspace via `NAIVE_API_KEY_SOCIAL`.
 
-### 2026-11-07 6:05 PM PT · Noel · Claude Code · main
+### 2026-11-07 5:59 PM PT · Noel · Claude Code · main
 - **What:** Social posting is set up in the team Naïve workspace. Noel added `NAIVE_API_KEY_SOCIAL` (team workspace, billing:write). I created identity `idn_ktrxjg2jbb1bmz7shpjpj05rjt` "Level AI" there and activated social (`activated: true`, no accounts yet). `post_update` now posts through that key and identity (`NAIVE_SOCIAL_IDENTITY_ID`), falling back to the old identity if unset. Mobilerun support ticket #373 filed (Apple sign-in, App Store catalog, iOS uninstall).
 - **Why:** The Marketing agent needs connected accounts to post.
 - **Files:** `business/src/config.ts`, `business/src/mcp/tools.ts`, `business/.env.example`
 - **State:** partly works: activation done, 140 tests pass; posting waits on Noel connecting accounts in the portal.
 - **Next / heads-up:** Noel's old `NAIVE_API_KEY` is a separate personal workspace (0 agents). The team's agents are only visible with the social key.
 
-### 2026-11-07 5:58 PM PT · Noel · Claude Code · main
+### 2026-11-07 5:57 PM PT · Noel · Claude Code · main
 - **What:** A solver worker now runs on Noel's laptop under `solver-keepalive.sh` (restarts it if it exits). It claims queued runs with SKIP LOCKED, so it's safe next to Pinara's worker. Games: match3, platformer, racer, stub, watersort.
 - **Why:** Readiness check `solver_queue` was red: "no live worker heartbeat".
 - **Files:** `solver-keepalive.sh`
 - **State:** works; worker logged "started" at 01:57 UTC.
 - **Next / heads-up:** **Pinara:** check is now 10/16 green; still red are levels_flow / design_tune_solve (no on-target level accepted in 3 h). **Max:** publish_play and player_events need a published pack. The `deployments` check only passes with Abhinav's Naïve key (his workspace).
 
-### 2026-11-07 5:57 PM PT · Noel · Claude Code (phone-loop subagent + main) · main
+### 2026-11-07 5:56 PM PT · Noel · Claude Code (phone-loop subagent + main) · main
 - **What:** The iPhone now playtests on its own every 30 min (`PLAYTEST_LOOP=1`, now on in .env). Paid orders always come first, and it never runs while another phone task is active. It plays our own newest levels in Safari when they exist; otherwise it runs a market study of a free web puzzle game (2048, Gemline match-3, Water Sort, Flood), each checked on a phone screenshot. A blank-screen detector (`mobile/screen.ts`, node:zlib only) fails a run instead of "playing" a white page, and the board is left on screen afterwards (never a blank tab). Console labels: market studies read "Now playtesting 2048, a web puzzle game" instead of "X's app". I corrected the one invalid row: a Water Sort "win" recorded while the page was blank on the phone is now logged as a failed run, result discarded.
 - **Why:** The phone should be doing real work all night; Noel saw a blank screen labeled "water-sort for Water Sort".
 - **Files:** `business/src/mobile/{loop.ts,screen.ts}`, `business/src/server.ts`, `business/test/playtest-loop.test.ts`, `demo/src/moments.ts`, `demo/public/index.html`, `demo/test/moments.test.ts`
 - **State:** works; 2048 run task 924dfb94… completed with the board visible; business and demo tests pass; server restarted with the loop on.
 - **Next / heads-up:** Phone runs of our own levels will post player events from the page with no "phone" tag.
 
-### 2026-11-07 5:56 PM PT · Noel · Claude Code (research-UI subagent) · main
+### 2026-11-07 5:53 PM PT · Noel · Claude Code (research-UI subagent) · main
 - **What:** Live market research on the website ("What players are saying right now": reviews and games read, too hard / too easy / want more levels / repetitive, a card per chart with the strongest example; polls `/market-research` every 60 s; empty state "Our agents are reading the charts now"; new stats tile "Player reviews our agents read", hidden at 0). Console: "Market research" card that opens a drawer of every pass, backed by `/api/market-research` from Neon; rehearsal data is labeled invented. The in-place outreach board now has "← Back to the company", a "Press O or Esc to go back" hint, and the logo closes it too.
 - **Why:** Noel: more visible market research; he got stuck on the outreach board with no way back.
 - **Files:** `site/{index.html,site.js,styles.css}`, `demo/{public/index.html,public/outreach.html,src/feeds.ts,src/server.ts,test/research.test.ts,README.md}`
 - **State:** works; site deployed, demo typecheck clean and 16 tests pass, console restarted, checked at 1920×1080 and 1440×900.
 - **Next / heads-up:** Sender display name shows "AgentMail" and emails carry a "Sent via AgentMail" footer. Our inbox key can't change it (403 missing permission); change it in the AgentMail dashboard.
 
-### 2026-11-07 5:53 PM PT · Noel · Claude Code (revenue subagent) · main
+### 2026-11-07 5:52 PM PT · Noel · Claude Code (revenue subagent) · main
 - **What:** (1) Money path proven end to end in test mode, no browser, no human: order `/playtest-orders` → payment link → checkout paid with a test card (pi_3UZL9P…) → webhook evt_1UZL9Q… verified → payment row paid→delivered → iPhone playtest ran → report emailed, labeled "[Test order]". The webhook now logs every outcome (duplicates, amount mismatch, no automated delivery → left for a person). Failure emails no longer promise a retry that doesn't exist. Google Play links are refused at order time (the iPhone can't run them). (2) Auto-replies: a positive studio reply gets one fixed, honest answer within a minute (free levels plus the $5 playtest page). A clear no → lost, out-of-office → ignored, anything hostile, mixed, long, or a real question → left for a person. Cap 10/day, one auto-answer per studio, kill switch `AUTO_REPLY=0`. Tested live: reply sent 01:50:25 UTC, answered 01:51:13. (3) Restart fix: `lsof -ti tcp:PORT` also matches the cloudflared tunnel's connection, so our restarts were killing tunnels. Use `lsof -ti tcp:PORT -sTCP:LISTEN`.
 - **Why:** Earning has to work without us; replies were only being recorded.
 - **Files:** `business/src/{app.ts,leads/playtest-offer.ts,mcp/tools.ts,outreach/guard.ts,outreach/inbound.ts}`, `business/test/{money-path,auto-reply,playtest-offer}.test.ts`, `business/keepalive.sh`
 - **State:** works; typecheck clean, business tests pass.
 - **Next / heads-up:** **Abhinav:** `get_company_metrics` `stripe_revenue_usd` sums test and live payments together, so split them. The playtest order queue is in memory, and a restart drops a queued order (its delivery row stays pending). AgentMail adds a "Sent via AgentMail" footer and display name. That's an inbox setting.
 
-### 2026-11-07 5:51 PM PT · Noel · Claude Code · main
+### 2026-11-07 5:50 PM PT · Noel · Claude Code · main
 - **What:** The outreach loop emails each studio the moment its game qualifies, instead of after reading the whole 30-game chart. Games read in the last 6 h are kept in a temp file, so a server restart doesn't re-read them (or pay again).
 - **Why:** Passes take ~6 min, and agents restart the server often, so passes were cut off before their send step (e.g. a word-games pass at 5:46 PM).
 - **Files:** `business/src/outreach/autopilot.ts`, `business/src/research/targets.ts`
 - **State:** works; typecheck clean, tests pass (except the playtest-loop subagent's in-progress test file).
 - **Next / heads-up:** none.
 
-### 2026-11-07 5:47 PM PT · Noel · Claude Code · main
+### 2026-11-07 5:46 PM PT · Noel · Claude Code · main
 - **What:** More research and outreach. The outreach loop now cycles 15 store charts (top free, top-grossing, and top paid × puzzle, casual, word, board, card), reads up to 30 games per pass, runs every 10 min (was 20), and sends up to 3 emails per pass. The daily cold cap is now 40 (was 20). Contacts: the Google Play listing's developer email is used first if it's role-based, then Hunter generic addresses for the listing's website domain, then Hunter by company name. Personal addresses are never used.
 - **Why:** Noel: much more market research and outreach. Most strong targets had been skipped with "no public contact."
 - **Files:** `business/src/research/contacts.ts`, `business/src/outreach/autopilot.ts`, `business/src/config.ts`, `business/test/integration-features.test.ts`
@@ -436,7 +443,7 @@ result. **Everyone:** expect 429s from Naïve tonight; retry, don't rerun.
   `run.ts`, `sim-worker.ts`, and tests) already landed in `0942497`, from another session, together
   with its worker heartbeat. This push contains only the files listed above.
 
-### 2026-11-07 5:44 PM PT · Noel · Claude Code (verifier subagent) · main
+### 2026-11-07 5:43 PM PT · Noel · Claude Code (verifier subagent) · main
 - **What:** Cold-outreach evidence is now checked by a model before sending. For each game that passes the keyword threshold (≥3 matching reviews), `gpt-5.4-mini` (strict JSON) confirms each candidate sentence is a real complaint about this game's levels, and may add complaints the keywords missed, but only sentences that appear word for word in a review. Counts, pitch angle, quotes, reason, and score are rebuilt from confirmed sentences only. Falls back to the keyword result if the key is missing, a call fails, or the daily cap (`OPENAI_DAILY_CALLS`, 300) is hit. It logs a line when the check changes the evidence.
 - **Why:** Fewer wrong emails, more right ones. Real run: Parking Loop 7/7 quotes confirmed; Color Block Jam's angle moved from too easy (3) to too hard (4).
 - **Files:** `business/src/research/{verify.ts,signals.ts,targets.ts}`, `business/src/outreach/autopilot.ts`, `business/src/config.ts`, `business/.env.example`, `business/test/verify.test.ts`
@@ -501,7 +508,7 @@ from outside whether a worker was alive or which games it knew.
 - **State:** works; public page 401 without the password and 200 with it; `/api/state`, `/api/phone.png`, and `/outreach` return 200.
 - **Next / heads-up:** Quick tunnels die on network blips. Both watchdogs now recover them on their own within about a minute.
 
-### 2026-11-07 5:33 PM PT · Noel · Claude Code · main
+### 2026-11-07 5:32 PM PT · Noel · Claude Code · main
 - **What:** Market research on every outreach cycle. Each chart pass now reads up to 20 games and saves the totals to `biz_market_research` (games, reviews, too hard, too easy, wants more levels, repetitive, games with a clear problem, the strongest one). It also logs a line the console shows. There's a public `GET /market-research` (counts only), and `/public-stats` gains `reviewsRead`. The watchdog now also catches a dead tunnel: 3 failed public health checks → reruns `live.sh`. The tunnel had died silently and taken levelai.vercel.app's API down for a few minutes; restored.
 - **Why:** Real, growing numbers for the demo; the site should never silently lose its backend overnight.
 - **Files:** `business/src/{store.ts,app.ts,outreach/autopilot.ts,research/targets.ts,db/schema.sql}`, `business/live.sh`, `business/keepalive.sh`
