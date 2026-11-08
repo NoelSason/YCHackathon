@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:53 PM PT · Noel · Claude Code (revenue subagent) · main
+- **What:** (1) Money path proven end to end in test mode, no browser, no human: order `/playtest-orders` → payment link → checkout paid with a test card (pi_3UZL9P…) → webhook evt_1UZL9Q… verified → payment row paid→delivered → iPhone playtest ran → report emailed, labeled "[Test order]". The webhook now logs every outcome (duplicates, amount mismatch, no automated delivery → left for a person). Failure emails no longer promise a retry that doesn't exist. Google Play links are refused at order time (the iPhone can't run them). (2) Auto-replies: a positive studio reply gets one fixed, honest answer within a minute (free levels plus the $5 playtest page). A clear no → lost, out-of-office → ignored, anything hostile, mixed, long, or a real question → left for a person. Cap 10/day, one auto-answer per studio, kill switch `AUTO_REPLY=0`. Tested live: reply sent 01:50:25 UTC, answered 01:51:13. (3) Restart fix: `lsof -ti tcp:PORT` also matches the cloudflared tunnel's connection, so our restarts were killing tunnels. Use `lsof -ti tcp:PORT -sTCP:LISTEN`.
+- **Why:** Earning has to work without us; replies were only being recorded.
+- **Files:** `business/src/{app.ts,leads/playtest-offer.ts,mcp/tools.ts,outreach/guard.ts,outreach/inbound.ts}`, `business/test/{money-path,auto-reply,playtest-offer}.test.ts`, `business/keepalive.sh`
+- **State:** works; typecheck clean, business tests pass.
+- **Next / heads-up:** **Abhinav:** `get_company_metrics` `stripe_revenue_usd` sums test and live payments together, so split them. The playtest order queue is in memory, and a restart drops a queued order (its delivery row stays pending). AgentMail adds a "Sent via AgentMail" footer and display name. That's an inbox setting.
+
 ### 2026-11-07 5:51 PM PT · Noel · Claude Code · main
 - **What:** The outreach loop emails each studio the moment its game qualifies, instead of after reading the whole 30-game chart. Games read in the last 6 h are kept in a temp file, so a server restart doesn't re-read them (or pay again).
 - **Why:** Passes take ~6 min, and agents restart the server often, so passes were cut off before their send step (e.g. a word-games pass at 5:46 PM).

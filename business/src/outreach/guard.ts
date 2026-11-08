@@ -67,3 +67,53 @@ export async function checkReply(lead: Lead, agentText: string, ctx: { store: St
   if (unverified.length > 0) return `Reply states numbers with no source: ${[...new Set(unverified)].join(", ")}.`;
   return null;
 }
+
+/**
+ * Drops the quoted thread from a reply (lines starting with ">", and everything after an
+ * "On … wrote:" or "Original Message" line), so only the studio's own words are judged.
+ */
+export function ownWords(replyText: string): string {
+  const lines = replyText.replace(/\r\n/g, "\n").split("\n");
+  const out: string[] = [];
+  for (const line of lines) {
+    if (/^\s*On .{3,200}wrote:\s*$/i.test(line) || /^-{2,}\s*(original|forwarded) message/i.test(line) || /^\s*From: .+@.+/i.test(line)) break;
+    if (/^\s*>/.test(line)) continue;
+    out.push(line);
+  }
+  return out.join("\n").trim();
+}
+
+export type ReplyIntent = "interested" | "not_interested" | "auto_reply" | "hostile" | "unclear";
+
+/**
+ * Sorts a studio's reply into what the agent may do about it on its own. Deliberately narrow:
+ * only short, plainly positive replies count as interested. Anything mixed, long, hostile, or
+ * asking a real question is "unclear" or "hostile", and those go to a person. Opt-outs are
+ * handled before this runs (`isOptOut`).
+ */
+export function classifyReply(subject: string, text: string): { intent: ReplyIntent; why: string } {
+  const t = ownWords(text).toLowerCase().replace(/\s+/g, " ").trim();
+  const s = subject.toLowerCase();
+  if (/\b(out of (the )?office|automatic reply|auto-?reply|autoreply|on (vacation|holiday|leave)|away from (my|the) (desk|office)|undeliverable|delivery status notification|mailer-daemon)\b/.test(`${s} ${t}`)) {
+    return { intent: "auto_reply", why: "an automatic reply (out of office or a bounce)" };
+  }
+  if (!t) return { intent: "unclear", why: "no text of their own in the reply" };
+  if (/\b(spam|scam|fuck\w*|shit|wtf|stupid|idiot|lawyer|legal action|attorney|report(ed|ing)? (you|this)|how did you get (my|this|our) (email|address)|gdpr|harass\w*|creepy)\b/.test(t)) {
+    return { intent: "hostile", why: "the reply is upset or asks how we got the address" };
+  }
+  if (t.length > 400) return { intent: "unclear", why: "a long reply needs a person to read it" };
+  if (/\b(not interested|no thanks|no thank you|not (a )?(good )?fit|not (right )?now|maybe later|we'?re (good|all set|set)|no need|pass on this|we'?ll pass)\b/.test(t)) {
+    return { intent: "not_interested", why: "they said no or not now" };
+  }
+  if (/\b(not sure|unsure|maybe|depends|but|however|although|confused|what is this|who are you)\b/.test(t)) {
+    return { intent: "unclear", why: "the reply is mixed or unsure" };
+  }
+  const shortYes = /^(yes|yep|yeah|sure|ok|okay|sounds good|great)\b[\s\S]{0,40}$/.test(t);
+  const interest = /\b(interested|interesting|sounds (good|great|interesting|cool)|tell me more|more (info|information|details)|learn more|send (it|them|me|over|us)|share (more|the|them)|how much|pricing|price|cost|let'?s (try|do it|talk|chat)|happy to (try|chat|talk|take a look)|would love|keen|curious|yes please|i'?d like to (try|see))\b/.test(t);
+  if (!shortYes && !interest) return { intent: "unclear", why: "no clear interest in the reply" };
+  // A question we can answer from the offer itself (price, details, send it) is fine. Any other question is for a person.
+  const questions = t.split(/(?<=\?)/).filter((q) => q.includes("?"));
+  const answerable = /how much|price|pricing|cost|more (info|information|details)|tell me more|send|share|can i (try|see)|where (can|do) i/;
+  if (questions.some((q) => !answerable.test(q))) return { intent: "unclear", why: "they asked a question the offer doesn't answer" };
+  return { intent: "interested", why: "a short, positive reply" };
+}

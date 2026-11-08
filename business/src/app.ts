@@ -4,7 +4,7 @@ import { integrationStatus, type Config } from "./config.js";
 import { createStore } from "./store.js";
 import { MonidCli } from "./research/monid.js";
 import { AgentMailSender } from "./outreach/send.js";
-import { handleInboundReply, parseAgentMailEvent, verifySvixSignature } from "./outreach/inbound.js";
+import { answerReply, handleInboundReply, parseAgentMailEvent, setReplyResponder, verifySvixSignature } from "./outreach/inbound.js";
 import { handleStripeWebhook, stripeClient } from "./billing/stripe.js";
 import { intakeLead } from "./leads/intake.js";
 import { runLiveSignup } from "./leads/live.js";
@@ -19,6 +19,7 @@ import { buildMcpServer } from "./mcp/server.js";
 import { buildStudioMcp } from "./studio/mcp.js";
 import { hashKey, issueDeveloperKey } from "./studio/keys.js";
 import type { ToolContext } from "./mcp/tools.js";
+import type { PaymentRecord } from "./types.js";
 
 /**
  * The business server as one web-standard fetch handler, so the same code runs on Node
@@ -67,6 +68,33 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
   const header = (request: Request, name: string): string | undefined => request.headers.get(name) ?? undefined;
   const levelRoutes = publicLevelRoutes(levelsQuery(config.DATABASE_URL));
 
+  // Replies that arrive by webhook or by the inbox poll: answer plainly interested ones right away.
+  setReplyResponder((o) => answerReply(ctx, o));
+
+  /** What a recorded payment sets off: an amount check against the team's price, then delivery. */
+  async function afterPayment(payment: PaymentRecord, metadata: Record<string, string>): Promise<void> {
+    const log = (action: string, why: string | null, result: string) =>
+      ctx.store.logActivity({ at: new Date().toISOString(), agent: "billing", action, why, result, costUsd: null, human: false });
+    const mode = payment.livemode ? "" : " (test mode)";
+    const price = { playtest: config.PLAYTEST_PRICE_USD, pilot_pack: config.PILOT_PRICE_USD, hint_pack: config.HINT_PACK_PRICE_USD, other: undefined }[payment.product];
+    if (price && payment.amountMinor !== Math.round(price * 100)) {
+      await log(`payment amount differs from the set price: ${payment.product}`, `expected ${price.toFixed(2)} USD, got ${(payment.amountMinor / 100).toFixed(2)} USD`, `recorded what was paid${mode}; left for a person`);
+    }
+    if (payment.product !== "playtest") {
+      await log(`delivery owed: ${payment.product}`, payment.leadId ? `lead ${payment.leadId}` : "no lead attached", `left for a person${mode}`);
+      return;
+    }
+    const lead = payment.leadId ? await ctx.store.getLead(payment.leadId) : null;
+    if (!lead || !metadata.app_url) {
+      await log("paid playtest can't start", !lead ? "no lead attached to the payment" : "no app link attached to the payment", `left for a person${mode}`);
+      return;
+    }
+    await log(`playtest queued after payment: ${lead.company}`, metadata.app_url, `payment ${payment.id}${mode}`);
+    void enqueue(() => runPlaytestOrder(ctx, lead, metadata.app_url!, metadata.focus || null, { id: payment.id, livemode: payment.livemode })).catch((err) =>
+      log(`playtest order needs a person: ${lead.company}`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", `left for a person${mode}`).catch(() => undefined),
+    );
+  }
+
   async function route(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
@@ -114,10 +142,10 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       const outcome = await handleStripeWebhook({
         stripe: ctx.stripe, webhookSecret: config.STRIPE_WEBHOOK_SECRET, rawBody: raw, signature: header(request, "stripe-signature"), store: ctx.store,
       });
-      if (outcome.kind === "paid" && outcome.metadata.product === "playtest" && outcome.payment.leadId && outcome.metadata.app_url) {
-        const lead = await ctx.store.getLead(outcome.payment.leadId);
-        if (lead) void enqueue(() => runPlaytestOrder(ctx, lead, outcome.metadata.app_url!, outcome.metadata.focus || null)).catch(() => undefined);
+      if (outcome.kind === "duplicate") {
+        await ctx.store.logActivity({ at: new Date().toISOString(), agent: "billing", action: "payment event seen again", why: `event ${outcome.eventId}`, result: "ignored; already recorded", costUsd: null, human: false });
       }
+      if (outcome.kind === "paid") await afterPayment(outcome.payment, outcome.metadata);
       return json(200, { received: true, outcome: outcome.kind });
     }
 

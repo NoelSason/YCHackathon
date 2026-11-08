@@ -51,7 +51,8 @@ describe("phone playtest offer", () => {
     const { c, sent } = ctx(null);
     const lead = await c.store.upsertLead({ company: "Team B", appId: null, contactName: null, email: "b@x.example", source: "inbound_form", stage: "found", reason: null, sampleUrl: null, crmContactId: null });
     await runPlaytestOrder(c, lead, "https://b.example", null);
-    expect(sent[0]!.text).toContain("couldn't finish the playtest");
+    expect(sent[0]!.text).toContain("couldn't finish this playtest");
+    expect(sent[0]!.text).not.toMatch(/we'll retry/i);
   });
 
   it("shows the price only when payments are on", () => {

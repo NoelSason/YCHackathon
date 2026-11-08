@@ -39,6 +39,9 @@ export async function createPlaytestOrder(ctx: ToolContext, input: unknown): Pro
   const parsed = PlaytestOrderSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Please fill in your name, email, team, and app link (https://…), and tick the box." };
   const o = parsed.data;
+  // Don't take an order (or money) for a link our iPhone can't play.
+  const unplayable = unplayableReason(o.appUrl);
+  if (unplayable) return { ok: false, error: unplayable };
   const lead = await ctx.store.upsertLead({
     company: o.team, appId: null, contactName: o.name, email: o.email, source: "inbound_form", stage: "found",
     reason: `Ordered a phone playtest of ${o.appUrl}${o.focus ? ` (focus: ${o.focus})` : ""}.`, sampleUrl: null, crmContactId: null,
@@ -61,7 +64,13 @@ export async function createPlaytestOrder(ctx: ToolContext, input: unknown): Pro
     return { ok: true, lead, payUrl: link.url };
   }
   step(lead.id, "In the queue for the iPhone");
-  void enqueue(() => runPlaytestOrder(ctx, lead, o.appUrl, o.focus ?? null)).catch(() => finish(lead.id, "Something went wrong. A person will follow up", false));
+  void enqueue(() => runPlaytestOrder(ctx, lead, o.appUrl, o.focus ?? null)).catch(async (err) => {
+    finish(lead.id, "Something went wrong. A person will follow up", false);
+    await ctx.store.logActivity({
+      at: new Date().toISOString(), agent: "playtest-lead", action: `playtest order needs a person: ${lead.company}`,
+      why: err instanceof Error ? err.message.slice(0, 200) : "unknown error", result: "left for a person", costUsd: null, human: false,
+    }).catch(() => undefined);
+  });
   return { ok: true, lead, payUrl: null };
 }
 
@@ -74,16 +83,24 @@ export function composeReport(args: {
   companyName: string;
   postalAddress: string;
   siteUrl?: string;
+  /** A reason written for the customer (for example, "That link is for Android…"). Never an internal error. */
+  reason?: string | null;
+  /** How the order was paid for: a real payment, a test payment (no money moved), or free. */
+  paid?: "live" | "test" | "free";
 }): { subject: string; body: string; html: string } {
   const r = args.outcome?.results?.results?.[0];
   const hi = args.name ? `Hi ${args.name.split(" ")[0]},` : `Hi ${args.team},`;
+  const failure = [
+    args.error ? "Our phone couldn't finish this playtest, so there's no report yet." : "The playtest ran, but the phone didn't return a readable report, so there's no report yet.",
+    ...(args.reason ? [args.reason] : []),
+    args.paid === "live"
+      ? "A person on our team has been told and will either run it again or refund you."
+      : "A person on our team has been told and will write back.",
+  ].join(" ");
+  const testNote = args.paid === "test" ? "This was a test order, so no money was charged." : null;
   const findings: string[] = [];
   if (!r) {
-    findings.push(
-      args.error
-        ? "Our phone couldn't finish the playtest this time, so there's no report yet. We'll retry and write again."
-        : "The playtest finished, but the phone didn't return a readable report. We'll retry and write again.",
-    );
+    findings.push(failure);
   } else {
     findings.push(`• Loaded on iPhone: ${r.loaded ? "yes" : "no"}`);
     findings.push(`• Taps and swipes worked: ${r.touchOk ? "yes" : "no"}`);
@@ -94,12 +111,12 @@ export function composeReport(args: {
   const body = [
     hi,
     "",
-    `We played ${args.appUrl} on a real iPhone. Here's what we found:`,
+    r ? `We played ${args.appUrl} on a real iPhone. Here's what we found:` : `We tried to play ${args.appUrl} on a real iPhone.`,
     "",
     ...findings,
     "",
-    "Reply with anything you'd like us to check next, like a specific flow or screen, and we'll run it again.",
-    "",
+    ...(r ? ["Reply with anything you'd like us to check next, like a specific flow or screen, and we'll run it again.", ""] : []),
+    ...(testNote ? [testNote, ""] : []),
     args.companyName,
     "",
     "—",
@@ -110,14 +127,14 @@ export function composeReport(args: {
   const site = args.siteUrl ?? "https://levelai.vercel.app";
   const first = args.name ? args.name.split(" ")[0]! : args.team;
   const html = E.layout({
-    preheader: r ? `Loaded: ${r.loaded ? "yes" : "no"} · Touch: ${r.touchOk ? "works" : "problems"} · Visual issues: ${r.visualIssues.length || "none"}` : "Our phone couldn't finish this playtest yet.",
+    preheader: r ? `Loaded: ${r.loaded ? "yes" : "no"} · Touch: ${r.touchOk ? "works" : "problems"} · Visual issues: ${r.visualIssues.length || "none"}` : "Our phone couldn't finish this playtest.",
     companyName: args.companyName,
     postalAddress: args.postalAddress,
     footerReason: "You're getting it because you ordered a playtest.",
     body: [
       r ? E.eyebrow("iPhone playtest report", E.C.green) : E.eyebrow("Playtest update", E.C.red),
       E.heading(r ? `Here's how your app did, ${first}` : `We couldn't finish this one, ${first}`),
-      E.text(`We played ${args.appUrl} on a real iPhone, like a first-time user.`, { color: E.C.muted }),
+      E.text(r ? `We played ${args.appUrl} on a real iPhone, like a first-time user.` : `We tried to play ${args.appUrl} on a real iPhone.`, { color: E.C.muted }),
       r
         ? E.panel(E.rows([
             E.checkRow("Loaded on iPhone", r.loaded ? "Yes" : "No", r.loaded ? "pass" : "fail"),
@@ -125,25 +142,52 @@ export function composeReport(args: {
             E.checkRow("Visual problems", r.visualIssues.length ? `${r.visualIssues.length} found` : "None seen", r.visualIssues.length ? "fail" : "pass"),
             ...(r.stuckReason ? [E.checkRow("Got stuck", "Yes", "fail")] : []),
           ].join("")))
-        : E.panel(E.text(args.error ? "Our phone couldn't finish the playtest this time. We'll retry and write again." : "The playtest finished, but the phone didn't return a readable report. We'll retry and write again.")),
+        : E.panel(E.text(failure)),
       ...(r && r.visualIssues.length ? [E.text("What looked wrong", { weight: 800 }), ...r.visualIssues.map((v) => E.quote(v))] : []),
       ...(r?.stuckReason ? [E.text("Where it got stuck", { weight: 800 }), E.quote(r.stuckReason)] : []),
       ...(r?.notes ? [E.text("Notes from the playtest", { weight: 800 }), E.text(r.notes, { color: E.C.muted })] : []),
-      E.text("Reply with anything you'd like us to check next, like a specific flow or screen, and we'll run it again."),
+      ...(r ? [E.text("Reply with anything you'd like us to check next, like a specific flow or screen, and we'll run it again.")] : []),
+      ...(testNote ? [E.text(testNote, { color: E.C.muted })] : []),
       E.button("Order another playtest", `${site}/playtest`),
     ].join(""),
   });
-  return { subject: `Your iPhone playtest report: ${args.team}`, body, html };
+  const subject = r ? `Your iPhone playtest report: ${args.team}` : `Your iPhone playtest: an update for ${args.team}`;
+  return { subject: args.paid === "test" ? `[Test order] ${subject}` : subject, body, html };
 }
 
-export async function runPlaytestOrder(ctx: ToolContext, lead: Lead, appUrl: string, focus: string | null): Promise<void> {
+/** Links our iPhone can't play, with the reason the customer sees. */
+export function unplayableReason(appUrl: string): string | null {
+  try {
+    const host = new URL(appUrl).hostname;
+    if (/(^|\.)play\.google\.com$/.test(host)) return "That link is to Google Play, and our test phone is an iPhone. Send an App Store link or a web link instead.";
+  } catch {
+    return "That link doesn't open.";
+  }
+  return null;
+}
+
+export async function runPlaytestOrder(
+  ctx: ToolContext,
+  lead: Lead,
+  appUrl: string,
+  focus: string | null,
+  /** Set when a payment started this order: the payments row it delivers, and whether it was test money. */
+  payment: { id: string; livemode: boolean } | null = null,
+): Promise<void> {
+  const label = payment && !payment.livemode ? " (test order)" : "";
   const log = (action: string, why: string | null, result: string | null) =>
     ctx.store.logActivity({ at: new Date().toISOString(), agent: "playtest-lead", action, why, result, costUsd: null, human: false });
   let outcome: PlaytestOutcome | null = null;
   let error: string | null = null;
+  let reason: string | null = unplayableReason(appUrl);
   const deviceId = ctx.config.MOBILERUN_DEVICE_ID;
-  if (!ctx.mobilerun || !deviceId) error = "phone not configured";
-  else {
+  if (reason) {
+    error = reason;
+    await log(`playtest skipped for ${lead.company}`, reason, `not playable on our iPhone${label}`);
+  } else if (!ctx.mobilerun || !deviceId) {
+    error = "phone not configured";
+    await log(`playtest skipped for ${lead.company}`, "the phone isn't configured on this server", `no phone${label}`);
+  } else {
     try {
       // An App Store link means a real iOS app: install it from the App Store first, then open it.
       const storeId = appIdFromStoreUrl(appUrl);
@@ -151,13 +195,19 @@ export async function runPlaytestOrder(ctx: ToolContext, lead: Lead, appUrl: str
       let open = appUrl;
       if (storeId?.startsWith("ios:")) {
         step(lead.id, "Installing your app from the App Store");
-        await log(`installing ${lead.company}'s app from the App Store`, appUrl, null);
-        const installed = await installFromAppStore({ client: ctx.mobilerun, deviceId, appStoreId: storeId.slice(4) });
-        await log(`installed ${installed.label} on the iPhone`, appUrl, installed.packageName);
-        app = { platform: "ios", package: installed.packageName, label: installed.label };
-        open = `the "${installed.label}" app icon on the home screen`;
+        await log(`installing ${lead.company}'s app from the App Store`, appUrl, label.trim() || null);
+        try {
+          const installed = await installFromAppStore({ client: ctx.mobilerun, deviceId, appStoreId: storeId.slice(4) });
+          await log(`installed ${installed.label} on the iPhone`, appUrl, installed.packageName);
+          app = { platform: "ios", package: installed.packageName, label: installed.label };
+          open = `the "${installed.label}" app icon on the home screen`;
+        } catch (err) {
+          // The install step's messages are written for the customer ("couldn't find that app…").
+          reason = err instanceof Error ? err.message.slice(0, 200) : null;
+          throw err;
+        }
       }
-      await log(`playtesting ${lead.company}'s app on the iPhone`, appUrl, null);
+      await log(`playtesting ${lead.company}'s app on the iPhone`, appUrl, label.trim() || null);
       step(lead.id, "Playing your app on the iPhone");
       outcome = await runPlan({
         client: ctx.mobilerun,
@@ -171,23 +221,56 @@ export async function runPlaytestOrder(ctx: ToolContext, lead: Lead, appUrl: str
           limits: { maxMinutes: 8 },
         },
       });
-      await log(`playtested ${lead.company}'s app`, appUrl, `${outcome.status}${outcome.results ? "" : " (no report)"}`);
+      await log(`playtested ${lead.company}'s app`, appUrl, `${outcome.status}${outcome.results ? "" : " (no report)"}${label}`);
     } catch (err) {
       error = err instanceof Error ? err.message.slice(0, 200) : "unknown error";
-      await log(`playtest failed for ${lead.company}`, error, null);
+      await log(`playtest failed for ${lead.company}`, error, label.trim() || null);
     }
   }
 
-  if (!lead.email || !ctx.mail) { finish(lead.id, "Playtest finished", outcome?.results != null); return; }
+  const delivered = outcome?.results?.results?.[0] != null;
+  const settle = async (status: "delivered" | "failed", detail: string) => {
+    if (payment) await ctx.store.addDelivery({ paymentId: payment.id, leadId: lead.id, status, detail });
+    if (status === "failed") {
+      await log(`playtest order needs a person: ${lead.company}`, detail, `left for a person${label}`);
+    }
+  };
+
+  if (!lead.email || !ctx.mail) {
+    await settle("failed", delivered ? "report ready, but there's no email address or mail sender to send it" : "no report and no way to email the customer");
+    finish(lead.id, "Playtest finished", delivered);
+    return;
+  }
+  if (await ctx.store.isSuppressed(lead.email)) {
+    await settle(delivered ? "delivered" : "failed", "customer opted out of email, so nothing was sent");
+    finish(lead.id, "Playtest finished", delivered);
+    return;
+  }
   step(lead.id, "Writing your report");
   const { subject, body, html } = composeReport({
-    name: lead.contactName, team: lead.company, appUrl, outcome, error,
+    name: lead.contactName, team: lead.company, appUrl, outcome, error, reason,
+    paid: payment ? (payment.livemode ? "live" : "test") : "free",
     companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "", siteUrl: ctx.config.SITE_URL,
   });
-  if (await ctx.store.isSuppressed(lead.email)) { finish(lead.id, "Playtest finished", true); return; }
-  const sent = await ctx.mail.send({ to: lead.email, subject, text: body, html, idempotencyKey: idempotencyKey("playtest-report", lead.id, appUrl, outcome?.taskId ?? "none") });
-  await ctx.store.addOutreach({ leadId: lead.id, to: lead.email, subject, body, status: "sent", blockedReason: null, providerMessageId: sent.messageId });
-  if (outcome?.results) await ctx.store.setStage(lead.id, "delivered");
-  await log(`emailed the playtest report to ${lead.company}`, null, `message ${sent.messageId}`);
-  finish(lead.id, outcome?.results ? "Report sent. Check your inbox" : "We emailed you an update; the phone couldn't finish this time", outcome?.results != null);
+  let messageId: string;
+  try {
+    // Keyed to the payment (or the phone task), so a retried job never sends twice but a new order does.
+    const key = idempotencyKey("playtest-report", lead.id, appUrl, payment?.id ?? outcome?.taskId ?? new Date().toISOString().slice(0, 16));
+    messageId = (await ctx.mail.send({ to: lead.email, subject, text: body, html, idempotencyKey: key })).messageId;
+  } catch (err) {
+    await log(`couldn't email ${lead.company} about their playtest`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", `not sent${label}`);
+    await settle("failed", "the email didn't send");
+    finish(lead.id, "Something went wrong. A person will follow up", false);
+    return;
+  }
+  await ctx.store.addOutreach({ leadId: lead.id, to: lead.email, subject, body, status: "sent", blockedReason: null, providerMessageId: messageId });
+  if (delivered) {
+    await ctx.store.setStage(lead.id, "delivered");
+    await log(`emailed the playtest report to ${lead.company}`, null, `message ${messageId}${label}`);
+    await settle("delivered", `report emailed, message ${messageId}`);
+  } else {
+    await log(`emailed a playtest status update to ${lead.company}`, error ?? "no readable report", `message ${messageId}${label}`);
+    await settle("failed", `no report; status email sent, message ${messageId}`);
+  }
+  finish(lead.id, delivered ? "Report sent. Check your inbox" : "We emailed you an update; the phone couldn't finish this time", delivered);
 }

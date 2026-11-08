@@ -199,7 +199,10 @@ export async function toolSendReply(
   const price = ctx.config.PILOT_PRICE_USD;
   let link: string | null = null;
   if (args.includePaymentLink && ctx.stripe && price) link = (await toolPaymentLink(ctx, { leadId: lead.id, product: "pilot_pack" })).url;
-  const allowedNumbers = [String(ctx.config.PILOT_LEVELS), price ? usd(price) : "", lead.reason ?? "", lead.sampleUrl ?? "", link ?? ""];
+  const allowedNumbers = [
+    String(ctx.config.PILOT_LEVELS), price ? usd(price) : "", lead.reason ?? "", lead.sampleUrl ?? "", link ?? "",
+    ...offerLinks(ctx),
+  ];
   const at = new Date().toISOString();
   const blocked = await checkReply(lead, args.text, { store: ctx.store, allowedNumbers });
   if (blocked) {
@@ -208,6 +211,12 @@ export async function toolSendReply(
   }
   const messageId = await ctx.store.lastInboundMessageId(lead.id);
   if (!messageId) return { status: "blocked", reason: "No inbound message on file to reply to." };
+  // One answer per message they sent, whether the auto-answer or an agent wrote it.
+  const answering = `answering message ${messageId}`;
+  if ((await ctx.store.listActivity(500)).some((a) => /^replied to /.test(a.action) && a.why === answering)) {
+    await ctx.store.logActivity({ at, agent: "sales-sender", action: `reply blocked for ${lead.company}`, why: "their latest message was already answered", result: "not sent", costUsd: null, human: false });
+    return { status: "blocked", reason: "Their latest message was already answered." };
+  }
   const body = [
     args.text.trim(),
     ...(link ? ["", `You can start the pilot here: ${link}`] : []),
@@ -225,10 +234,21 @@ export async function toolSendReply(
   const sent = await ctx.mail.reply({ messageId, text: body, idempotencyKey: idempotencyKey("reply", lead.id, messageId) });
   await ctx.store.addOutreach({ leadId: lead.id, to: lead.email ?? "", subject: "Re:", body, status: "sent", blockedReason: null, providerMessageId: sent.messageId });
   if (link && lead.stage === "replied") await ctx.store.setStage(lead.id, "pilot_offered");
-  await ctx.store.logActivity({ at, agent: "sales-sender", action: `replied to ${lead.company}`, why: null, result: `message ${sent.messageId}`, costUsd: null, human: false });
+  await ctx.store.logActivity({ at, agent: "sales-sender", action: `replied to ${lead.company}`, why: answering, result: `message ${sent.messageId}`, costUsd: null, human: false });
   const updated = await ctx.store.getLead(lead.id);
   if (updated) await crm(ctx, updated, `Replied${link ? " with a pilot link" : ""}.`);
   return { status: "sent", reason: null };
+}
+
+/**
+ * The self-serve offers a reply may point to, with the numbers in them: the free levels to play
+ * and the phone playtest order page (which takes the payment at the team's set price).
+ */
+export function offerLinks(ctx: ToolContext, lead?: Lead): [levelsUrl: string, playtestUrl: string, playtestPrice: string] {
+  const site = ctx.config.SITE_URL.replace(/\/+$/, "");
+  const levelsUrl = lead?.sampleUrl ?? ctx.config.SAMPLE_PLAY_URL ?? ctx.config.DEMO_PLAY_URL ?? `${site}/play`;
+  const price = ctx.config.PLAYTEST_PRICE_USD && ctx.stripe ? usd(ctx.config.PLAYTEST_PRICE_USD) : "";
+  return [levelsUrl, `${site}/playtest`, price];
 }
 
 export async function toolPaymentLink(

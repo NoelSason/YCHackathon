@@ -21,7 +21,7 @@ while true; do
     if [ "$misses" -ge 3 ]; then
       echo "$(date '+%H:%M:%S') public site failing ($pub); restarting tunnel via live.sh"
       pkill -f "cloudflared tunnel --no-autoupdate --url http://localhost:${PORT}" || true
-      lsof -ti "tcp:${PORT}" | xargs kill 2>/dev/null || true
+      lsof -ti "tcp:${PORT}" -sTCP:LISTEN | xargs kill 2>/dev/null || true
       sleep 2
       (./live.sh > /tmp/levelai-live.log 2>&1 &)
       misses=0
