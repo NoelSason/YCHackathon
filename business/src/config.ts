@@ -29,6 +29,9 @@ const EnvSchema = z.object({
   MOBILERUN_API_KEY: z.string().optional(),
   MOBILERUN_DEVICE_ID: z.string().optional(),
   MOBILERUN_MODEL: z.string().default("mobilerun/mobile-agent-fast"),
+  /** Keep the phone playtesting between paid orders (src/mobile/loop.ts). */
+  PLAYTEST_LOOP: z.enum(["0", "1"]).default("0"),
+  PLAYTEST_LOOP_MINUTES: z.coerce.number().int().positive().default(30),
 
   // AgentMail
   AGENTMAIL_API_KEY: z.string().optional(),
@@ -65,6 +68,14 @@ const EnvSchema = z.object({
   /** Send the welcome email to people who sign up at our table. They opted in on the form. */
   INBOUND_AUTO_REPLY: z.enum(["0", "1"]).default("1"),
 
+  // OpenAI: double-checks review quotes before a cold email (src/research/verify.ts).
+  // Unset key = the keyword match is used as is.
+  OPENAI_API_KEY: z.string().optional(),
+  /** gpt-5.4-mini: the newest small model on our key (checked Nov 7 via GET /v1/models). */
+  OPENAI_MODEL: z.string().default("gpt-5.4-mini"),
+  /** Most verification calls per day, counted in memory. About one call per game that passes the keyword check. */
+  OPENAI_DAILY_CALLS: z.coerce.number().int().positive().default(300),
+
   // Server
   PORT: z.coerce.number().int().positive().default(8787),
   BUSINESS_MCP_TOKEN: z.string().optional(),
@@ -88,6 +99,7 @@ export function integrationStatus(config: Config): Record<string, boolean> {
     mobilerun: Boolean(config.MOBILERUN_API_KEY),
     agentmail: Boolean(config.AGENTMAIL_API_KEY && config.AGENTMAIL_INBOX_ID),
     stripe: Boolean(config.STRIPE_SECRET_KEY),
+    openai: Boolean(config.OPENAI_API_KEY),
     outreachSendingEnabled: config.OUTREACH_SEND === "1",
     billingLiveAllowed: config.BILLING_ALLOW_LIVE === "1",
   };

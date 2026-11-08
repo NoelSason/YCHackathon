@@ -67,7 +67,7 @@ export interface RawReview {
   timestamp?: string | null;
 }
 
-function ratingOf(r: RawReview): number | null {
+export function ratingOf(r: RawReview): number | null {
   if (typeof r.rating === "number") return r.rating;
   if (r.rating && typeof r.rating === "object" && typeof r.rating.value === "number") return r.rating.value;
   return null;
@@ -81,11 +81,16 @@ export function excerpt(text: string, max = 140): string {
   return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), max - 20)).trimEnd()}…`;
 }
 
+/** A review split into sentences, the same way the classifier reads it. */
+export function splitSentences(text: string): string[] {
+  return text.split(/(?<=[.!?\n])\s+/);
+}
+
 /** Each signal found in a review, with the sentence that shows it (so quotes are never out of context). */
 export function classifyWithEvidence(text: string): Map<SignalKind, string> {
   const found = new Map<SignalKind, string>();
   const reviewIsTechnical = TECHNICAL.test(text.toLowerCase());
-  for (const original of text.split(/(?<=[.!?\n])\s+/)) {
+  for (const original of splitSentences(text)) {
     const raw = original.toLowerCase();
     if (OTHER_GAMES.test(raw)) continue;
     let t = raw;
@@ -106,16 +111,34 @@ export function classifyReview(text: string): SignalKind[] {
   return SIGNAL_ORDER.filter((k) => found.has(k));
 }
 
-export function extractSignals(reviews: RawReview[]): ReviewSignal[] {
-  const signals: ReviewSignal[] = [];
-  for (const r of reviews) {
+/** One regex hit: the full sentence (not yet trimmed for quoting) and which review it came from. */
+export interface Candidate {
+  /** Index into the reviews array. */
+  review: number;
+  kind: SignalKind;
+  sentence: string;
+  rating: number | null;
+  timestamp: string | null;
+}
+
+export function extractCandidates(reviews: RawReview[]): Candidate[] {
+  const out: Candidate[] = [];
+  reviews.forEach((r, i) => {
     const text = r.review_text?.trim();
-    if (!text) continue;
+    if (!text) return;
     for (const [kind, sentence] of classifyWithEvidence(text)) {
-      signals.push({ kind, quote: excerpt(sentence), rating: ratingOf(r), timestamp: r.timestamp ?? null });
+      out.push({ review: i, kind, sentence, rating: ratingOf(r), timestamp: r.timestamp ?? null });
     }
-  }
-  return signals;
+  });
+  return out;
+}
+
+export function toSignal(c: Candidate): ReviewSignal {
+  return { kind: c.kind, quote: excerpt(c.sentence), rating: c.rating, timestamp: c.timestamp };
+}
+
+export function extractSignals(reviews: RawReview[]): ReviewSignal[] {
+  return extractCandidates(reviews).map(toSignal);
 }
 
 export function countSignals(signals: ReviewSignal[]): Record<SignalKind, number> {

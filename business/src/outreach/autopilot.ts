@@ -3,6 +3,12 @@ import type { Target } from "../types.js";
 import { rememberTarget, toolDraftOutreach, toolSaveLead, toolSendOutreach } from "../mcp/tools.js";
 import { findTargets } from "../research/targets.js";
 import { findGenericContact } from "../research/contacts.js";
+import { describeVerification, verifyTarget } from "../research/verify.js";
+import type { StoreGame } from "../research/monid.js";
+import type { RawReview } from "../research/signals.js";
+
+/** Cold outreach needs real evidence: at least this many reviews showing the same problem. */
+const MIN_EVIDENCE = 3;
 
 /**
  * The outreach loop: research the top puzzle games, pick strong targets we haven't contacted, find
@@ -41,15 +47,24 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
   let targets;
   const read: Target[] = [];
   try {
-    targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 20, minSignals: 2, chart: chart.chart, category: chart.category, skip, onRead: (t) => read.push(t) });
+    // The keyword match is the cheap first pass. Games it says have enough evidence get their quotes
+    // double-checked by a model before anyone is emailed; the counts and quotes come from what holds up.
+    const verifyOpts = { apiKey: ctx.config.OPENAI_API_KEY, model: ctx.config.OPENAI_MODEL, dailyCalls: ctx.config.OPENAI_DAILY_CALLS };
+    const verify = async (game: StoreGame, reviews: RawReview[], t: Target) => {
+      if (!t.primarySignal || t.signalCounts[t.primarySignal] < MIN_EVIDENCE) return t;
+      const { target, report } = await verifyTarget(game, reviews, t, verifyOpts);
+      const line = describeVerification(report, game.title, MIN_EVIDENCE);
+      if (line) await log("research", line.action, line.why, line.result).catch(() => undefined);
+      return target;
+    };
+    targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 20, minSignals: 2, chart: chart.chart, category: chart.category, skip, onRead: (t) => read.push(t), verify });
   } catch (err) {
     await log("research", `couldn't read the ${chart.label} chart`, err instanceof Error ? err.message.slice(0, 160) : "unknown error", "will try the next chart next cycle");
     return { sent: 0, reason: "store chart unavailable" };
   }
   for (const t of read) recentlyRead.set(t.appId, Date.now());
   await recordResearch(ctx, chart.label, read, log);
-  // Cold outreach needs real evidence: at least 3 reviews showing the same problem.
-  const fresh = targets.filter((t) => t.primarySignal !== null && t.signalCounts[t.primarySignal] >= 3 && t.score >= (opts.minScore ?? 1.2));
+  const fresh = targets.filter((t) => t.primarySignal !== null && t.signalCounts[t.primarySignal] >= MIN_EVIDENCE && t.score >= (opts.minScore ?? 1.2));
   await log("research", `found ${fresh.length} new studios worth pitching`, fresh.slice(0, 3).map((t) => t.appTitle).join(", ") || null, null);
 
   let sent = 0;
@@ -78,7 +93,7 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
 /** Totals for one chart pass, saved and logged so the dashboard and site can show real numbers. */
 export function summarizeResearch(chart: string, read: Target[], at = new Date().toISOString()) {
   const sum = (k: keyof Target["signalCounts"]) => read.reduce((n, t) => n + (t.signalCounts[k] ?? 0), 0);
-  const withEvidence = read.filter((t) => t.primarySignal !== null && t.signalCounts[t.primarySignal] >= 3);
+  const withEvidence = read.filter((t) => t.primarySignal !== null && t.signalCounts[t.primarySignal] >= MIN_EVIDENCE);
   const top = [...withEvidence].sort((a, b) => b.score - a.score)[0] ?? null;
   return {
     at,

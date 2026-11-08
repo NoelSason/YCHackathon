@@ -20,6 +20,12 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:44 PM PT · Noel · Claude Code (verifier subagent) · main
+- **What:** Cold-outreach evidence is now checked by a model before sending. For each game that passes the keyword threshold (≥3 matching reviews), `gpt-5.4-mini` (strict JSON) confirms each candidate sentence is a real complaint about this game's levels, and may add complaints the keywords missed, but only sentences that appear word for word in a review. Counts, pitch angle, quotes, reason, and score are rebuilt from confirmed sentences only. Falls back to the keyword result if the key is missing, a call fails, or the daily cap (`OPENAI_DAILY_CALLS`, 300) is hit. It logs a line when the check changes the evidence.
+- **Why:** Fewer wrong emails, more right ones. Real run: Parking Loop 7/7 quotes confirmed; Color Block Jam's angle moved from too easy (3) to too hard (4).
+- **Files:** `business/src/research/{verify.ts,signals.ts,targets.ts}`, `business/src/outreach/autopilot.ts`, `business/src/config.ts`, `business/.env.example`, `business/test/verify.test.ts`
+- **State:** works; typecheck clean, all business tests pass, `/health` shows `openai: true`.
+- **Next / heads-up:** `find_targets` and `audit_game` in the MCP tools still use keywords only; the autopilot uses the checked path.
 ### 2026-11-07 17:50 PT · Pinara (Claude Code) · branch `main`
 
 **What:**

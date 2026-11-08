@@ -1,4 +1,4 @@
-import type { SignalKind, Target } from "../types.js";
+import type { ReviewSignal, SignalKind, Target } from "../types.js";
 import { countSignals, extractSignals, signalPhrase, type RawReview } from "./signals.js";
 import { fetchRecentReviews, fetchTopPuzzleGames, storeName, storeUrl, type MonidRunner, type StoreGame } from "./monid.js";
 
@@ -17,9 +17,12 @@ export function parseDownloads(downloads: string | null): number | null {
  * complaints relative to the number of reviews read, and mid-size studios that might say yes.
  */
 export function buildTarget(game: StoreGame, reviews: RawReview[]): Target {
-  const signals = extractSignals(reviews);
+  return targetFromSignals(game, reviews.filter((r) => r.review_text?.trim()).length, extractSignals(reviews));
+}
+
+/** The target for a given set of signals. Verification (`verify.ts`) calls this with the checked set. */
+export function targetFromSignals(game: StoreGame, analyzed: number, signals: ReviewSignal[]): Target {
   const counts = countSignals(signals);
-  const analyzed = reviews.filter((r) => r.review_text?.trim()).length;
   const ordered = (Object.entries(counts) as Array<[SignalKind, number]>).sort((a, b) => b[1] - a[1]);
   const top = ordered[0];
   const primary = top && top[1] > 0 ? top[0] : null;
@@ -62,6 +65,11 @@ export interface FindTargetsOptions {
   skip?: Set<string>;
   /** Called for every game read, pass or not, so the loop can report market research totals. */
   onRead?: (target: Target) => void;
+  /**
+   * Second pass over a game's evidence (the model check in `verify.ts`). It gets the regex target
+   * and the reviews, and returns the target to use. It runs before `onRead`.
+   */
+  verify?: (game: StoreGame, reviews: RawReview[], target: Target) => Promise<Target>;
 }
 
 export async function findTargets(monid: MonidRunner, opts: FindTargetsOptions = {}): Promise<Target[]> {
@@ -73,7 +81,8 @@ export async function findTargets(monid: MonidRunner, opts: FindTargetsOptions =
   const targets: Target[] = [];
   for (const game of games.slice(0, maxGames)) {
     const reviews = await fetchRecentReviews(monid, game.appId);
-    const target = buildTarget(game, reviews);
+    const regex = buildTarget(game, reviews);
+    const target = opts.verify ? await opts.verify(game, reviews, regex) : regex;
     opts.onRead?.(target);
     const total = Object.values(target.signalCounts).reduce((a, b) => a + b, 0);
     if (total >= minSignals) targets.push(target);
