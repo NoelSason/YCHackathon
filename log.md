@@ -27,6 +27,15 @@ This is the team's build log. It isn't the company's agent activity log, which t
 **Files:** site/play.js, site/play.js.map.
 **State:** Business 337 and demo 21 tests pass. X posts at 9:49 and 10:14 AM failed: x.com stayed on its black logo screen in the phone's Safari through three reloads.
 **Next / heads-up:** Noel: reopen x.com in the phone's live view so the next post can load.
+### 2026-11-08 10:25 PT · Pinara (Claude Code) · branch `main`
+
+**What:** updated `docs/demo-video-script.md` for the final demo video, which has no voiceover. It
+now has the Google Drive link and a script to read over the video, timed per scene.
+**Why:** the team reads or records the narration over the video themselves.
+**Files:** `docs/demo-video-script.md`.
+**State:** docs only. Each part was timed read aloud against its scene and fits.
+**Next / heads-up:** the numbers are from 8:48 AM PT. The two team clips are still untracked in
+`demo/assets/`. I didn't commit them.
 
 ---
 
