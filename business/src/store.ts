@@ -80,7 +80,8 @@ export interface Store {
  * company names that start with "Level AI" ("Level AI billing check's app"), so those are left out.
  */
 export const PLAYTEST_ROW = /^playtested /;
-export const TEAM_PLAYTEST_ROW = /^playtested Level AI\b/;
+/** The team's own test playtests: "playtested Level AI's app", or a pack's closing playtest, "playtested level 1 of Level AI Test Agency's match-3 pack". */
+export const TEAM_PLAYTEST_ROW = /^playtested (level \d+ of )?Level AI\b/;
 
 export type WatchOrderPatch = Partial<Pick<WatchOrder, "state" | "test" | "gameName" | "startedAt" | "finishedAt" | "summary" | "paymentId" | "focus">>;
 
@@ -661,8 +662,9 @@ export class PlatformStore implements Store {
     );
     const [p] = await this.q(
       `select count(*)::int as n from activity_log a
-       where a.action like 'playtested %' and a.action !~ '^playtested Level AI\\M'
-         and not exists (select 1 from studios s where s.source = 'internal_test' and a.action like 'playtested ' || s.name || '''s %')`,
+       where a.action like 'playtested %' and a.action !~ '^playtested (level [0-9]+ of )?Level AI\\M'
+         and not exists (select 1 from studios s where s.source = 'internal_test'
+           and (a.action like 'playtested ' || s.name || '''s %' or a.action like 'playtested level % of ' || s.name || '''s %'))`,
     );
     return { emailsSent: Number(e?.n ?? 0), playtestsRun: Number(p?.n ?? 0) };
   }

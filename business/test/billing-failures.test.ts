@@ -252,6 +252,7 @@ describe("the home page's public counts", () => {
     await row("playtested 2048 (web game): played in 15 moves");
     await row("playtested Candy Crush Saga (iOS app): won");
     await row("playtested Level AI billing check's app");
+    await row("playtested level 1 of Level AI Test Agency's match-3 pack: lost at level 1 in 10 moves");
     for (let i = 0; i < 600; i++) await row(`compiled level ${i}`);
     expect((await store.publicCounts()).playtestsRun).toBe(2);
   });
@@ -264,7 +265,8 @@ describe("the home page's public counts", () => {
     const send = (leadId: string) => store.addOutreach({ leadId, to: "x", subject: "s", body: "b", status: "sent", blockedReason: null, providerMessageId: "m" });
     await send(real.id); await send(real.id); await send(team.id);
     const at = new Date().toISOString();
-    for (const action of ["playtested 2048 (web game): played", "playtested Ada Games's app", "playtested Team Test Co's app", "playtested Level AI's app"]) {
+    for (const action of ["playtested 2048 (web game): played", "playtested Ada Games's app", "playtested Team Test Co's app", "playtested Level AI's app",
+      "playtested level 1 of Team Test Co's match-3 pack: lost", "playtested level 1 of Level AI Test Agency's match-3 pack: lost"]) {
       await store.logActivity({ at, agent: "playtest-lead", action, why: null, result: null, costUsd: null, human: false });
     }
     expect(await store.publicCounts()).toEqual({ emailsSent: 2, playtestsRun: 2 });

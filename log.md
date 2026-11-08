@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 10:40 PM PT · Noel · Claude Code (Sentinel 11 neon) · main
+- **What:** Recomputed every console and site number with SQL against Neon. All match except Playtests, which counted one team pack test; `store.ts` now excludes it (15, not 16, after the next restart). Reconciled at 10:39 PM: 17 studios found (+1 agency), 8 emailed, 31,558 reviews read (10 passes, 220 games), 15 playtests, 11 agent-made levels accepted, 769 compiled, 1,164 agent actions, 7 step-ins (+528 approved by policy), spent $14.88, earned $0. Team-test tagging is correct; console queries take under 0.2 ms in the database.
+- **Why:** Every number on stage has to come from the log.
+- **Files:** `business/src/store.ts`, `business/test/billing-failures.test.ts`
+- **State:** works; business all green.
+- **Next / heads-up:** The "on its own since 8:19 PM" clock doesn't count the team's overnight test runs (9:31–10:19 PM test leads, demo pack, restarts, tunnel drill). They'll be logged honestly as one step-in when the overnight hardening stops. "Reviews read" counts reads, not unique reviews. Research passes run 10–130 min apart, not every 10.
+
 ### 2026-11-07 10:31 PM PT · Noel · Claude Code (Sentinel 9 site-qa) · main
 - **What:** Site QA pass: all 14 public pages and every internal link return 200; no sideways scroll at 390px; no vendor names in customer copy; logo on every site page; the join page's "Email us your game" link opens "Audit: " to levelai@agentmail.to; home stats match /public-stats (16 studios, 16 playtests, 8 emails, 27,187 reviews). Fixed `/levels` 404 (rewrite added in live.sh's template, deployed) and replaced the developer docs' stale "0 levels" samples with real 10:30 PM responses.
 - **Why:** Judges may click any page; the docs must show real data.
