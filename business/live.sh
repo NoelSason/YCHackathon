@@ -37,8 +37,29 @@ for _ in $(seq 1 60); do
 done
 [ -n "$URL" ] || { echo "The tunnel didn't start. See $LOG_DIR/tunnel.log" >&2; kill "$TUNNEL_PID"; exit 1; }
 
-set_env PUBLIC_BASE_URL "$URL"
-set_env DEMO_JOIN_URL "$URL/join"
+# Permanent public addresses: levelai.vercel.app forwards the live pages to this tunnel, so links in
+# emails, posts, and QR codes keep working across restarts. Agent tools (/mcp) stay on the tunnel URL.
+SITE="${SITE_URL:-https://levelai.vercel.app}"
+cat > "$ROOT/site/vercel.json" <<JSON
+{
+  "rewrites": [
+    { "source": "/join", "destination": "$URL/join" },
+    { "source": "/leads", "destination": "$URL/leads" },
+    { "source": "/playtest", "destination": "$URL/playtest" },
+    { "source": "/playtest-orders", "destination": "$URL/playtest-orders" },
+    { "source": "/webhooks/:path*", "destination": "$URL/webhooks/:path*" }
+  ]
+}
+JSON
+if command -v vercel >/dev/null && [ -d "$ROOT/site/.vercel" ]; then
+  echo "Pointing $SITE/join and /playtest at this tunnel..."
+  (cd "$ROOT/site" && vercel deploy --prod --yes > "$LOG_DIR/site-deploy.log" 2>&1) && PUBLIC="$SITE" || { echo "Site update failed; using the tunnel URL. See $LOG_DIR/site-deploy.log"; PUBLIC="$URL"; }
+else
+  PUBLIC="$URL"
+fi
+
+set_env PUBLIC_BASE_URL "$PUBLIC"
+set_env DEMO_JOIN_URL "$PUBLIC/join"
 set_env BUSINESS_MCP_URL "$URL/mcp"
 if ! grep -q "^BUSINESS_MCP_TOKEN=." "$ROOT/.env"; then set_env BUSINESS_MCP_TOKEN "$(openssl rand -hex 24)"; fi
 
@@ -46,7 +67,9 @@ caffeinate -dimsu -w $$ &
 trap 'kill "$TUNNEL_PID" 2>/dev/null || true' EXIT
 
 echo ""
-echo "  Signup page:  $URL/join"
+echo "  Signup page:  $PUBLIC/join"
+echo "  Playtests:    $PUBLIC/playtest"
+echo "  Tunnel:       $URL"
 echo "  Agent tools:  $URL/mcp"
 echo "  Health:       $URL/health"
 echo ""

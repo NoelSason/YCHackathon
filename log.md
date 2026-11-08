@@ -20,6 +20,18 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:55 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Permanent public links:** https://levelai.vercel.app/playtest and https://levelai.vercel.app/join. The site
+forwards these pages (and their form posts and webhooks) to the laptop's current tunnel. On each start, `business/live.sh`
+rewrites `site/vercel.json` and redeploys the site, so links in emails, social posts, and QR codes survive restarts.
+`PUBLIC_BASE_URL` and `DEMO_JOIN_URL` now use the site's address. Agent tools (`/mcp`) stay on the tunnel URL.
+**Files:** `business/live.sh`, `site/.vercelignore`, `.gitignore` (`site/vercel.json` is generated).
+**State:** Verified live: `/`, `/playtest`, and `/join` return 200 through the site, and form posts reach the server.
+**Next / heads-up:** use `levelai.vercel.app/playtest` and `/join` everywhere instead of tunnel links.
+
+---
+
 ### 2026-11-07 16:45 PT · Noel (Claude Code) · branch `main`
 
 **What:** **The Marketing agent posts automatically through Naïve's Social API.**
