@@ -62,15 +62,29 @@ export async function runSocialCycle(ctx: ToolContext, sleep = (ms: number) => n
   const post = composePost(angle, stats, { site: ctx.config.SITE_URL, playtest });
   const dailyCap = ctx.config.SOCIAL_DAILY_CAP + (opts.extraCap ?? 0);
   let phoneTried = false;
+  let xDone = !post.platforms.includes("x");
+  const others = { ...post, platforms: post.platforms.filter((p) => p !== "x") };
   for (let attempt = 0; attempt < 4; attempt++) {
-    const r = await publish({ naive, identityId, store: ctx.store, post, dailyCap });
-    // X refuses (or never confirms) our API posts; post the same text from the cloud iPhone in Safari
-    // instead. At most once per cycle, so a retry for another network never starts a second phone task.
-    const xRejected = r.skipped.find((x) => x.platform === "x" && /rejected|failed|not confirmed|capacity/i.test(x.reason));
-    if (xRejected && ctx.mobilerun && !phoneTried) {
-      phoneTried = true;
-      const phone = await postOnXFromPhone(ctx, post.content).catch(() => ({ posted: false }));
-      if (phone.posted) r.posted.push("x");
+    const r: { posted: string[]; skipped: Array<{ platform: string; reason: string }> } = { posted: [], skipped: [] };
+    // X on its own first, so its phone fallback starts within seconds instead of after every other network.
+    if (!xDone) {
+      const rx = await publish({ naive, identityId, store: ctx.store, post: { ...post, platforms: ["x"] }, dailyCap });
+      r.posted.push(...rx.posted);
+      r.skipped.push(...rx.skipped);
+      // X refuses (or never confirms) our API posts; post the same text from the cloud iPhone in Safari
+      // instead. At most once per cycle, so a retry never starts a second phone task.
+      const xRejected = rx.skipped.find((x) => /rejected|failed|not confirmed|capacity/i.test(x.reason));
+      if (xRejected && ctx.mobilerun && !phoneTried) {
+        phoneTried = true;
+        const phone = await postOnXFromPhone(ctx, post.content).catch(() => ({ posted: false }));
+        if (phone.posted) r.posted.push("x");
+      }
+      if (r.posted.includes("x") || phoneTried || !rx.skipped.some((x) => /capacity|rate/i.test(x.reason))) xDone = true;
+    }
+    if (others.platforms.length) {
+      const ro = await publish({ naive, identityId, store: ctx.store, post: others, dailyCap });
+      r.posted.push(...ro.posted);
+      r.skipped.push(...ro.skipped);
     }
     const busy = r.skipped.some((s) => /capacity|rate/i.test(s.reason));
     if (r.posted.length || !busy) {

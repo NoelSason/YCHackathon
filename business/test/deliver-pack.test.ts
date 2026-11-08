@@ -389,7 +389,7 @@ describe("the phone: study first, play level 1 last", () => {
     expect(recap.text).toContain("- Got harder after: about 4 moves");
     expect(recap.text).toContain("- Where a player gets stuck: level 3 with blockers");
     expect(recap.text).toContain("- Design note: Blockers arrive at level 3.");
-    expect(recap.text).toContain("Next: we're building 3 match-3 levels calibrated to this curve; you'll get them in about 2 minutes.");
+    expect(recap.text).toContain("Next: we're building 3 match-3 levels calibrated to this curve; you'll get them in about 1 minute.");
     expect(recap.attachments?.[0]).toMatchObject({ contentId: "iphone-shot", inline: true });
     expect(recap.html).toContain("cid:iphone-shot");
     expect(s.sent[2]!.text).toContain("We played level 1 of your match-3 pack on our iPhone, as a first-time player: won, reached level 3 in 14 moves");

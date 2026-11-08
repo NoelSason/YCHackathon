@@ -514,3 +514,26 @@ export function sampleResearch(now = Date.now(), passes = 18): Research {
   }
   return { available: true, totals: totalsOf(runs), runs };
 }
+
+// ---------------------------------------------------------------------------------------------
+// The company's history in Neon: row counts for the stage's "Data" line. Counted, never typed in.
+
+export interface HistoryCounts {
+  activity: number;
+  levels: number;
+  solverRuns: number;
+}
+
+/** count(*) on activity_log, levels, and solver_runs. A table that doesn't exist counts as 0; null without a database. */
+export async function loadHistoryCounts(databaseUrl: string | undefined): Promise<HistoryCounts | null> {
+  if (!databaseUrl) return null;
+  const sql = neon(databaseUrl);
+  const count = async (table: string): Promise<number> => {
+    const ok = (await sql.query("select to_regclass($1) is not null as ok", [table])) as Array<{ ok: boolean }>;
+    if (ok[0]?.ok !== true) return 0;
+    const r = (await sql.query(`select count(*)::int as n from ${quote(table)}`)) as Array<{ n: number }>;
+    return r[0]?.n ?? 0;
+  };
+  const [activity, levels, solverRuns] = await Promise.all([count("activity_log"), count("levels"), count("solver_runs")]);
+  return { activity, levels, solverRuns };
+}

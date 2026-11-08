@@ -8,7 +8,7 @@ import { timingSafeEqual } from "node:crypto";
 import { loadOutreach, loadStageStudios, PIPELINE_STAGES, sampleOutreach, sampleStageStudios } from "./outreach.js";
 import { momentFor } from "./moments.ts";
 import { computeStats, isBulkProgram, pickRecent, type StageEvent } from "./events.ts";
-import { DEFAULT_ACTIVITY, DEFAULT_STEPINS, LiveFeed, RehearsalFeed, ReplayFeed, loadResearch, parseTables, sampleResearch, type Feed, type HealthItem, type Pipeline } from "./feeds.ts";
+import { DEFAULT_ACTIVITY, DEFAULT_STEPINS, LiveFeed, loadHistoryCounts, type HistoryCounts, RehearsalFeed, ReplayFeed, loadResearch, parseTables, sampleResearch, type Feed, type HealthItem, type Pipeline } from "./feeds.ts";
 import { PhoneView } from "./phone.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -113,6 +113,7 @@ function snapshot(limit = 150) {
     stepIns: events.filter((e) => e.human).slice(-6),
     pipeline,
     naiveSpend,
+    history,
     health: health(),
     phone: phone.configured,
     playUrl,
@@ -144,8 +145,15 @@ async function tick(): Promise<void> {
 }
 
 let lastSpendRead = 0;
+/** Row counts in Neon for the stage's "Data" line, refreshed about once a minute (live mode only). */
+let history: HistoryCounts | null = null;
+let lastHistoryRead = 0;
 async function slowTick(): Promise<void> {
   pipeline = await feed.pipeline();
+  if (feed.mode === "live" && (!history || Date.now() - lastHistoryRead > 60_000)) {
+    lastHistoryRead = Date.now();
+    history = await loadHistoryCounts(env.DATABASE_URL).catch(() => history);
+  }
   if (!naiveSpend || Date.now() - lastSpendRead > 60_000) {
     lastSpendRead = Date.now();
     await readNaiveSpend();
@@ -158,7 +166,7 @@ async function slowTick(): Promise<void> {
       playUrlOk = false;
     }
   }
-  broadcast({ type: "status", pipeline, naiveSpend, health: health(), clock: feed.clock() });
+  broadcast({ type: "status", pipeline, naiveSpend, history, health: health(), clock: feed.clock() });
 }
 
 // ---- Preflight --------------------------------------------------------------------------------

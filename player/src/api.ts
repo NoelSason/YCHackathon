@@ -42,7 +42,8 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 /**
- * What to play, from the page's query string: ?level=<id>, ?pack=<id>, or nothing (the newest
+ * What to play, from the page's query string: ?level=<id>, ?pack=<id>, ?made_by=agents (the Designer
+ * agent's newest accepted levels), or nothing (the newest
  * agent-made levels, or the practice levels when none are published yet).
  */
 export async function loadPlaylist(params: URLSearchParams): Promise<Playlist> {
@@ -54,6 +55,11 @@ export async function loadPlaylist(params: URLSearchParams): Promise<Playlist> {
   if (pack) {
     const p = await getJson<{ name: string; levels: PublicLevel[] }>(`/packs/${encodeURIComponent(pack)}`);
     return { title: p.name, levels: p.levels };
+  }
+  if (params.get("made_by") === "agents") {
+    const agents = await getJson<{ pack: unknown; levels: PublicLevel[] }>("/levels-latest?game=match3&limit=10&made_by=agents");
+    // A server without made_by answers with its pack; never label those levels as the agents'.
+    if (agents.pack === null && agents.levels.length) return { title: "Newest from our design agents", levels: agents.levels };
   }
   const latest = await getJson<{ pack: { name: string } | null; levels: PublicLevel[] }>("/levels-latest?game=match3&limit=10");
   if (!latest.levels.length) return practicePlaylist();

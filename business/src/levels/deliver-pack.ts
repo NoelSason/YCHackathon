@@ -168,7 +168,7 @@ export function curveFor(difficulty: PackDifficulty, count: number, study: PackS
 
 /** Rough build time for the "you'll get them in about N minutes" line (measured Nov 7 on this laptop). */
 export function etaMinutes(game: PackGameId, levels: number): number {
-  const per20 = { match3: 10, watersort: 1, racer: 3, lotescape: 3 }[game];
+  const per20 = { match3: 4, watersort: 1, racer: 3, lotescape: 3 }[game]; // match-3 live: 1.4-1.7 min on 12 threads, up to 8 standalone
   return Math.max(1, Math.ceil((per20 * levels) / 20));
 }
 
@@ -598,7 +598,7 @@ async function playtestPack(ctx: ToolContext, d: PackDelivery, who: Recipient, p
     const o = await runWork(ctx, client, deviceId, {
       kind: "own", name: `level 1 of ${who.company}'s ${genre.label} pack`, url, levelId: firstLevelId,
       targetWinRate: d.curve?.targets[0] ?? null, genre: genre.label, howToPlay: genre.howToPlay,
-    }, { maxSeconds: 4 * 60, ...(pollMs ? { pollMs } : {}) });
+    }, { maxSeconds: 6 * 60, moves: 10, maxSteps: 20, ...(pollMs ? { pollMs } : {}) }); // 4 min timed out on /play (Nov 7, 9:56 PM)
     if (o?.result) shotPng = await captureScreen(client, deviceId);
     return o;
   });

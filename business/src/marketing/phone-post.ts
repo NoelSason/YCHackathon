@@ -79,9 +79,11 @@ export async function postOnXFromPhone(
       s = await client.tasks.getStatus(task.id);
     }
     if (!TERMINAL.has(String(s.status))) await client.tasks.stop(task.id).catch(() => undefined);
-    // End on our public profile, so the new post is what the room sees (never the compose box).
-    await client.devices.deepLink.executeDeepLink(deviceId, { deepLink: PROFILE_URL }).catch(() => undefined);
     const parsed = ResultSchema.safeParse((s as { output?: unknown }).output);
+    // Posted: end on our public profile, so the new post is what the room sees (never the compose
+    // box). Not posted: the home screen, never a stuck X splash or a sign-in page.
+    if (parsed.success && parsed.data.posted) await client.devices.deepLink.executeDeepLink(deviceId, { deepLink: PROFILE_URL }).catch(() => undefined);
+    else await client.devices.actions.global(deviceId, { action: 2 }).catch(() => undefined);
     const r: Result | null = parsed.success ? parsed.data : null;
     const posted = Boolean(r?.posted);
     const problem = posted ? null : r?.problem ?? `phone task ${String(s.status)}`;

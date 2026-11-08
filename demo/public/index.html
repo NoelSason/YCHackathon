@@ -103,6 +103,9 @@
   .mode.replay { background: var(--grape); color: #fff; }
   .mode.sample { background: var(--sun); color: var(--ink); }
   @keyframes blink { 50% { opacity: 0.25; } }
+  .dataline { margin-left: auto; min-width: 0; font: 600 0.8rem/1.2 var(--body); color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dataline b { color: var(--ink); font-weight: 800; }
+  .dataline:not([hidden]) + .clock { margin-left: 0.6rem; }
   .clock { margin-left: auto; font: 700 1.15rem/1 var(--body); font-variant-numeric: tabular-nums; color: var(--ink); }
   .keyhint { font: 600 0.85rem/1 var(--body); color: var(--ink-soft); display: inline-flex; align-items: center; gap: 0.4rem; }
   kbd {
@@ -494,6 +497,7 @@
       <span id="company">Level AI</span><small>run by its agents</small>
     </span>
     <span id="mode" class="mode live">Live</span>
+    <span class="dataline" id="dataline" hidden></span>
     <span class="clock" id="clock"></span>
     <span class="keyhint"><kbd>?</kbd></span>
   </header>
@@ -803,7 +807,7 @@ function renderSpend() {
     bump($("spend"), "$" + (naive.usd + logged).toFixed(2));
     $("spend-k").textContent = "Spent";
     $("spend-sub").hidden = false;
-    $("spend-sub").textContent = `Naïve agents $${naive.usd.toFixed(2)} · data $${logged.toFixed(2)}`;
+    $("spend-sub").textContent = `Naïve $${naive.usd.toFixed(2)} + data $${logged.toFixed(2)}`;
     $("spend-sub").title = `Naïve credits used since ${naive.since || "Nov 7"} (model, phone, email), checked ${hm(naive.checkedAt)}, plus data and tool costs logged in the activity log.`;
   } else {
     bump($("spend"), "$" + logged.toFixed(2));
@@ -934,7 +938,12 @@ function trackPlaytests(list) {
   for (const e of list) {
     const k = e.moment?.kind;
     if (k === "playtest_started" || k === "x_posting") playtests.push({ at: e.at, app: e.moment.app || "", who: e.moment.subject || "", market: Boolean(e.moment.market), surface: e.moment.surface || (e.moment.market ? "web" : ""), open: true });
-    else if ((k === "playtest_done" || k === "report_sent" || k === "x_posted" || /^playtest failed/i.test(e.action || "")) && playtests.length) playtests[playtests.length - 1].open = false;
+    else if ((k === "playtest_done" || k === "report_sent" || k === "x_posted" || /^playtest failed/i.test(e.action || "")) && playtests.length) {
+      const p = playtests[playtests.length - 1];
+      p.open = false;
+      // "Couldn't post on X" closes the attempt without a post: never caption it "posted".
+      p.failed = k === "x_posted" ? e.moment.tier !== "big" : /^playtest failed/i.test(e.action || "");
+    }
   }
   if (playtests.length > 50) playtests.splice(0, playtests.length - 50);
   const last = playtests[playtests.length - 1];
@@ -944,7 +953,8 @@ function trackPlaytests(list) {
   box.hidden = false;
   box.classList.toggle("open", last.open);
   const x = last.surface === "x";
-  const k = x ? (last.open ? "Now posting on X" : "Last posted on X") : last.open ? "Now testing" : "Last tested";
+  const k = x ? (last.open ? "Now posting on X" : last.failed ? "Tried to post on X (didn't go out)" : "Last posted on X")
+    : last.open ? "Now testing" : last.failed ? "Last try didn't finish" : "Last tested";
   $("nt-k").textContent = k;
   const app = shortUrl(last.app) || `${last.who}'s app`;
   $("nt-app").textContent = app;
@@ -958,7 +968,7 @@ function trackPlaytests(list) {
 
 // Runs of the two busy programs' rows show as one line each: the level compiler (it can accept dozens
 // of levels a minute) and the auto-approver (a CEO run can hold a dozen calls).
-const BULK = new Set(["compiler", "approver"]);
+const BULK = new Set(["compiler", "approver", "level_delivery"]);
 const isBulk = (e) => !e.human && BULK.has(e.agent);
 const countBy = (list, keyFn) => { const c = new Map(); for (const e of list) { const k = keyFn(e); c.set(k, (c.get(k) || 0) + 1); } return [...c].sort((x, y) => y[1] - x[1]).map(([k, n]) => `${k} ${n.toLocaleString()}`).join(" · "); };
 function groupHtml(list, isNew, open) {
@@ -973,6 +983,12 @@ function groupHtml(list, isNew, open) {
     pill = `${n} levels`;
     what = `Accepted ${n} level${list.length === 1 ? "" : "s"}${minPlays < Infinity ? `, each verified with ${minPlays}+ bot plays` : ""}`;
     split = countBy(list, (e) => GAMES[(String(e.why || "").match(/(\w+) position/) || [])[1]] || "Other");
+  } else if (agent === "level_delivery") {
+    // One pack build logs a row per attempt; show the run as one line, newest step first.
+    const who = (String(newest.action).match(/(?:for|to|of) (.+?)(?:'s|:| level| at |$)/) || [])[1];
+    pill = `${n} steps`;
+    what = esc(show(describe(newest)));
+    split = `${n} steps building a level pack${who ? ` for ${who}` : ""}; click for the newest`;
   } else {
     pill = `${n} calls`;
     what = `Approved ${n} held call${list.length === 1 ? "" : "s"} to our own servers, by policy`;
@@ -1079,6 +1095,16 @@ function renderPipeline(p) {
   parts.push(`<div class="stage-n money"><div class="c">$${(pay.liveAmountMinor / 100).toFixed(0)}</div><div class="bar"></div><div class="l">Earned (live payments)</div></div>`);
   if (pay.test) parts.push(`<div class="stage-n money test"><div class="c">$${(pay.testAmountMinor / 100).toFixed(0)}</div><div class="bar"></div><div class="l">${pay.test} test payment${pay.test === 1 ? "" : "s"}, not real</div></div>`);
   $("pipe").innerHTML = parts.join("");
+}
+
+// Where the history lives: row counts the server reads from Neon about once a minute (live only).
+function renderHistory(h) {
+  const el = $("dataline");
+  if (!h || state?.mode !== "live") { el.hidden = true; return; }
+  const total = h.activity + h.levels + h.solverRuns;
+  el.hidden = false;
+  el.innerHTML = `Data: serverless Postgres (Neon) · <b>${total.toLocaleString()}</b> rows of company history (${h.activity.toLocaleString()} activity-log rows, ${h.levels.toLocaleString()} levels, ${h.solverRuns.toLocaleString()} solver runs)`;
+  el.title = el.textContent;
 }
 
 function renderHealth(items) {
@@ -1404,6 +1430,7 @@ async function boot() {
   renderSteps();
   renderPipeline(state.pipeline);
   renderHealth(state.health);
+  renderHistory(state.history);
   $("feed-n").textContent = state.stats.agentActions + state.stats.stepIns ? "Newest first" : "";
   if (state.phone) startPhone();
   else $("phone-live").hidden = true;
@@ -1439,6 +1466,7 @@ async function boot() {
       renderSteps();
       state.pipeline = s2.pipeline; renderPipeline(s2.pipeline);
       state.naiveSpend = s2.naiveSpend; renderSpend();
+      state.history = s2.history; renderHistory(s2.history);
     } catch {}
   }
   setTimeout(() => {
@@ -1463,6 +1491,7 @@ async function boot() {
     } else if (m.type === "status") {
       state.pipeline = m.pipeline;
       if ("naiveSpend" in m) { state.naiveSpend = m.naiveSpend; renderSpend(); }
+      if ("history" in m) { state.history = m.history; renderHistory(m.history); }
       renderPipeline(m.pipeline);
       renderHealth(m.health);
     }

@@ -10,6 +10,7 @@ import { neonQuery, type Query } from "../store.js";
  *   GET /levels/:id                           one level
  *   GET /packs/:id                            a published pack, levels in pack order
  *   GET /levels-latest?game=match3&limit=10   the newest pack, or the newest accepted levels
+ *   GET /levels-latest?game=match3&made_by=agents   the Designer agent's newest accepted levels
  *
  * Only levels the Tuner accepted (or the CEO published) are served, for any game in the platform's
  * games table except the internal `stub` test game. Drafts, rejected levels, notes, and which agent
@@ -147,13 +148,34 @@ const BY_DESIGNER = `coalesce(created_by in ('designer', 'tuner'), false)`;
  * pack exists, the newest accepted levels ordered easiest first (highest measured win rate), so
  * the difficulty ramps up. Levels the Designer agent made come before the production compiler's
  * (solver/PRODUCTION.md), which imports hundreds at a time and would otherwise bury them. The
- * phone loop (mobile/loop.ts) plays the first of these too.
+ * phone loop (mobile/loop.ts) plays the first of these too. Customers' packs never count as "the
+ * newest pack": their levels are private, so the choice doesn't shift as paid orders land.
+ *
+ * With `madeBy: "agents"` (`?made_by=agents`), only the Designer agent's accepted levels and their
+ * Tuner versions, newest first, ignoring packs. /play?made_by=agents shows these.
  */
-export async function latestLevels(q: Query, gameId: string, limit = 10): Promise<LatestLevels> {
+export async function latestLevels(q: Query, gameId: string, limit = 10, opts: { madeBy?: "agents" } = {}): Promise<LatestLevels> {
   const n = Math.max(1, Math.min(MAX_LIMIT, Math.floor(limit) || 10));
+  if (opts.madeBy === "agents") {
+    const rows = await q(
+      `select ${LEVEL_COLUMNS} from levels
+       where game_id = $1 and status = any($2::text[]) and ${BY_DESIGNER}
+       order by created_at desc limit $3`,
+      [gameId, PLAYABLE_STATUSES, n],
+    );
+    return { game_id: gameId, pack: null, levels: rows.map(toLevel) };
+  }
+  // Only packs holding at least one public (non-customer) level, in SQL, so a run of customer
+  // packs can't push the public pack out of the window.
   const packs = await q(
-    `select pack_id, name, level_ids from packs where game_id = $1 order by published_at desc limit 5`,
-    [gameId],
+    `select p.pack_id, p.name, p.level_ids from packs p
+     where p.game_id = $1 and exists (
+       select 1 from levels l
+       where l.level_id::text in (select jsonb_array_elements_text(p.level_ids::jsonb))
+         and l.status = any($2::text[]) and l.${NOT_CUSTOMER}
+     )
+     order by p.published_at desc limit 5`,
+    [gameId, PLAYABLE_STATUSES],
   );
   for (const p of packs) {
     const levels = await levelsById(q, packIds(p.level_ids), gameId, true);
@@ -312,7 +334,9 @@ export function publicLevelRoutes(q: Query | null): (request: Request, url: URL)
     }
     const game = url.searchParams.get("game") ?? "match3";
     if (!(await isPublicGame(q, game))) return respond(404, { error: "game not found" });
-    return respond(200, await latestLevels(q, game, Number(url.searchParams.get("limit") ?? 10)));
+    const madeBy = url.searchParams.get("made_by");
+    if (madeBy !== null && madeBy !== "agents") return respond(400, { error: "made_by must be agents" });
+    return respond(200, await latestLevels(q, game, Number(url.searchParams.get("limit") ?? 10), madeBy ? { madeBy } : {}));
   };
 }
 

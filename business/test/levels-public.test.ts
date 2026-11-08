@@ -156,6 +156,28 @@ describe("public level API", () => {
     expect(compiled).toContain(latest.levels[2]!.level_id);
   });
 
+  it("latest: customer packs never become the newest pack; made_by=agents lists only agent levels", async () => {
+    const routes = publicLevelRoutes(q);
+    const pub = await addLevel(q, level("Public"), "published", { measured: 0.8, createdBy: "production" });
+    const [freeSet] = await q(`insert into packs(game_id, name, level_ids, published_at) values ('match3', 'Free set', $1, now() - interval '1 hour') returning pack_id`, [JSON.stringify([pub])]);
+    for (let i = 0; i < 6; i++) {
+      const paid = await addLevel(q, level(`Paid ${i}`), "published", { measured: 0.5, createdBy: "pack-delivery" });
+      await q(`insert into packs(game_id, name, level_ids) values ('match3', $1, $2)`, [`Studio pack ${i}`, JSON.stringify([paid])]);
+    }
+    const latest = (await (await get(routes, "/levels-latest?game=match3"))!.json()) as { pack: { pack_id: string } | null; levels: Array<{ level_id: string }> };
+    expect(latest.pack?.pack_id).toBe(freeSet!.pack_id);
+    expect(latest.levels.map((l) => l.level_id)).toEqual([pub]);
+
+    const older = await addLevel(q, level("Designed"), "accepted", { measured: 0.35 });
+    const newer = await addLevel(q, level("Tuned"), "accepted", { measured: 0.4, createdBy: "tuner" });
+    // Inserts in one test can share a timestamp; make the order explicit.
+    await q(`update levels set created_at = now() - interval '1 minute' where level_id = $1`, [older]);
+    const agents = (await (await get(routes, "/levels-latest?game=match3&made_by=agents"))!.json()) as { pack: unknown; levels: Array<{ level_id: string }> };
+    expect(agents.pack).toBeNull();
+    expect(agents.levels.map((l) => l.level_id)).toEqual([newer, older]);
+    expect((await get(routes, "/levels-latest?game=match3&made_by=people"))!.status).toBe(400);
+  });
+
   it("answers 503 without a database, through the server's router", async () => {
     const handle = createHandler(loadConfig({}));
     expect((await handle(new Request("http://x/levels-latest"))).status).toBe(503);
