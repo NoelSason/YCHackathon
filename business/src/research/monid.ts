@@ -18,6 +18,20 @@ export interface MonidRunner {
   run(args: { provider: string; endpoint: string; body?: unknown; query?: unknown; waitSeconds?: number }): Promise<unknown>;
 }
 
+/** Total Monid spend this process has made, in micro-dollars, from each run's reported cost. */
+let spentMicro = 0;
+export const monidSpentUsd = (): number => spentMicro / 1e6;
+
+export function reportedCostMicro(stdout: string): number {
+  try {
+    const cost = (JSON.parse(stdout) as { billing?: { reportedCost?: { value?: number; unit?: string } } }).billing?.reportedCost;
+    if (!cost || typeof cost.value !== "number") return 0;
+    return cost.unit === "MICRO_DOLLAR" ? cost.value : cost.value * 1e6;
+  } catch {
+    return 0;
+  }
+}
+
 export class MonidCli implements MonidRunner {
   constructor(private readonly bin = "monid") {}
 
@@ -28,7 +42,8 @@ export class MonidCli implements MonidRunner {
     if (args.body !== undefined) argv.push("-i", JSON.stringify(args.body));
     if (args.query !== undefined) argv.push("--query", JSON.stringify(args.query));
     try {
-      await run(this.bin, argv, { env: { ...process.env, NO_COLOR: "1" }, maxBuffer: 32 * 1024 * 1024 });
+      const { stdout } = await run(this.bin, argv, { env: { ...process.env, NO_COLOR: "1" }, maxBuffer: 32 * 1024 * 1024 });
+      spentMicro += reportedCostMicro(stdout);
       return await resolveDownload(JSON.parse(await readFile(out, "utf8")));
     } catch (err) {
       const stdout = (err as { stdout?: string }).stdout ?? "";

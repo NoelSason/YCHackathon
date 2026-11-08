@@ -7,7 +7,7 @@ import { rememberTarget, toolDraftOutreach, toolSaveLead, toolSendOutreach } fro
 import { findTargets } from "../research/targets.js";
 import { findGenericContact } from "../research/contacts.js";
 import { describeVerification, verifyTarget } from "../research/verify.js";
-import type { StoreGame } from "../research/monid.js";
+import { monidSpentUsd, type StoreGame } from "../research/monid.js";
 import type { RawReview } from "../research/signals.js";
 
 /** Cold outreach needs real evidence: at least this many reviews showing the same problem. */
@@ -53,8 +53,9 @@ function markRead(appId: string) {
 let cycleCount = Math.floor(Date.now() / (10 * 60_000));
 
 export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: number; perRun?: number; minScore?: number } = {}) {
-  const log = (agent: string, action: string, why: string | null, result: string | null) =>
-    ctx.store.logActivity({ at: new Date().toISOString(), agent, action, why, result, costUsd: null, human: false });
+  const log = (agent: string, action: string, why: string | null, result: string | null, costUsd: number | null = null) =>
+    ctx.store.logActivity({ at: new Date().toISOString(), agent, action, why, result, costUsd, human: false });
+  const spentBefore = monidSpentUsd();
   if (!ctx.monid) return { sent: 0, reason: "Monid not configured" };
 
   const perRun = opts.perRun ?? 3;
@@ -114,7 +115,7 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
     await log("research", `couldn't read the ${chart.label} chart`, err instanceof Error ? err.message.slice(0, 160) : "unknown error", "will try the next chart next cycle");
     return { sent, reason: "store chart unavailable" };
   }
-  await recordResearch(ctx, chart.label, read, log);
+  await recordResearch(ctx, chart.label, read, log, monidSpentUsd() - spentBefore);
   await log("research", `found ${qualified.length} new studios worth pitching`, qualified.slice(0, 3).map((t) => t.appTitle).join(", ") || null, sent ? `${sent} emailed` : null);
   return { sent, reason: null };
 }
@@ -143,7 +144,8 @@ async function recordResearch(
   ctx: ToolContext,
   label: string,
   read: Target[],
-  log: (agent: string, action: string, why: string | null, result: string | null) => Promise<void>,
+  log: (agent: string, action: string, why: string | null, result: string | null, costUsd?: number | null) => Promise<void>,
+  costUsd: number | null = null,
 ) {
   if (!read.length) return;
   const r = summarizeResearch(label, read);
@@ -154,5 +156,6 @@ async function recordResearch(
     `read ${r.reviewsRead.toLocaleString("en-US")} player reviews of ${r.gamesRead} ${label} games`,
     `${complaints} reviews are about the levels: ${r.tooHard} too hard, ${r.tooEasy} too easy, ${r.wantsMoreLevels} want more levels, ${r.repetitive} repetitive`,
     r.gamesWithEvidence ? `${r.gamesWithEvidence} games show a clear level problem; strongest: ${r.topGame}` : "no game showed a clear level problem",
+    costUsd !== null && costUsd > 0 ? Number(costUsd.toFixed(4)) : null,
   );
 }

@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 6:18 PM PT · Noel · Claude Code · main
+- **What:** Real spend is logged now. The Monid wrapper reads each run's `billing.reportedCost` (micro-dollars), and every research pass logs what it cost (chart, reviews, store listings, contact lookups) in `cost_usd`, so the console's "Spent" shows real money instead of $0.
+- **Why:** Noel: "why is it 0 cost". Our loops were paying for every call and logging $0.
+- **Files:** `business/src/research/monid.ts`, `business/src/outreach/autopilot.ts`, `business/test/research.test.ts`
+- **State:** works; 143 tests pass, server restarted. The first cost shows after the next pass completes (~10 min).
+- **Next / heads-up:** OpenAI checks and Mobilerun minutes aren't in "Spent" yet. Their prices aren't reported per call.
+
 ### 2026-11-07 6:14 PM PT · Noel · Claude Code · main
 - **What:** (1) Social is live: the first post went out on X (@uselevelai) at 6:11 PM, with the live research numbers (3,150 reviews, 12 level complaints: 8 too easy, 4 too hard) and the free audit link. (2) Automatic posting from our server every 2 h (`SOCIAL_LOOP=1`, `SOCIAL_LOOP_MINUTES=120`, on by default when the social key is set). It rotates research → levels → research → playtest, posts research only when there are new numbers (networks reject duplicates), retries when the service is "at capacity", and posts only to connected accounts. Cap is now 4 per network per day. Research posts show counts until there are 50+ complaints, then percentages. The levels post no longer says "hundreds of times" (the solver runs 50). The Marketing agent's `post_update` gains a 'research' angle. (3) Console text scale: full size in full screen only; in a window it's 84%, and the `-` and `=` keys adjust it (remembered per viewer).
 - **Why:** Noel: automate social now; the console looked zoomed in on a laptop.

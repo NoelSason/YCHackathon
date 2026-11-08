@@ -156,3 +156,11 @@ describe("market research summary", () => {
     expect(r).toMatchObject({ gamesRead: 3, reviewsRead: 330, tooHard: 4, tooEasy: 1, gamesWithEvidence: 1, topGame: "A" });
   });
 });
+
+describe("spend", () => {
+  it("reads Monid's reported cost in micro-dollars", async () => {
+    const { reportedCostMicro } = await import("../src/research/monid.js");
+    expect(reportedCostMicro(JSON.stringify({ billing: { reportedCost: { currency: "USD", value: 1500, unit: "MICRO_DOLLAR" } } }))).toBe(1500);
+    expect(reportedCostMicro("not json")).toBe(0);
+  });
+});
