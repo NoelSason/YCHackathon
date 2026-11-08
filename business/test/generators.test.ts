@@ -10,7 +10,7 @@ import { getPackDelivery } from "../src/levels/deliver-pack.js";
 import type { ToolContext } from "../src/mcp/tools.js";
 import { checkBaseUrl, decryptSecret, encryptSecret, SIGNATURE_HEADER, signatureFor, verifySignature } from "../src/generators/protocol.js";
 import { breakerState, BREAKER_FAILURES, generatorClient, GeneratorCallError, resetBreakers } from "../src/generators/client.js";
-import { buildWithGenerator, nextDifficulty } from "../src/generators/pack.js";
+import { buildWithGenerator, composeExternalPackEmail, nextDifficulty } from "../src/generators/pack.js";
 import { onTarget } from "../../solver/src/autotune.js";
 
 // Bring your own generator, with no network: the platform schema in PGlite, mail faked, and the
@@ -214,6 +214,36 @@ describe("the tuning loop over their generator", () => {
     expect(lines.some((l) => /^Test Agency's level \d measured \d+% vs \d+% target: accepted$/.test(l))).toBe(true);
     // Their context fields arrive with each generate call.
     expect(gen.calls.find((c) => c.op === "generate")!.body.context).toEqual({ pack_level: 1, pack_size: 5, target_win_rate: 0.85 });
+  });
+
+  it("keeps asking a noisy generator for up to 10 levels per slot, and says when the setting doesn't move", async () => {
+    // Win rates that miss the 51% target 7 times around one setting, then land (Nov 7, 10:21 PM pattern).
+    const rates = [0.38, 0.6, 0.74, 0.41, 0.66, 0.72, 0.4, 0.52];
+    let n = 0;
+    const info = { ms: 1, attempts: 1 };
+    const client = {
+      generate: async () => ({ level: { n }, info }),
+      validate: async () => null,
+      evaluate: async () => ({ wins: Math.round(rates[Math.min(n++, rates.length - 1)]! * 100), runs: 100, bot: "casual-player", info }),
+    };
+    const lines: string[] = [];
+    const r = await buildWithGenerator(client as never, { targets: [0.51], seed: 1, studio: "T", log: async (a) => { lines.push(a); } });
+    expect(r.stoppedBy).toBe("done");
+    expect(r.levels[0]!.tries).toBe(8);
+    expect(lines.some((l) => / → (\d\.\d\d)$/.test(l) && l.endsWith(`${l.match(/difficulty (\d\.\d\d) →/)?.[1]}`))).toBe(false);
+  });
+});
+
+describe("the pack email", () => {
+  it("states the on-target rule and why a short pack stopped", () => {
+    const e = composeExternalPackEmail({
+      first: "Noel", generatorName: "Sample", genre: "parking-puzzle", owed: 5, curve: { start: 0.85, end: 0.4 } as never, bot: "casual-player", runs: 100,
+      levels: [{ target: 0.85, measured: 0.89, wins: 89, runs: 100, difficulty: 0.27, tries: 2, url: "https://x/1" }],
+      calls: 30, minutes: 0.1, playUrl: null, jsonUrl: "https://x/json", stoppedNote: "level 2 missed its target on all 10 levels we asked for", test: true,
+      companyName: "Level AI", postalAddress: "addr", replyTo: "r@x",
+    });
+    expect(e.body).toContain("within 5 points, or within 8 points when the 95% interval of those plays includes the target");
+    expect(e.body).toContain("We promised 5 levels and 1 landed on target before level 2 missed its target on all 10 levels we asked for.");
   });
 });
 

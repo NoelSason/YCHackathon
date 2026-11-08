@@ -27,8 +27,13 @@ import type { Generator } from "./store.js";
 
 /** Plays per measurement on their evaluate endpoint. */
 export const EVAL_RUNS = 100;
-/** Levels asked for per pack slot before the pack stops short. */
-export const TRIES_PER_LEVEL = 6;
+/**
+ * Levels asked for per pack slot before the pack stops short. Their generator's levels vary a lot at one
+ * setting (the sample's casual-player win rate spans 44%–73% at difficulty 0.55), so allow 10: in a
+ * simulation of 25 five-level packs against the sample, 6 tries left 1 pack short and 10 left none
+ * (Nov 7, 10:21 PM a live pack stopped short at level 4 after 6 tries).
+ */
+export const TRIES_PER_LEVEL = 10;
 const MAX_MINUTES = Number(process.env.PACK_MAX_MINUTES ?? 40);
 
 export interface ExternalLevel {
@@ -133,7 +138,7 @@ export async function buildWithGenerator(client: GeneratorClient, args: {
         } else {
           seen.push({ d, rate });
           const nd = nextDifficulty(seen, d, rate, t);
-          const move = nd === d ? `already at difficulty ${d.toFixed(2)}, asking for another level` : `difficulty ${d.toFixed(2)} → ${nd.toFixed(2)}`;
+          const move = nd.toFixed(2) === d.toFixed(2) ? `already at difficulty ${d.toFixed(2)}, asking for another level` : `difficulty ${d.toFixed(2)} → ${nd.toFixed(2)}`;
           await args.log(`${args.studio}'s level ${slot} measured ${pct(rate)} vs ${pct(t)} target: too ${rate > t ? "easy" : "hard"}; ${move}`, why, null);
           d = nd;
         }
@@ -213,7 +218,7 @@ export function composeExternalPackEmail(args: {
   const short = n < args.owed;
   const what = `${n} ${args.genre} level${n === 1 ? "" : "s"}`;
   const lead = `Your level pack is ready: ${what} made by your own generator ("${args.generatorName}"), measured by your own bot (${args.bot}), and tuned by our agents to the difficulty curve you ordered.`;
-  const how = `How it worked: for each level, our agents asked your generator for a level at a difficulty setting, had your evaluate endpoint play it ${args.runs} times, and moved the setting until the win rate landed on that level's target.${args.calls !== null && args.minutes !== null ? ` That took ${args.calls} calls to your generator in ${args.minutes} min.` : ""}`;
+  const how = `How it worked: for each level, our agents asked your generator for a level at a difficulty setting, had your evaluate endpoint play it ${args.runs} times, and moved the setting until the win rate landed on that level's target. A level counts as on target within 5 points, or within 8 points when the 95% interval of those plays includes the target.${args.calls !== null && args.minutes !== null ? ` That took ${args.calls} calls to your generator in ${args.minutes} min.` : ""}`;
   const measuredCell = (l: (typeof args.levels)[number]) => (l.measured === null ? "not measured" : `${pct(l.measured)}${l.wins !== undefined && l.runs !== undefined ? ` (${l.wins}/${l.runs})` : ""}`);
   const lines = args.levels.map((l, i) => `Level ${String(i + 1).padStart(2)}   target ${pct(l.target).padStart(4)}   measured ${measuredCell(l)}${l.difficulty !== undefined ? `   difficulty ${l.difficulty.toFixed(2)}` : ""}${l.tries !== undefined ? `   ${l.tries} ${l.tries === 1 ? "try" : "tries"}` : ""}   ${l.url}`);
   const shortNote = short ? `We promised ${args.owed} levels and ${n} landed on target${args.stoppedNote ? ` before ${args.stoppedNote}` : ""}. A person on our team will follow up about the rest.` : null;
@@ -339,7 +344,7 @@ export async function runExternalPackDelivery(ctx: ToolContext, d: PackDelivery,
         }),
         calls: built?.calls ?? null, minutes: built ? Math.round(built.elapsedMs / 6000) / 10 : null,
         playUrl: previewable && saved[0] ? playUrl(site, d.gameId, packId!, saved[0].level_id) : null, jsonUrl: jsonUrl(site, packId!),
-        stoppedNote: built?.stoppedBy === "generator_down" ? "your generator stopped answering" : built?.stoppedBy === "time" ? "our time limit for a pack ran out" : null,
+        stoppedNote: built?.stoppedBy === "generator_down" ? "your generator stopped answering" : built?.stoppedBy === "time" ? "our time limit for a pack ran out" : built?.stoppedBy === "attempts" ? `level ${(built.levels.length + 1)} missed its target on all ${TRIES_PER_LEVEL} levels we asked for` : null,
         test: d.test, companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "", replyTo: ctx.config.AGENTMAIL_INBOX_ID ?? "levelai@agentmail.to",
       });
       try {

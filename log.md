@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 10:27 PM PT · Noel · Claude Code (Sentinel 8 generator) · main
+- **What:** Ran the bring-your-own-generator demo steps verbatim. The live test passed in 1.7 s (25 of 50 wins at difficulty 0.5). The 5-level pack came back 3 of 5: the sample generator varies widely at one setting (44–73% at 0.55), and 6 tries missed the 51% target. Fixed: 10 tries per level (a simulation of 25 packs went from 1 short to none); a log row no longer reads "0.58 → 0.58"; the email states the on-target rule (within 5 points, or 8 when the 95% interval includes the target) and says why a short pack stopped.
+- **Why:** The generator segment must finish on stage, and the email must explain why 83% and 89% count as on target for 85%.
+- **Files:** `business/src/generators/pack.ts`, `business/test/generators.test.ts`
+- **State:** works in tests (business all green); loads on the next :8787 restart.
+- **Next / heads-up:** The demo script says genre "parking" but the API reports "lotescape" (`docs/demo-script.md:71`).
+
 ### 2026-11-07 10:22 PM PT · Noel · Claude Code (Sentinels 5 pack, 6 money) · main
 - **What:** (1) **Pack** (Sentinel 5): a real Candy Crush demo-run with company "Level AI Test Agency", 10:07–10:19 PM, 12 min 25 s end to end: waited 2 min 38 s for the phone, study 3 min 6 s, 20 levels in 75 s, pack email 1 s later, closing level-1 playtest 4 min 58 s (inside the new 6-min limit). All three emails arrived; play and JSON links 200. Fixed: the demo-run renamed the shared lead to "Demo" (emails said "Hi Demo"); the curve line said the phone played the game twice; the closing recap said "lost in 10 moves" when the phone just stopped at its 10-move limit. (2) **Money** (Sentinel 6): all three live checkouts open real Stripe pages with the right amounts, forms work at 390px, the test-mode webhook records a payment in ~1 s, the outbox is empty. No code changes.
 - **Why:** The pack is the main demo segment; its emails must read right.
