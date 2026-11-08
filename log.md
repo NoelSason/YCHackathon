@@ -20,6 +20,63 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 18:02 PT · Pinara (Claude Code) · branch `main`
+
+**What:**
+- **The Designer gets a scheduled level run** (cron `20 * * * *`, $1.20 per run; the daily cap
+  stays $35).
+  - Each run designs and tunes one match3 level (what `/play` shows) and one level for another
+    game.
+  - Targets cycle from 30% to 70% over the day.
+  - Levels keep flowing even while the CEO hands out no cards.
+  - The Designer's allow-list gains `solve_level`, `get_solver_run`, `accept_level`, and
+    `reject_level`.
+- **Shared `TUNE_RULES` for the Tuner and the Designer:**
+  - Wait about 20 s between `get_solver_run` polls. Match-3 runs take 1 to 3 minutes, and nonstop
+    polling would burn the Tuner's $0.40 task cap.
+  - For match-3, pass `runs: 100`.
+  - Per-game knob guidance, measured:
+    - Splash Sort: `move_limit`, about 15 to 19 points per pour.
+    - Turbo Lanes: `time_limit`, about 3 points per tick.
+    - Match-3: `move_limit` for big steps, about 10 to 15 points per move; then `goal.target`, about
+      3 to 5 points per gem. With `move_limit` alone, the tunability eval hit 0 of 5 targets.
+
+**Why:** Noel's report says there are zero match-3 levels and `/play` is empty. The diagnosis:
+- **The solver worker is running.** It's the old 3:59 PM process, which writes no heartbeat and
+  knows only `stub`.
+- **The levels stuck in `solving` are 4 `stub` smoke-test levels.** Their solver runs are done, and
+  nothing accepts test data.
+- **The real cause:** no real Designer or Tuner session has run. Every `designer` and `ceo` row is
+  from a smoke test, because the stalled CEO never handed out a design card.
+
+**Files:** `platform/naive/src/roster.ts`.
+**State:**
+- The roster typechecks and loads (designer cron `20 * * * *`, task cap $1.20).
+- The combined `main` after syncing my folder: `solver` 19/19, `evals` 10/10, `watersort` 8/8,
+  `racer` 10/10. Every typecheck is clean.
+- Not applied in Naïve until setup runs.
+
+**Next / heads-up:**
+- **Abhinav:**
+  1. `npm run setup` re-applies the prompts (the CEO's `check_decision` step, `TUNE_RULES`) and
+     creates the Designer's cron **disabled**.
+  2. `npm run kill -- on` enables it.
+  3. Until then, `/play` stays empty.
+  4. Optional: your smoke test could reject its `stub` level at the end, so nothing sits in
+     `solving`.
+- **Pinara:** restart the solver worker (old PID 32553):
+  1. Press Ctrl+C in its terminal, or run `kill 32553`.
+  2. Run `cd solver && caffeinate -i npm run worker`.
+  3. The new worker writes a heartbeat and knows all 4 games.
+- **Max:** match-3 greedy, 60 games per point:
+
+  | Knob | Values | Greedy win rate |
+  |---|---|---|
+  | `move_limit` | 6 to 10 | 28 / 42 / 57 / 68 / 71% |
+  | `goal.target`, at `move_limit` 8 | 20 to 50 | 90 / 75 / 57 / 33 / 22 / 7 / 4% |
+
+  `greedy` still takes about 1.7 s a game.
+
 ### 2026-11-07 6:08 PM PT · Noel · Claude Code · main
 - **What:** One game's reviews failing to load, or a failed send, now skips that game instead of ending the whole chart pass. Confirmed the send-as-you-go change live: Hidden Folks B.V. was emailed at 5:57 PM the moment its game qualified.
 - **Why:** "couldn't read the top paid casual chart" at 5:57 PM came from one game's error mid-pass.
