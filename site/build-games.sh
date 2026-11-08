@@ -45,7 +45,7 @@ for id in "${GAMES[@]}"; do
     const [file, id] = process.argv.slice(1);
     let html = fs.readFileSync(file, "utf8");
     // The site icon too, so browsers do not ask for a missing /favicon.ico.
-    const icon = `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%231a1d3a%27/%3E%3Crect x=%274%27 y=%2719%27 width=%278%27 height=%278%27 rx=%272%27 fill=%27%2322b893%27/%3E%3Crect x=%2712%27 y=%2712%27 width=%278%27 height=%278%27 rx=%272%27 fill=%27%23ffc53d%27/%3E%3Crect x=%2720%27 y=%275%27 width=%278%27 height=%278%27 rx=%272%27 fill=%27%23ff5b4f%27/%3E%3C/svg%3E">`;
+    const icon = `<link rel="icon" type="image/svg+xml" href="/logo.svg">`;
     if (!html.includes("<base ")) html = html.replace(/<head>/i, `<head>\n<base href="/games/${id}/">` + (html.includes('rel="icon"') ? "" : `\n${icon}`));
     fs.writeFileSync(file, html);
   ' "$OUT/$id/index.html" "$id"

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Developers | Level AI</title>
-<meta name="description" content="Let your coding agent order playtests, read your reviews, and ask for free levels from Level AI. Get an API key and connect in a minute.">
+<title>Developer docs | Level AI</title>
+<meta name="description" content="Get Level AI's tested puzzle levels as JSON. REST reference, level formats for every game, and setup for Claude Code, Cursor, and Codex.">
 <meta name="theme-color" content="#1a1d3a">
 <link rel="canonical" href="https://levelai.vercel.app/developers">
 <meta property="og:type" content="website">
@@ -15,11 +15,49 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Plug Level AI into your tools | Level AI">
 <meta name="twitter:description" content="Let your coding agent order playtests, read your reviews, and ask for free levels.">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a1d3a'/%3E%3Crect x='4' y='19' width='8' height='8' rx='2' fill='%2322b893'/%3E%3Crect x='12' y='12' width='8' height='8' rx='2' fill='%23ffc53d'/%3E%3Crect x='20' y='5' width='8' height='8' rx='2' fill='%23ff5b4f'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 528 528'%3E%3Crect width='528' height='528' rx='112' fill='%231a1d3a'/%3E%3Crect x='64' y='316' width='132' height='132' rx='30' fill='%2322b893'/%3E%3Crect x='200' y='200' width='132' height='132' rx='30' fill='%23ffc53d'/%3E%3Crect x='332' y='84' width='132' height='132' rx='30' fill='%23ff5b4f'/%3E%3Ccircle cx='88' cy='330' r='32' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='99' cy='318' r='13' fill='%231a1d3a'/%3E%3Ccircle cx='150' cy='338' r='25' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='158' cy='344' r='11' fill='%231a1d3a'/%3E%3Ccircle cx='234' cy='216' r='31' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='222' cy='222' r='13' fill='%231a1d3a'/%3E%3Ccircle cx='296' cy='214' r='31' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='297' cy='223' r='15' fill='%231a1d3a'/%3E%3Ccircle cx='356' cy='98' r='24' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='363' cy='94' r='11' fill='%231a1d3a'/%3E%3Ccircle cx='422' cy='92' r='33' fill='%23fff' stroke='%231a1d3a' stroke-width='7'/%3E%3Ccircle cx='411' cy='97' r='17' fill='%231a1d3a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<style>
+/* Developer docs (this page only) */
+.page-top .hero-actions { margin-top: 28px; }
+.docs-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; padding-bottom: 96px; }
+@media (min-width: 1100px) {
+  .docs-layout { grid-template-columns: 220px minmax(0, 1fr); gap: 64px; align-items: start; }
+  .docs-toc { position: -webkit-sticky; position: sticky; top: calc(var(--header-h) + 24px); }
+}
+.docs-toc { background: var(--white); border: 2px solid var(--ink); border-radius: 18px; padding: 18px 20px; box-shadow: 0 5px 0 var(--ink); }
+.docs-toc-title { font: 700 14px/1.2 var(--display); letter-spacing: -0.01em; margin-bottom: 8px; }
+.docs-toc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.docs-toc a { display: block; padding: 4px 0; text-decoration: none; color: var(--ink-soft); font-weight: 600; font-size: 15px; }
+.docs-toc a:hover { color: var(--cobalt-d); }
+.docs-body { min-width: 0; max-width: 840px; }
+.docs-sec + .docs-sec { margin-top: 64px; padding-top: 48px; border-top: 2px solid var(--paper-2); }
+.docs-sec h2 { font: 800 clamp(26px, 3.4vw, 36px)/1.1 var(--display); letter-spacing: -0.03em; margin: 0 0 16px; }
+.docs-sec h3 { font: 700 clamp(19px, 2vw, 22px)/1.25 var(--display); letter-spacing: -0.02em; margin: 44px 0 12px; }
+.docs-sec h3 .inline-code { font-size: 0.8em; }
+.docs-sec > p, .docs-sec li { color: var(--ink-soft); max-width: 42em; }
+.docs-sec > p + p, .docs-sec > p + ul, .docs-sec > p + ol { margin-top: 12px; }
+.docs-sec ul, .docs-sec ol { padding-left: 1.3em; margin: 12px 0 0; display: grid; gap: 8px; }
+.docs-sec strong { color: var(--ink); }
+.docs-sec .inline-code { overflow-wrap: anywhere; }
+.docs-sec .code + p, .docs-sec .docs-table + p { margin-top: 16px; }
+.docs-note { margin-top: 20px; background: #fff4d6; border: 2px solid var(--ink); border-radius: 14px; padding: 14px 18px; color: var(--ink) !important; }
+.docs-endpoint { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 14px; }
+.docs-method { font: 800 12.5px/1 var(--display); letter-spacing: 0.02em; border: 2px solid var(--ink); border-radius: 8px; padding: 6px 9px; background: var(--mint); color: var(--ink); }
+.docs-method.post { background: var(--sun); }
+.docs-endpoint code { font: 700 16px/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--ink); overflow-wrap: anywhere; }
+.docs-auth { font-size: 14px; color: var(--ink-soft); }
+.docs-table { margin-top: 16px; overflow-x: auto; border: 2px solid var(--ink); border-radius: 14px; background: var(--white); -webkit-overflow-scrolling: touch; }
+.docs-table table { border-collapse: collapse; width: 100%; font-size: 15.5px; line-height: 1.5; }
+.docs-table th, .docs-table td { text-align: left; vertical-align: top; padding: 10px 14px; border-top: 1px solid var(--line); }
+.docs-table thead th { border-top: 0; background: var(--paper); font-weight: 700; font-size: 14px; color: var(--ink); }
+.docs-table td { color: var(--ink-soft); min-width: 7em; }
+.docs-table td:first-child { white-space: nowrap; min-width: 0; }
+.docs-form { margin-top: 18px; max-width: 540px; }
+</style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -27,7 +65,7 @@
 <header class="site-header">
   <div class="wrap">
     <a class="brand" href="/" aria-label="Level AI home">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1a1d3a"/><rect x="4" y="19" width="8" height="8" rx="2" fill="#22b893"/><rect x="12" y="12" width="8" height="8" rx="2" fill="#ffc53d"/><rect x="20" y="5" width="8" height="8" rx="2" fill="#ff5b4f"/></svg>
+      <svg viewBox="0 0 528 528" aria-hidden="true"><rect width="528" height="528" rx="112" fill="#1a1d3a"/><rect x="64" y="316" width="132" height="132" rx="30" fill="#22b893"/><rect x="200" y="200" width="132" height="132" rx="30" fill="#ffc53d"/><rect x="332" y="84" width="132" height="132" rx="30" fill="#ff5b4f"/><circle cx="88" cy="330" r="32" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="99" cy="318" r="13" fill="#1a1d3a"/><circle cx="150" cy="338" r="25" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="158" cy="344" r="11" fill="#1a1d3a"/><circle cx="234" cy="216" r="31" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="222" cy="222" r="13" fill="#1a1d3a"/><circle cx="296" cy="214" r="31" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="297" cy="223" r="15" fill="#1a1d3a"/><circle cx="356" cy="98" r="24" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="363" cy="94" r="11" fill="#1a1d3a"/><circle cx="422" cy="92" r="33" fill="#fff" stroke="#1a1d3a" stroke-width="7"/><circle cx="411" cy="97" r="17" fill="#1a1d3a"/></svg>
       Level AI
     </a>
     <nav class="nav" aria-label="Main">
@@ -53,37 +91,43 @@
 </header>
 
 <main id="main">
-  <section class="hero" aria-labelledby="hero-title">
+  <section class="page-top" aria-labelledby="page-title">
     <div class="wrap">
-      <div>
-        <h1 id="hero-title">Plug Level AI into your tools</h1>
-        <p class="lede">Your coding agent can order work from us without leaving your editor. Ask it for a playtest, a read on your reviews, or a free set of levels, and the results come to your inbox.</p>
-        <div class="hero-actions">
-          <a class="btn" href="#get-key">Get an API key</a>
-          <a class="text-link" href="#tools">See what your agent can do</a>
-        </div>
+      <h1 id="page-title">Developer docs</h1>
+      <p class="lede">Get the levels our agents design and test, as JSON, from your own tools or your coding agent.</p>
+      <div class="hero-actions">
+        <a class="btn" href="#get-key">Get a developer key</a>
+        <a class="text-link" href="#reference">Go to the API reference</a>
       </div>
-
-      <figure class="agent-demo" role="img" aria-label="Example: a developer asks their coding agent for a playtest, the agent calls Level AI, and Level AI confirms the playtest is queued.">
-        <div class="bar" aria-hidden="true"><strong>Your editor</strong><span>Agent chat</span></div>
-        <p class="msg you" aria-hidden="true">Get a playtest of our new build on a real iPhone. Focus on the first five minutes.</p>
-        <p class="msg call" aria-hidden="true"><i></i><span>Calling <code>request_playtest</code> on levelai</span></p>
-        <p class="msg agent" aria-hidden="true">Your playtest is in the queue. Level AI will play it on a real iPhone and email the report.</p>
-        <p class="msg call" aria-hidden="true"><i></i><span>Calling <code>get_status</code>: playing your app</span></p>
-      </figure>
     </div>
   </section>
 
-  <section class="section how" aria-labelledby="setup-title">
-    <div class="wrap">
-      <h2 id="setup-title">Set it up in two steps</h2>
-      <p class="intro">Level AI works with any coding agent that supports MCP (Model Context Protocol) servers over HTTP.</p>
-
-      <ol class="dev-steps">
-        <li id="get-key">
-          <div class="dev-step-head"><span class="step-num" aria-hidden="true">1</span><h3>Get an API key</h3></div>
-          <p class="dev-step-text">We email your key to you. It lets your agent order work on your studio’s behalf.</p>
-          <div id="key-mount" style="margin-top:22px">
+  <div class="wrap docs-layout">
+<nav class="docs-toc" aria-label="On this page"><p class="docs-toc-title">On this page</p><ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#quickstart">Quickstart</a></li>
+<li><a href="#reference">REST reference</a></li>
+<li><a href="#level-object">The level object</a></li>
+<li><a href="#formats">Level JSON by game</a></li>
+<li><a href="#webhooks">Webhooks</a></li>
+<li><a href="#mcp">Connect your coding agent</a></li>
+<li><a href="#errors">Rate limits and errors</a></li>
+<li><a href="#how-made">How levels are made and tested</a></li>
+<li><a href="#limits-today">What's not here yet</a></li>
+</ul></nav>
+<div class="docs-body">
+<section class="docs-sec" aria-labelledby="overview">
+<h2 id="overview">Overview</h2>
+<p>Level AI's agents design levels for puzzle games, play each one hundreds of times with bot players, and tune it to a target difficulty. This API gives your tools those levels as JSON: the level itself, the difficulty we aimed for, and the difficulty we measured.</p>
+<ul><li><strong>Base URL:</strong> <code class="inline-code">https://levelai.vercel.app/api</code></li><li><strong>Format:</strong> JSON over HTTPS, including errors.</li><li><strong>Auth:</strong> the public endpoints need no key. Endpoints under <code class="inline-code">/api/studio</code> need your developer key in an <code class="inline-code">Authorization: Bearer lvl_…</code> header.</li><li><strong>Stability:</strong> fields are only ever added, never renamed or removed. Ignore fields you don't know.</li></ul>
+<p class="docs-note">The examples on this page are real responses from the live API, taken Nov 7, 2026, 6:20 PM PT. At that time no level had passed testing yet, so the level lists were empty. Where a real level would appear, a sample is shown and labeled as one.</p>
+</section>
+<section class="docs-sec" aria-labelledby="quickstart">
+<h2 id="quickstart">Quickstart</h2>
+<p>Get a key, then fetch levels with any HTTP client. Reading public levels doesn't need the key; it's for the studio endpoints and your coding agent.</p>
+<h3 id="get-key">1. Get a developer key</h3>
+<p>We email your key to you. It identifies your studio. Keep it private, like a password.</p>
+          <div id="key-mount" class="docs-form">
             <div class="panel">
               <form class="form" id="key-form" novalidate aria-label="Get an API key">
                 <div class="field">
@@ -113,77 +157,450 @@
               </form>
             </div>
           </div>
-        </li>
 
-        <li>
-          <div class="dev-step-head"><span class="step-num" aria-hidden="true">2</span><h3>Connect your agent</h3></div>
-          <p class="dev-step-text">Add Level AI to your agent’s MCP settings, then replace <code class="inline-code">YOUR_KEY</code> with the key from your email.</p>
-
-          <div class="code">
-            <div class="code-bar">
-              <span id="cfg-label">MCP config (JSON)</span>
-              <button class="copy-btn" type="button" data-copy="cfg-code" aria-describedby="cfg-label">
-                <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
-                <span class="copy-label">Copy</span>
-              </button>
-            </div>
-<pre tabindex="0" aria-labelledby="cfg-label"><code id="cfg-code"><span class="tok-p">{</span>
-  <span class="tok-k">"mcpServers"</span><span class="tok-p">: {</span>
-    <span class="tok-k">"levelai"</span><span class="tok-p">: {</span>
-      <span class="tok-k">"type"</span><span class="tok-p">:</span> <span class="tok-s">"http"</span><span class="tok-p">,</span>
-      <span class="tok-k">"url"</span><span class="tok-p">:</span> <span class="tok-s">"https://levelai.vercel.app/studio-mcp"</span><span class="tok-p">,</span>
-      <span class="tok-k">"headers"</span><span class="tok-p">: {</span>
+<h3 id="qs-games">2. List the games</h3>
+<div class="code">
+<div class="code-bar"><span id="c1-label">Request</span><button class="copy-btn" type="button" data-copy="c1" aria-describedby="c1-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c1-label"><code id="c1">curl https://levelai.vercel.app/api/games</code></pre>
+</div>
+<h3 id="qs-levels">3. Get the newest levels for a game</h3>
+<div class="code">
+<div class="code-bar"><span id="c2-label">Request</span><button class="copy-btn" type="button" data-copy="c2" aria-describedby="c2-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c2-label"><code id="c2">curl "https://levelai.vercel.app/api/levels?game=match3&amp;limit=5"</code></pre>
+</div>
+<p>Each level in <code class="inline-code">levels</code> holds the level JSON in <code class="inline-code">level</code>. Load it into your game, or save <code class="inline-code">level_id</code> to fetch it again later.</p>
+<h3 id="qs-studio">4. Check your studio's levels</h3>
+<div class="code">
+<div class="code-bar"><span id="c3-label">Request</span><button class="copy-btn" type="button" data-copy="c3" aria-describedby="c3-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c3-label"><code id="c3">curl https://levelai.vercel.app/api/studio/levels \
+  -H "Authorization: Bearer <span class="tok-x">$LEVELAI_KEY</span>"</code></pre>
+</div>
+</section>
+<section class="docs-sec" aria-labelledby="reference">
+<h2 id="reference">REST reference</h2>
+<p>All endpoints are <code class="inline-code">GET</code> unless noted. Times are ISO 8601 in UTC. Win rates are fractions from 0 to 1.</p>
+<h3 id="get-games">List games</h3>
+<p class="docs-endpoint"><span class="docs-method get">GET</span><code>/api/games</code><span class="docs-auth">Auth: None</span></p>
+<p>Every game our agents make levels for, with how many levels are available for each.</p>
+<div class="docs-table" tabindex="0" role="region" aria-label="Field table"><table><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code class="inline-code">game_id</code></td><td>string</td><td>Use it as <code class="inline-code">game</code> in other requests.</td></tr><tr><td><code class="inline-code">name</code></td><td>string</td><td>The game's name.</td></tr><tr><td><code class="inline-code">genre</code></td><td>string or null</td><td>For example <code class="inline-code">match-3</code>. Null if we haven't labeled it.</td></tr><tr><td><code class="inline-code">levels_available</code></td><td>integer</td><td>Levels that passed testing (accepted or published).</td></tr></tbody></table></div>
+<div class="code">
+<div class="code-bar"><span id="c4-label">Response 200 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c4" aria-describedby="c4-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c4-label"><code id="c4">{
+  <span class="tok-k">"games"</span><span class="tok-p">:</span> [
+    {
+      <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"match3"</span>,
+      <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Gem Garden"</span>,
+      <span class="tok-k">"genre"</span><span class="tok-p">:</span> <span class="tok-s">"match-3"</span>,
+      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 0
+    },
+    {
+      <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"platformer"</span>,
+      <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Mosslight Trails"</span>,
+      <span class="tok-k">"genre"</span><span class="tok-p">:</span> <span class="tok-s">"platformer"</span>,
+      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 0
+    },
+    {
+      <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"racer"</span>,
+      <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Turbo Lanes"</span>,
+      <span class="tok-k">"genre"</span><span class="tok-p">:</span> <span class="tok-s">"lane racer"</span>,
+      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 0
+    },
+    {
+      <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"watersort"</span>,
+      <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Splash Sort"</span>,
+      <span class="tok-k">"genre"</span><span class="tok-p">:</span> <span class="tok-s">"sort puzzle"</span>,
+      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 0
+    }
+  ]
+}</code></pre>
+</div>
+<h3 id="get-levels">List levels</h3>
+<p class="docs-endpoint"><span class="docs-method get">GET</span><code>/api/levels</code><span class="docs-auth">Auth: None</span></p>
+<p>Levels that passed testing, newest first.</p>
+<div class="docs-table" tabindex="0" role="region" aria-label="Query parameter table"><table><thead><tr><th scope="col">Query parameter</th><th scope="col">Required</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code class="inline-code">game</code></td><td>No</td><td>A <code class="inline-code">game_id</code> from <code class="inline-code">/api/games</code>. Leave it out for every game.</td></tr><tr><td><code class="inline-code">limit</code></td><td>No</td><td>1 to 100. Default 20. Larger values are capped at 100.</td></tr><tr><td><code class="inline-code">since</code></td><td>No</td><td>An ISO 8601 time. Returns only levels accepted or published after it, <strong>oldest first</strong>, so you can page forward.</td></tr></tbody></table></div>
+<p>To stay in sync, store the <code class="inline-code">updated_at</code> of the last level you received and pass it as <code class="inline-code">since</code> on your next call. If you get <code class="inline-code">limit</code> levels back, call again with the new last <code class="inline-code">updated_at</code> until the list comes back shorter.</p>
+<div class="code">
+<div class="code-bar"><span id="c5-label">Request</span><button class="copy-btn" type="button" data-copy="c5" aria-describedby="c5-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c5-label"><code id="c5">curl "https://levelai.vercel.app/api/levels?game=match3&amp;limit=5"</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c6-label">Response 200 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c6" aria-describedby="c6-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c6-label"><code id="c6">{
+  <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"match3"</span>,
+  <span class="tok-k">"levels"</span><span class="tok-p">:</span> []
+}</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c7-label">Request: every game</span><button class="copy-btn" type="button" data-copy="c7" aria-describedby="c7-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c7-label"><code id="c7">curl https://levelai.vercel.app/api/levels</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c8-label">Response 200 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c8" aria-describedby="c8-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c8-label"><code id="c8">{
+  <span class="tok-k">"game_id"</span><span class="tok-p">:</span> null,
+  <span class="tok-k">"levels"</span><span class="tok-p">:</span> []
+}</code></pre>
+</div>
+<p>When levels exist, each item in <code class="inline-code">levels</code> is a <a class="text-link" href="#level-object">level object</a>.</p>
+<h3 id="get-level">Get a level</h3>
+<p class="docs-endpoint"><span class="docs-method get">GET</span><code>/api/levels/{level_id}</code><span class="docs-auth">Auth: None</span></p>
+<p>One level by its ID. Returns 404 for a level that doesn't exist or hasn't passed testing.</p>
+<div class="code">
+<div class="code-bar"><span id="c9-label">Request</span><button class="copy-btn" type="button" data-copy="c9" aria-describedby="c9-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c9-label"><code id="c9">curl https://levelai.vercel.app/api/levels/3f2c8a14-6b1e-4d7a-9c55-0e8b7d2a41f6</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c10-label">Response 200 (sample: the shape of a real response, not a real level)</span><button class="copy-btn" type="button" data-copy="c10" aria-describedby="c10-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c10-label"><code id="c10">{
+  <span class="tok-k">"level_id"</span><span class="tok-p">:</span> <span class="tok-s">"3f2c8a14-6b1e-4d7a-9c55-0e8b7d2a41f6"</span>,
+  <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"match3"</span>,
+  <span class="tok-k">"level"</span><span class="tok-p">:</span> {
+    <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Garden Gate"</span>,
+    <span class="tok-k">"width"</span><span class="tok-p">:</span> 8,
+    <span class="tok-k">"height"</span><span class="tok-p">:</span> 8,
+    <span class="tok-k">"colour_count"</span><span class="tok-p">:</span> 5,
+    <span class="tok-k">"seed"</span><span class="tok-p">:</span> <span class="tok-s">"garden-gate-1"</span>,
+    <span class="tok-k">"goal"</span><span class="tok-p">:</span> {
+      <span class="tok-k">"colour"</span><span class="tok-p">:</span> <span class="tok-s">"red"</span>,
+      <span class="tok-k">"target"</span><span class="tok-p">:</span> 24
+    },
+    <span class="tok-k">"move_limit"</span><span class="tok-p">:</span> 18,
+    <span class="tok-k">"seals"</span><span class="tok-p">:</span> [
+      {
+        <span class="tok-k">"cell"</span><span class="tok-p">:</span> 27,
+        <span class="tok-k">"layers"</span><span class="tok-p">:</span> 1
+      },
+      {
+        <span class="tok-k">"cell"</span><span class="tok-p">:</span> 28,
+        <span class="tok-k">"layers"</span><span class="tok-p">:</span> 2
+      },
+      {
+        <span class="tok-k">"cell"</span><span class="tok-p">:</span> 35,
+        <span class="tok-k">"layers"</span><span class="tok-p">:</span> 2
+      },
+      {
+        <span class="tok-k">"cell"</span><span class="tok-p">:</span> 36,
+        <span class="tok-k">"layers"</span><span class="tok-p">:</span> 1
+      }
+    ]
+  },
+  <span class="tok-k">"target_win_rate"</span><span class="tok-p">:</span> 0.4,
+  <span class="tok-k">"measured_win_rate"</span><span class="tok-p">:</span> 0.42,
+  <span class="tok-k">"status"</span><span class="tok-p">:</span> <span class="tok-s">"accepted"</span>,
+  <span class="tok-k">"created_at"</span><span class="tok-p">:</span> <span class="tok-s">"2026-11-08T02:05:11.482Z"</span>,
+  <span class="tok-k">"updated_at"</span><span class="tok-p">:</span> <span class="tok-s">"2026-11-08T02:09:47.903Z"</span>
+}</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c11-label">Response 404 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c11" aria-describedby="c11-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c11-label"><code id="c11">{
+  <span class="tok-k">"error"</span><span class="tok-p">:</span> <span class="tok-s">"level not found"</span>
+}</code></pre>
+</div>
+<p>Match-3 levels also open in your phone's browser: <code class="inline-code">https://levelai.vercel.app/play?level={level_id}</code>.</p>
+<h3 id="get-pack">Get a pack</h3>
+<p class="docs-endpoint"><span class="docs-method get">GET</span><code>/api/packs/{pack_id}</code><span class="docs-auth">Auth: None</span></p>
+<p>A published set of levels, in play order. Levels pulled after publishing are left out.</p>
+<div class="code">
+<div class="code-bar"><span id="c12-label">Response 200 (sample: shape only)</span><button class="copy-btn" type="button" data-copy="c12" aria-describedby="c12-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c12-label"><code id="c12">{
+  <span class="tok-k">"pack_id"</span><span class="tok-p">:</span> <span class="tok-s">"9a7d0c3e-2f41-4b8e-a6d2-5c1e9f03b7aa"</span>,
+  <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"match3"</span>,
+  <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Starter set"</span>,
+  <span class="tok-k">"published_at"</span><span class="tok-p">:</span> <span class="tok-s">"2026-11-08T03:00:00.000Z"</span>,
+  <span class="tok-k">"levels"</span><span class="tok-p">:</span> [
+    <span class="tok-s">"…level objects, in pack order…"</span>
+  ]
+}</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c13-label">Response 404 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c13" aria-describedby="c13-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c13-label"><code id="c13">{
+  <span class="tok-k">"error"</span><span class="tok-p">:</span> <span class="tok-s">"pack not found"</span>
+}</code></pre>
+</div>
+<p>Match-3 packs play at <code class="inline-code">https://levelai.vercel.app/play?pack={pack_id}</code>.</p>
+<h3 id="get-latest">Get the newest set</h3>
+<p class="docs-endpoint"><span class="docs-method get">GET</span><code>/api/levels-latest</code><span class="docs-auth">Auth: None</span></p>
+<p>What our web player shows: the newest published pack in its own order, or, before any pack exists, the newest accepted levels from easiest to hardest.</p>
+<div class="docs-table" tabindex="0" role="region" aria-label="Query parameter table"><table><thead><tr><th scope="col">Query parameter</th><th scope="col">Required</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code class="inline-code">game</code></td><td>No</td><td>Default <code class="inline-code">match3</code>.</td></tr><tr><td><code class="inline-code">limit</code></td><td>No</td><td>1 to 30. Default 10.</td></tr></tbody></table></div>
+<div class="code">
+<div class="code-bar"><span id="c14-label">Response 200 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c14" aria-describedby="c14-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c14-label"><code id="c14">{
+  <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"match3"</span>,
+  <span class="tok-k">"pack"</span><span class="tok-p">:</span> null,
+  <span class="tok-k">"levels"</span><span class="tok-p">:</span> []
+}</code></pre>
+</div>
+<p><code class="inline-code">pack</code> is <code class="inline-code">{ "pack_id", "name" }</code> when the levels come from a published pack, and null otherwise.</p>
+<h3 id="get-studio-levels">List your studio's levels</h3>
+<p class="docs-endpoint"><span class="docs-method get">GET</span><code>/api/studio/levels</code><span class="docs-auth">Auth: Developer key</span></p>
+<p>The levels we've sent your studio. Today that's only a sample set, when one was sent. Levels and packs aren't linked to studio accounts yet, so this list is usually empty; the <code class="inline-code">note</code> field says so.</p>
+<div class="docs-table" tabindex="0" role="region" aria-label="Field table"><table><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code class="inline-code">studio</code></td><td>string</td><td>Your studio's name, from your key.</td></tr><tr><td><code class="inline-code">sample</code></td><td>object or null</td><td>The sample we sent you: <code class="inline-code">pack_id</code>, <code class="inline-code">name</code>, and <code class="inline-code">url</code>. Null if we haven't sent one.</td></tr><tr><td><code class="inline-code">levels</code></td><td>array</td><td><a class="text-link" href="#level-object">Level objects</a> in that sample.</td></tr><tr><td><code class="inline-code">note</code></td><td>string</td><td>What this list does and doesn't include.</td></tr></tbody></table></div>
+<div class="code">
+<div class="code-bar"><span id="c15-label">Request</span><button class="copy-btn" type="button" data-copy="c15" aria-describedby="c15-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c15-label"><code id="c15">curl https://levelai.vercel.app/api/studio/levels \
+  -H "Authorization: Bearer <span class="tok-x">$LEVELAI_KEY</span>"</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c16-label">Response 200 (live, Nov 7, 2026, 6:20 PM PT; studio name changed)</span><button class="copy-btn" type="button" data-copy="c16" aria-describedby="c16-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c16-label"><code id="c16">{
+  <span class="tok-k">"studio"</span><span class="tok-p">:</span> <span class="tok-s">"Example Games"</span>,
+  <span class="tok-k">"sample"</span><span class="tok-p">:</span> null,
+  <span class="tok-k">"levels"</span><span class="tok-p">:</span> [],
+  <span class="tok-k">"note"</span><span class="tok-p">:</span> <span class="tok-s">"Levels aren't linked to studio accounts yet: our agents design levels for our own games, not for yours. This lists the sample levels we've sent you, if any. Every public level is also at GET /api/levels."</span>
+}</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c17-label">Response 401 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c17" aria-describedby="c17-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c17-label"><code id="c17">{
+  <span class="tok-k">"error"</span><span class="tok-p">:</span> <span class="tok-s">"unauthorized: get a key at /developers"</span>
+}</code></pre>
+</div>
+<h3 id="post-key">Request a developer key</h3>
+<p class="docs-endpoint"><span class="docs-method post">POST</span><code>/developer-keys</code><span class="docs-auth">Auth: None</span></p>
+<p>What the form on this page calls. We email the key; it's never returned in the response.</p>
+<div class="code">
+<div class="code-bar"><span id="c18-label">Request</span><button class="copy-btn" type="button" data-copy="c18" aria-describedby="c18-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c18-label"><code id="c18">curl -X POST https://levelai.vercel.app/developer-keys \
+  -H 'content-type: application/json' \
+  -d '{"name": "Ada Park", "email": "ada@example.com", "studio": "Example Games", "consent": true}'</code></pre>
+</div>
+<div class="docs-table" tabindex="0" role="region" aria-label="Field table"><table><thead><tr><th scope="col">Field</th><th scope="col">Required</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code class="inline-code">name</code></td><td>Yes</td><td>Your name, up to 120 characters.</td></tr><tr><td><code class="inline-code">email</code></td><td>Yes</td><td>Where we send the key.</td></tr><tr><td><code class="inline-code">studio</code></td><td>Yes</td><td>Your studio's name, up to 160 characters.</td></tr><tr><td><code class="inline-code">consent</code></td><td>Yes</td><td>Must be <code class="inline-code">true</code>: you agree to get the key by email.</td></tr></tbody></table></div>
+<div class="code">
+<div class="code-bar"><span id="c19-label">Response 201</span><button class="copy-btn" type="button" data-copy="c19" aria-describedby="c19-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c19-label"><code id="c19">{
+  <span class="tok-k">"ok"</span><span class="tok-p">:</span> true
+}</code></pre>
+</div>
+<div class="code">
+<div class="code-bar"><span id="c20-label">Response 400 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c20" aria-describedby="c20-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c20-label"><code id="c20">{
+  <span class="tok-k">"ok"</span><span class="tok-p">:</span> false,
+  <span class="tok-k">"error"</span><span class="tok-p">:</span> <span class="tok-s">"Please fill in your name, email, and studio, and tick the box."</span>
+}</code></pre>
+</div>
+</section>
+<section class="docs-sec" aria-labelledby="level-object">
+<h2 id="level-object">The level object</h2>
+<p>Every endpoint that returns levels uses this shape.</p>
+<div class="docs-table" tabindex="0" role="region" aria-label="Field table"><table><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code class="inline-code">level_id</code></td><td>string (UUID)</td><td>Stable ID.</td></tr><tr><td><code class="inline-code">game_id</code></td><td>string</td><td>Which game the level is for. The shape of <code class="inline-code">level</code> depends on it.</td></tr><tr><td><code class="inline-code">level</code></td><td>object</td><td>The level itself. See <a class="text-link" href="#formats">level JSON by game</a>.</td></tr><tr><td><code class="inline-code">target_win_rate</code></td><td>number</td><td>The share of players we aimed to have win, from 0 to 1.</td></tr><tr><td><code class="inline-code">measured_win_rate</code></td><td>number or null</td><td>The share our reference bot actually won in testing. See <a class="text-link" href="#how-made">how levels are tested</a>.</td></tr><tr><td><code class="inline-code">status</code></td><td>string</td><td><code class="inline-code">accepted</code> (passed testing) or <code class="inline-code">published</code> (also released in a pack).</td></tr><tr><td><code class="inline-code">created_at</code></td><td>string</td><td>When the level was designed.</td></tr><tr><td><code class="inline-code">updated_at</code></td><td>string</td><td>When it was last accepted or published. Use it with <code class="inline-code">since</code>.</td></tr></tbody></table></div>
+</section>
+<section class="docs-sec" aria-labelledby="formats">
+<h2 id="formats">Level JSON by game</h2>
+<p>The <code class="inline-code">level</code> field follows the game's rules. Every level we serve has already passed the game's own validation. The samples below are valid levels written to show the format; they aren't levels our agents made.</p>
+<h3 id="format-match3">Match-3 (<code class="inline-code">match3</code>, Gem Garden)</h3>
+<p>Swap neighboring gems to make lines of three or more. Collect <code class="inline-code">goal.target</code> gems of <code class="inline-code">goal.colour</code> within <code class="inline-code">move_limit</code> moves. The board's starting gems come from <code class="inline-code">seed</code>, so the same level always starts the same way.</p>
+<div class="docs-table" tabindex="0" role="region" aria-label="Field table"><table><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Rules</th></tr></thead><tbody><tr><td><code class="inline-code">name</code></td><td>string</td><td>1 to 60 characters. Required.</td></tr><tr><td><code class="inline-code">width</code></td><td>integer</td><td>4 to 16 columns. Required.</td></tr><tr><td><code class="inline-code">height</code></td><td>integer</td><td>4 to 32 rows. Required.</td></tr><tr><td><code class="inline-code">colour_count</code></td><td>integer</td><td>4, 5, or 6 gem colors in play. Required.</td></tr><tr><td><code class="inline-code">seed</code></td><td>integer or string</td><td>Integer 0 to 4294967295, or a string of 1 to 200 characters. Required.</td></tr><tr><td><code class="inline-code">goal</code></td><td>object</td><td><code class="inline-code">colour</code>: one of <code class="inline-code">red</code>, <code class="inline-code">blue</code>, <code class="inline-code">green</code>, <code class="inline-code">gold</code>, <code class="inline-code">purple</code>, <code class="inline-code">teal</code>. <code class="inline-code">target</code>: 1 to 1000. Required.</td></tr><tr><td><code class="inline-code">move_limit</code></td><td>integer</td><td>1 to 200. Required.</td></tr><tr><td><code class="inline-code">mask</code></td><td>boolean[]</td><td>Optional. Which cells are part of the board, row by row from the top left. Length must be <code class="inline-code">width × height</code>.</td></tr><tr><td><code class="inline-code">seals</code></td><td>object[]</td><td>Optional, up to 512. Blockers on cells: <code class="inline-code">cell</code> (index, row by row from 0) and <code class="inline-code">layers</code> (1 to 3 hits to clear).</td></tr></tbody></table></div>
+<p>No other fields are allowed.</p>
+<div class="code">
+<div class="code-bar"><span id="c21-label">Sample match-3 level (valid, not agent-made)</span><button class="copy-btn" type="button" data-copy="c21" aria-describedby="c21-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c21-label"><code id="c21">{
+  <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Garden Gate"</span>,
+  <span class="tok-k">"width"</span><span class="tok-p">:</span> 8,
+  <span class="tok-k">"height"</span><span class="tok-p">:</span> 8,
+  <span class="tok-k">"colour_count"</span><span class="tok-p">:</span> 5,
+  <span class="tok-k">"seed"</span><span class="tok-p">:</span> <span class="tok-s">"garden-gate-1"</span>,
+  <span class="tok-k">"goal"</span><span class="tok-p">:</span> {
+    <span class="tok-k">"colour"</span><span class="tok-p">:</span> <span class="tok-s">"red"</span>,
+    <span class="tok-k">"target"</span><span class="tok-p">:</span> 24
+  },
+  <span class="tok-k">"move_limit"</span><span class="tok-p">:</span> 18,
+  <span class="tok-k">"seals"</span><span class="tok-p">:</span> [
+    {
+      <span class="tok-k">"cell"</span><span class="tok-p">:</span> 27,
+      <span class="tok-k">"layers"</span><span class="tok-p">:</span> 1
+    },
+    {
+      <span class="tok-k">"cell"</span><span class="tok-p">:</span> 28,
+      <span class="tok-k">"layers"</span><span class="tok-p">:</span> 2
+    },
+    {
+      <span class="tok-k">"cell"</span><span class="tok-p">:</span> 35,
+      <span class="tok-k">"layers"</span><span class="tok-p">:</span> 2
+    },
+    {
+      <span class="tok-k">"cell"</span><span class="tok-p">:</span> 36,
+      <span class="tok-k">"layers"</span><span class="tok-p">:</span> 1
+    }
+  ]
+}</code></pre>
+</div>
+<h3 id="format-platformer">Platformer (<code class="inline-code">platformer</code>, Mosslight Trails)</h3>
+<p>Walk from <code class="inline-code">S</code> to <code class="inline-code">G</code>. Each step can climb up to <code class="inline-code">jump_height</code> tiles or drop up to <code class="inline-code">fall_limit</code> tiles.</p>
+<div class="docs-table" tabindex="0" role="region" aria-label="Field table"><table><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Rules</th></tr></thead><tbody><tr><td><code class="inline-code">name</code></td><td>string</td><td>1 to 60 characters.</td></tr><tr><td><code class="inline-code">map</code></td><td>string[]</td><td>5 to 32 rows, each 8 to 64 characters, all the same width. Tiles: <code class="inline-code">#</code> solid, <code class="inline-code">.</code> empty, <code class="inline-code">^</code> hazard, <code class="inline-code">C</code> collectible, <code class="inline-code">S</code> start, <code class="inline-code">G</code> goal. Exactly one <code class="inline-code">S</code> and one <code class="inline-code">G</code>, each standing on <code class="inline-code">#</code>.</td></tr><tr><td><code class="inline-code">jump_height</code></td><td>integer</td><td>1 to 4.</td></tr><tr><td><code class="inline-code">fall_limit</code></td><td>integer</td><td>1 to 8.</td></tr></tbody></table></div>
+<div class="code">
+<div class="code-bar"><span id="c22-label">Sample platformer level (valid, not agent-made)</span><button class="copy-btn" type="button" data-copy="c22" aria-describedby="c22-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c22-label"><code id="c22">{
+  <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Mossy Steps"</span>,
+  <span class="tok-k">"map"</span><span class="tok-p">:</span> [
+    <span class="tok-s">"............"</span>,
+    <span class="tok-s">".......C...."</span>,
+    <span class="tok-s">"......###..."</span>,
+    <span class="tok-s">"............"</span>,
+    <span class="tok-s">"S..###.....G"</span>,
+    <span class="tok-s">"############"</span>
+  ],
+  <span class="tok-k">"jump_height"</span><span class="tok-p">:</span> 2,
+  <span class="tok-k">"fall_limit"</span><span class="tok-p">:</span> 4
+}</code></pre>
+</div>
+<h3 id="format-watersort">Sort puzzle (<code class="inline-code">watersort</code>, Splash Sort)</h3>
+<p>Pour the top color of one tube onto an empty tube or a matching color. Win when every tube is empty or holds one color. Tubes list colors from bottom to top.</p>
+<div class="docs-table" tabindex="0" role="region" aria-label="Field table"><table><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Rules</th></tr></thead><tbody><tr><td><code class="inline-code">title</code></td><td>string</td><td>Optional, up to 40 characters.</td></tr><tr><td><code class="inline-code">capacity</code></td><td>integer</td><td>2 to 5 units per tube.</td></tr><tr><td><code class="inline-code">move_limit</code></td><td>integer</td><td>1 to 300 pours.</td></tr><tr><td><code class="inline-code">tubes</code></td><td>string[][]</td><td>3 to 11 tubes. Colors: <code class="inline-code">red</code>, <code class="inline-code">orange</code>, <code class="inline-code">yellow</code>, <code class="inline-code">lime</code>, <code class="inline-code">green</code>, <code class="inline-code">teal</code>, <code class="inline-code">sky</code>, <code class="inline-code">blue</code>, <code class="inline-code">purple</code>, <code class="inline-code">pink</code>, <code class="inline-code">brown</code>, <code class="inline-code">gray</code>. Each color appears exactly <code class="inline-code">capacity</code> times.</td></tr></tbody></table></div>
+<div class="code">
+<div class="code-bar"><span id="c23-label">Sample sort level (valid, not agent-made)</span><button class="copy-btn" type="button" data-copy="c23" aria-describedby="c23-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c23-label"><code id="c23">{
+  <span class="tok-k">"title"</span><span class="tok-p">:</span> <span class="tok-s">"Three Tides"</span>,
+  <span class="tok-k">"capacity"</span><span class="tok-p">:</span> 4,
+  <span class="tok-k">"move_limit"</span><span class="tok-p">:</span> 20,
+  <span class="tok-k">"tubes"</span><span class="tok-p">:</span> [
+    [
+      <span class="tok-s">"yellow"</span>,
+      <span class="tok-s">"teal"</span>,
+      <span class="tok-s">"pink"</span>,
+      <span class="tok-s">"teal"</span>
+    ],
+    [
+      <span class="tok-s">"pink"</span>,
+      <span class="tok-s">"yellow"</span>,
+      <span class="tok-s">"teal"</span>,
+      <span class="tok-s">"yellow"</span>
+    ],
+    [
+      <span class="tok-s">"teal"</span>,
+      <span class="tok-s">"pink"</span>,
+      <span class="tok-s">"yellow"</span>,
+      <span class="tok-s">"pink"</span>
+    ],
+    [],
+    []
+  ]
+}</code></pre>
+</div>
+<h3 id="format-racer">Lane racer (<code class="inline-code">racer</code>, Turbo Lanes)</h3>
+<p>Drive one row per tick and cross row <code class="inline-code">length</code> within <code class="inline-code">time_limit</code> ticks. Steer one lane at a time. Hitting a <code class="inline-code">car</code>, <code class="inline-code">cone</code>, or <code class="inline-code">oil</code> stops you for <code class="inline-code">crash_penalty</code> ticks.</p>
+<div class="docs-table" tabindex="0" role="region" aria-label="Field table"><table><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Rules</th></tr></thead><tbody><tr><td><code class="inline-code">title</code></td><td>string</td><td>Optional, up to 40 characters.</td></tr><tr><td><code class="inline-code">lanes</code></td><td>integer</td><td>3 to 5.</td></tr><tr><td><code class="inline-code">length</code></td><td>integer</td><td>20 to 400 rows.</td></tr><tr><td><code class="inline-code">speed</code></td><td>number</td><td>4 to 16 rows per second on screen.</td></tr><tr><td><code class="inline-code">time_limit</code></td><td>integer</td><td>1 to 1000 ticks.</td></tr><tr><td><code class="inline-code">crash_penalty</code></td><td>integer</td><td>1 to 10 ticks.</td></tr><tr><td><code class="inline-code">lane_change_cooldown</code></td><td>integer</td><td>0 to 3 ticks between lane changes.</td></tr><tr><td><code class="inline-code">start_lane</code></td><td>integer</td><td>Optional, 0 to 4. Default is the middle lane.</td></tr><tr><td><code class="inline-code">objects</code></td><td>object[]</td><td>Up to 600. Each has <code class="inline-code">row</code> (1 or more), <code class="inline-code">lane</code> (0 to 4), and <code class="inline-code">kind</code>: <code class="inline-code">car</code>, <code class="inline-code">cone</code>, <code class="inline-code">oil</code>, <code class="inline-code">shield</code>, <code class="inline-code">boost</code>, or <code class="inline-code">coin</code>.</td></tr></tbody></table></div>
+<div class="code">
+<div class="code-bar"><span id="c24-label">Sample racer level (valid, not agent-made)</span><button class="copy-btn" type="button" data-copy="c24" aria-describedby="c24-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c24-label"><code id="c24">{
+  <span class="tok-k">"title"</span><span class="tok-p">:</span> <span class="tok-s">"Rush Hour"</span>,
+  <span class="tok-k">"lanes"</span><span class="tok-p">:</span> 3,
+  <span class="tok-k">"length"</span><span class="tok-p">:</span> 90,
+  <span class="tok-k">"speed"</span><span class="tok-p">:</span> 8,
+  <span class="tok-k">"time_limit"</span><span class="tok-p">:</span> 96,
+  <span class="tok-k">"crash_penalty"</span><span class="tok-p">:</span> 3,
+  <span class="tok-k">"lane_change_cooldown"</span><span class="tok-p">:</span> 0,
+  <span class="tok-k">"objects"</span><span class="tok-p">:</span> [
+    {
+      <span class="tok-k">"row"</span><span class="tok-p">:</span> 6,
+      <span class="tok-k">"lane"</span><span class="tok-p">:</span> 0,
+      <span class="tok-k">"kind"</span><span class="tok-p">:</span> <span class="tok-s">"car"</span>
+    },
+    {
+      <span class="tok-k">"row"</span><span class="tok-p">:</span> 6,
+      <span class="tok-k">"lane"</span><span class="tok-p">:</span> 2,
+      <span class="tok-k">"kind"</span><span class="tok-p">:</span> <span class="tok-s">"cone"</span>
+    },
+    {
+      <span class="tok-k">"row"</span><span class="tok-p">:</span> 9,
+      <span class="tok-k">"lane"</span><span class="tok-p">:</span> 1,
+      <span class="tok-k">"kind"</span><span class="tok-p">:</span> <span class="tok-s">"boost"</span>
+    },
+    {
+      <span class="tok-k">"row"</span><span class="tok-p">:</span> 14,
+      <span class="tok-k">"lane"</span><span class="tok-p">:</span> 2,
+      <span class="tok-k">"kind"</span><span class="tok-p">:</span> <span class="tok-s">"coin"</span>
+    }
+  ]
+}</code></pre>
+</div>
+</section>
+<section class="docs-sec" aria-labelledby="webhooks">
+<h2 id="webhooks">Webhooks</h2>
+<p>There are no webhooks yet. To pick up new levels, poll <code class="inline-code">GET /api/levels</code> with <code class="inline-code">since</code> set to the last <code class="inline-code">updated_at</code> you saw. Every few minutes is plenty: new levels take several minutes each to test.</p>
+</section>
+<section class="docs-sec" aria-labelledby="mcp">
+<h2 id="mcp">Connect your coding agent</h2>
+<p>Level AI is also an MCP server (Model Context Protocol), so coding agents such as Claude Code, Cursor, and Codex can call it directly. Replace <code class="inline-code">YOUR_KEY</code> with the key from your email.</p>
+<ul><li><strong>Server URL:</strong> <code class="inline-code">https://levelai.vercel.app/studio-mcp</code> (Streamable HTTP)</li><li><strong>Auth:</strong> <code class="inline-code">Authorization: Bearer YOUR_KEY</code></li></ul>
+<h3 id="mcp-claude">Claude Code</h3>
+<div class="code">
+<div class="code-bar"><span id="c25-label">Terminal</span><button class="copy-btn" type="button" data-copy="c25" aria-describedby="c25-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c25-label"><code id="c25">claude mcp add --transport http levelai https://levelai.vercel.app/studio-mcp \
+  --header "Authorization: Bearer <span class="tok-x">YOUR_KEY</span>"</code></pre>
+</div>
+<h3 id="mcp-cursor">Cursor</h3>
+<p>Add this to <code class="inline-code">.cursor/mcp.json</code> in your project, or <code class="inline-code">~/.cursor/mcp.json</code> for every project.</p>
+<div class="code">
+<div class="code-bar"><span id="c26-label">.cursor/mcp.json</span><button class="copy-btn" type="button" data-copy="c26" aria-describedby="c26-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c26-label"><code id="c26">{
+  <span class="tok-k">"mcpServers"</span><span class="tok-p">:</span> {
+    <span class="tok-k">"levelai"</span><span class="tok-p">:</span> {
+      <span class="tok-k">"url"</span><span class="tok-p">:</span> <span class="tok-s">"https://levelai.vercel.app/studio-mcp"</span>,
+      <span class="tok-k">"headers"</span><span class="tok-p">:</span> {
         <span class="tok-k">"Authorization"</span><span class="tok-p">:</span> <span class="tok-s">"Bearer <span class="tok-x">YOUR_KEY</span>"</span>
-      <span class="tok-p">}</span>
-    <span class="tok-p">}</span>
-  <span class="tok-p">}</span>
-<span class="tok-p">}</span></code></pre>
-          </div>
-
-          <div class="code">
-            <div class="code-bar">
-              <span id="cli-label">Claude Code (terminal)</span>
-              <button class="copy-btn" type="button" data-copy="cli-code" aria-describedby="cli-label">
-                <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
-                <span class="copy-label">Copy</span>
-              </button>
-            </div>
-<pre class="wrap-lines" tabindex="0" aria-labelledby="cli-label"><code id="cli-code">claude mcp add --transport http levelai https://levelai.vercel.app/studio-mcp --header <span class="tok-s">"Authorization: Bearer <span class="tok-x">YOUR_KEY</span>"</span></code></pre>
-          </div>
-          <p class="code-note">Then ask your agent something like &ldquo;Get a Level AI playtest of my app.&rdquo;</p>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <section class="section" id="tools" aria-labelledby="tools-title">
-    <div class="wrap">
-      <h2 id="tools-title">What your agent can do</h2>
-      <p class="intro">Four tools. Your agent picks the right one from what you ask for.</p>
-      <ul class="tool-list">
-        <li class="tool">
-          <span class="tool-tile" aria-hidden="true"></span>
-          <div class="tool-head"><h3>Order a playtest</h3><code class="tool-name">request_playtest</code></div>
-          <p>Plays your app on a real iPhone and emails you a report.</p>
-        </li>
-        <li class="tool">
-          <span class="tool-tile" aria-hidden="true"></span>
-          <div class="tool-head"><h3>Read your reviews</h3><code class="tool-name">audit_reviews</code></div>
-          <p>Reads your game’s newest Google Play or App Store reviews and says where players get stuck or bored.</p>
-        </li>
-        <li class="tool">
-          <span class="tool-tile" aria-hidden="true"></span>
-          <div class="tool-head"><h3>Ask for free levels</h3><code class="tool-name">request_free_levels</code></div>
-          <p>Asks for a free sample set of levels for your game.</p>
-        </li>
-        <li class="tool">
-          <span class="tool-tile" aria-hidden="true"></span>
-          <div class="tool-head"><h3>Check on a request</h3><code class="tool-name">get_status</code></div>
-          <p>Tells you where a request is and what’s done so far.</p>
-        </li>
-      </ul>
-    </div>
-  </section>
+      }
+    }
+  }
+}</code></pre>
+</div>
+<h3 id="mcp-codex">Codex</h3>
+<p>Add this to <code class="inline-code">~/.codex/config.toml</code>, then set <code class="inline-code">LEVELAI_KEY</code> in your shell.</p>
+<div class="code">
+<div class="code-bar"><span id="c27-label">~/.codex/config.toml</span><button class="copy-btn" type="button" data-copy="c27" aria-describedby="c27-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c27-label"><code id="c27">[mcp_servers.levelai]
+url = "https://levelai.vercel.app/studio-mcp"
+bearer_token_env_var = "LEVELAI_KEY"</code></pre>
+</div>
+<h3 id="mcp-other">Other agents</h3>
+<p>Any client that supports remote MCP servers over HTTP with a custom header works. Use the server URL and auth header above.</p>
+<div class="code">
+<div class="code-bar"><span id="c28-label">Generic MCP config</span><button class="copy-btn" type="button" data-copy="c28" aria-describedby="c28-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c28-label"><code id="c28">{
+  <span class="tok-k">"mcpServers"</span><span class="tok-p">:</span> {
+    <span class="tok-k">"levelai"</span><span class="tok-p">:</span> {
+      <span class="tok-k">"type"</span><span class="tok-p">:</span> <span class="tok-s">"http"</span>,
+      <span class="tok-k">"url"</span><span class="tok-p">:</span> <span class="tok-s">"https://levelai.vercel.app/studio-mcp"</span>,
+      <span class="tok-k">"headers"</span><span class="tok-p">:</span> {
+        <span class="tok-k">"Authorization"</span><span class="tok-p">:</span> <span class="tok-s">"Bearer <span class="tok-x">YOUR_KEY</span>"</span>
+      }
+    }
+  }
+}</code></pre>
+</div>
+<h3 id="mcp-tools">Tools</h3>
+<div class="docs-table" tabindex="0" role="region" aria-label="Tool table"><table><thead><tr><th scope="col">Tool</th><th scope="col">Input</th><th scope="col">What it does</th></tr></thead><tbody><tr><td><code class="inline-code">list_my_levels</code></td><td>none</td><td>Same as <code class="inline-code">GET /api/studio/levels</code>: the levels we've sent your studio, with a note on what's included.</td></tr><tr><td><code class="inline-code">request_free_levels</code></td><td><code class="inline-code">gameName</code>, optional <code class="inline-code">storeUrl</code></td><td>Asks for a free sample set. If you give a store link, we read your players' reviews first and email you what we found. Returns a <code class="inline-code">requestId</code>.</td></tr><tr><td><code class="inline-code">audit_reviews</code></td><td><code class="inline-code">storeUrl</code>, optional <code class="inline-code">gameName</code></td><td>Reads your game's newest Google Play or App Store reviews and reports where players say it's too easy, too hard, repetitive, or out of levels, with quotes.</td></tr><tr><td><code class="inline-code">request_playtest</code></td><td><code class="inline-code">appUrl</code>, optional <code class="inline-code">focus</code></td><td>Plays your app on a real iPhone like a first-time player and emails you a report. Returns a <code class="inline-code">requestId</code>, and a payment link when the playtest is paid.</td></tr><tr><td><code class="inline-code">get_status</code></td><td><code class="inline-code">requestId</code></td><td>Each step of a request so far, and whether it's done.</td></tr></tbody></table></div>
+<p>Then ask your agent something like "List my Level AI levels" or "Get a Level AI playtest of my app."</p>
+</section>
+<section class="docs-sec" aria-labelledby="errors">
+<h2 id="errors">Rate limits and errors</h2>
+<h3 id="limits">Rate limits</h3>
+<p>No rate limit is enforced today. Please keep it under one request per second. Public responses can be cached: <code class="inline-code">/api/levels/{id}</code> and <code class="inline-code">/api/packs/{id}</code> for 5 minutes, <code class="inline-code">/api/games</code> for 1 minute, and the lists for 30 seconds. Studio responses are never cached. If we add limits, we'll document them here first.</p>
+<h3 id="error-format">Errors</h3>
+<p>Errors come back as JSON with an <code class="inline-code">error</code> message and a matching HTTP status:</p>
+<div class="code">
+<div class="code-bar"><span id="c29-label">Response 404 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c29" aria-describedby="c29-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<pre tabindex="0" aria-labelledby="c29-label"><code id="c29">{
+  <span class="tok-k">"error"</span><span class="tok-p">:</span> <span class="tok-s">"game not found"</span>
+}</code></pre>
+</div>
+<div class="docs-table" tabindex="0" role="region" aria-label="Status table"><table><thead><tr><th scope="col">Status</th><th scope="col">When</th><th scope="col">Example <code class="inline-code">error</code></th></tr></thead><tbody><tr><td>400</td><td>A bad ID or parameter.</td><td><code class="inline-code">invalid level id</code>, <code class="inline-code">limit must be a whole number from 1 to 100</code>, <code class="inline-code">since must be an ISO 8601 time</code></td></tr><tr><td>401</td><td>A missing or unknown key on a studio endpoint.</td><td><code class="inline-code">unauthorized: get a key at /developers</code></td></tr><tr><td>404</td><td>No such level, pack, or game, or the level hasn't passed testing.</td><td><code class="inline-code">level not found</code>, <code class="inline-code">pack not found</code>, <code class="inline-code">game not found</code></td></tr><tr><td>405</td><td>Any method other than <code class="inline-code">GET</code> on a read endpoint.</td><td><code class="inline-code">method not allowed</code></td></tr><tr><td>503</td><td>Levels are briefly unavailable. Retry after a short wait.</td><td><code class="inline-code">levels unavailable</code></td></tr></tbody></table></div>
+<p>A path that doesn't exist returns a 404 web page, not JSON.</p>
+</section>
+<section class="docs-sec" aria-labelledby="how-made">
+<h2 id="how-made">How levels are made and tested</h2>
+<p>Each level goes through four agents before this API serves it:</p>
+<ol><li><strong>Designer</strong> writes a new level for the game, following the game's rules, and gives it a target win rate (for example, 40% of players win).</li><li><strong>Solver bots</strong> play the level automatically, up to 200 games per bot (100 for match-3). A slow run can stop early at a time limit, but never before 20 games; the tested count is part of every result. For every game except match-3, an exact solver also checks that the level can be won and finds the fewest moves.</li><li><strong>Tuner</strong> compares the target with the win rate of the reference bot, the bot that plays most like a person. Within 5 points, it accepts the level. Otherwise it makes one small change, such as one more move, and tests again. After 4 rounds it rejects the level instead.</li><li><strong>CEO</strong> agent publishes accepted levels in packs and adjusts plans from how real players do.</li></ol>
+<p>What the numbers mean, honestly:</p>
+<ul><li><code class="inline-code">measured_win_rate</code> is how often our reference bot won, not real players. Bots are a stand-in for people. Real play can differ.</li><li>Levels that miss their target after tuning are rejected and never appear here.</li><li>Nobody hand-checks each level. If one looks wrong, tell us at the address in the footer.</li></ul>
+</section>
+<section class="docs-sec" aria-labelledby="limits-today">
+<h2 id="limits-today">What's not here yet</h2>
+<ul><li><strong>Levels for your own game.</strong> Our agents make levels for our own games. Making levels in your game's format, linked to your account, isn't built yet. <code class="inline-code">/api/studio/levels</code> shows only samples we've sent you.</li><li><strong>Webhooks.</strong> Poll <code class="inline-code">/api/levels</code> with <code class="inline-code">since</code> instead.</li><li><strong>Writes.</strong> The API is read-only. You can't upload levels or change a target.</li><li><strong>Real-player win rates.</strong> The API returns the measured bot win rate, not live player results.</li></ul>
+</section>
+</div>
+  </div>
 
   <section class="who dev-cta" aria-label="Prefer a form">
     <div class="wrap">
@@ -236,7 +653,7 @@
         '<div class="ticker" aria-hidden="true">' + new Array(9).join('<i></i>') + '</div>' +
         '<p class="progress-note"></p>';
       box.querySelector('.progress-note').textContent =
-        'Look for an email at ' + v.email + '. Then add the config on this page and replace YOUR_KEY with your key.';
+        'Look for an email at ' + v.email + '. Then try the requests below, or connect your coding agent with your key.';
       mount.innerHTML = '';
       mount.appendChild(box);
       box.querySelector('h2').focus();

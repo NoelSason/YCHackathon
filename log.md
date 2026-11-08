@@ -20,6 +20,12 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 6:45 PM PT · Noel · Claude Code (+ docs subagent) · main
+- **What:** (1) New logo everywhere: three tiles with googly eyes (`site/logo.svg`, `site/logo.png`). Used for the header mark and favicon on every site page, the console and outreach board, the games hub and game pages (build-games.sh now links /logo.svg), the email header (PNG, since email clients block SVG), and the README. (2) Developer docs: `/developers` rewritten as real docs (quickstart, REST reference with live responses, level JSON per game, studio connector setup for Claude Code/Cursor/Codex, errors, how levels are made and tested, what isn't built) plus `docs/developers.md`. The new `/api/*` endpoints are already live from the running server; their code lands with the watch-live commit because it shares app.ts.
+- **Why:** Noel: use this logo everywhere; dev docs so studios can access level creations.
+- **Files:** `site/logo.{svg,png}`, `site/*.html`, `site/games/**/index.html`, `site/build-games.sh`, `demo/public/{index,outreach}.html`, `business/src/email/html.ts`, `README.md`, `docs/images/logo.png`, `site/developers.html`, `docs/developers.md`
+- **State:** works; site deployed, /logo.svg and /logo.png serve, /health ok before and after, email test passes.
+- **Next / heads-up:** **X posting fails:** every post on @uselevelai comes back status "failed" in about 4 s with no error, even plain text. The account connects fine. Most likely the new X account is restricted from posting through apps until it's verified. The earlier log line saying "posted" counted "scheduled" as posted; that was wrong. Studios can't yet get levels made for their own game: levels and packs have no studio link column. Documented as a gap.
 ### 2026-11-07 18:30 PT · Abhinav (Claude) · branch `main`
 
 **What:** Platform redeployed at 18:26 with the `get_company_metrics` split and Pinara's

@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/images/logo.png" width="96" alt="Level AI logo"></p>
+
 <p align="center">
   <img src="docs/images/console.png" alt="The Level AI console: a yellow panel reads Running on its own for 55m 40s, with 19 agent actions since a person last stepped in. Tiles show 63 agent actions, 0 decisions, 1 human step-in, and $0.00 spent. Below are the team of agents, the live feed of what they're doing, a market-research panel with 2,850 reviews read, the studio funnel with 5 emailed, and the one logged step-in." width="100%">
 </p>

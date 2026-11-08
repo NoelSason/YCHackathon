@@ -83,10 +83,8 @@ export function code(s: string): string {
   return `<div style="margin:4px 0 16px;padding:14px 16px;border-radius:12px;background:#11132a;font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;color:${C.text};word-break:break-all">${esc(s)}</div>`;
 }
 
-/** Four colored tiles, like the site's logo mark. */
-const TILES = [C.yellow, C.red, C.green, C.blue]
-  .map((c) => `<td width="12" height="12" style="background:${c};border-radius:3px;font-size:0;line-height:0">&nbsp;</td><td width="3"></td>`)
-  .join("");
+/** The Level AI logo (three tiles with eyes). PNG, since most email clients don't show SVG. */
+const LOGO = `<img src="https://levelai.vercel.app/logo.png" width="32" height="32" alt="" style="display:block;border:0;border-radius:8px">`;
 
 export function layout(args: { preheader: string; body: string; footerReason: string; companyName: string; postalAddress: string }): string {
   return `<!doctype html>
@@ -97,7 +95,7 @@ export function layout(args: { preheader: string; body: string; footerReason: st
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
     <tr><td style="padding:0 6px 16px">
       <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-        <td><table role="presentation" cellpadding="0" cellspacing="0"><tr>${TILES}</tr></table></td>
+        <td>${LOGO}</td>
         <td style="padding-left:10px;font-family:${FONT};font-size:18px;font-weight:900;color:${C.ink};letter-spacing:-0.3px">${esc(args.companyName)}</td>
       </tr></table>
     </td></tr>
