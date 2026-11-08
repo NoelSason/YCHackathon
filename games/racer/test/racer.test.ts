@@ -362,3 +362,13 @@ test("cleared traffic stays gone when steering back through its second cell", ()
   assert.equal(back.next.lane, 1);
   assert.deepEqual(back.ev.hit, []);
 });
+
+
+test("a sideways boost pickup refreshes an active boost for its full duration", () => {
+  const level: Level = { ...base, objects: [{ row: 5, lane: 2, kind: "boost" }] };
+  const state = { ...startState(level), row: 5, lane: 1, boost: 2 };
+  const result = step(level, buildGrid(level), state, 1);
+  assert.equal(result.ev.boosted, true);
+  assert.equal(result.next.boost, 4);
+  assert.equal(result.next.row, 7);
+});

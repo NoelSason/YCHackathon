@@ -5,6 +5,7 @@ import type { Gem, GemColour } from "../../games/match3/engine/houseki-gem-swap/
 import { toCreateOptions } from "./level.js";
 import { loadPlaylist, NotFound, type Playlist, type PublicLevel } from "./api.js";
 import { Attempt } from "./events.js";
+import { rememberWin, seriesPosition } from "./series.js";
 
 /**
  * The public match-3 player (site/play.html). The game runs entirely in this tab: the engine in
@@ -259,8 +260,8 @@ function startLevel(i: number) {
   if (playlist.practice) {
     tuned.textContent = "A warm-up level while our agents finish the next set. New levels appear here first.";
     tuned.hidden = false;
-  } else if (level.measured_win_rate !== null) {
-    tuned.textContent = `Tuned to ${pct(level.target_win_rate)}% wins. Our test players won ${pct(level.measured_win_rate)}%.`;
+  } else if (level.measured_win_rate !== null && level.measured_win_rate !== undefined) {
+    tuned.textContent = `Tuned to ${pct(level.target_win_rate)}% wins. Bot simulations won ${pct(level.measured_win_rate)}%.`;
     tuned.hidden = false;
   } else tuned.hidden = true;
   $("skip").hidden = i + 1 >= n;
@@ -415,11 +416,15 @@ function finish(kind: "won" | "lost" | "stuck") {
   let title: string;
   let text: string;
   if (kind === "won") {
+    if (level) void seriesPosition(level).then(rememberWin);
     const left = st.remainingMoves ?? 0;
     title = "Level complete";
     text = left > 0 ? `You finished with ${plural(left, "move")} to spare.` : "You did it on your very last move.";
     if (hasNext) {
       button("Next level", "btn", () => startLevel(index + 1));
+      button("Play again", "btn small ink", () => startLevel(index));
+    } else if (playlist.continuation) {
+      link("Next verified level", "btn", `/play?series=${playlist.continuation}`);
       button("Play again", "btn small ink", () => startLevel(index));
     } else if (playlist.practice) {
       text += " That was the last practice level.";
@@ -437,7 +442,7 @@ function finish(kind: "won" | "lost" | "stuck") {
     title = kind === "stuck" ? "No moves left" : "Out of moves";
     text = kind === "stuck" ? "The board ran out of possible swaps." : goal ? `You collected ${Math.min(goal.current, goal.target)} of ${goal.target}.` : "So close.";
     if (level?.measured_win_rate !== null && level?.measured_win_rate !== undefined) {
-      text += ` Our test players won ${pct(level.measured_win_rate)}% of the time on this one.`;
+      text += ` Bot simulations won ${pct(level.measured_win_rate)}% of the time on this one.`;
     }
     button("Try again", "btn", () => startLevel(index));
     if (hasNext) button("Next level", "btn small ink", () => startLevel(index + 1));

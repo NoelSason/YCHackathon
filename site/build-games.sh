@@ -61,7 +61,9 @@ node -e '
     for (const id of ["match3", ...ids]) {
       try {
         const r = await fetch(`${site}/levels-latest?game=${id}&limit=1`, { signal: AbortSignal.timeout(10000) });
-        result[id] = r.ok ? true : [400, 404].includes(r.status) ? false : previous[id] === true;
+        // The live proxy can return 400 even for a working game during recovery.
+        // Do not hide a previously verified game on any failed probe.
+        result[id] = r.ok || previous[id] === true;
       } catch { result[id] = previous[id] === true; }
     }
     require("fs").writeFileSync(`${out}/published.json`, JSON.stringify(result, null, 2) + "\n");
