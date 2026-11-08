@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:28 PM PT · Noel · Claude Code (pricing + App Store subagents + main) · main
+- **What:** (1) **Billing is LIVE.** Stripe account activated as an individual (no Atlas), charges and payouts enabled. Live webhook we_1UZMf3… (checkout.session.completed, invoice.paid, customer.subscription.deleted). Server uses `STRIPE_SECRET_KEY_LIVE` when `BILLING_ALLOW_LIVE=1` (`activeStripeKey` in config.ts) and verifies both test and live webhook secrets. Verified: a live $5 payment link from /playtest-orders, live checkout sessions for the pack and subscription; nothing was paid. (2) **Every product has a price:** $5 iPhone playtest, $49 level pack (20 tuned levels in 48 h), $199/month subscription (40 levels + 4 playtests a month + API). `POST /orders` (Checkout, one-time or subscription, prices reused by lookup key), webhook handling for purchases, renewals, and cancellations, honest confirmation emails, "delivery owed" log lines, `biz_subscriptions` table. `/pricing` page, a pricing section on home, "Pricing" in every nav. (3) **App Store installs:** second cloud iPhone "Level AI App Store iPhone" (`MOBILERUN_APPSTORE_DEVICE_ID`, from Mobilerun's granted 3-day subscription). When the API install 404s (Mobilerun's catalog lacks our games; the 9 queued apps still 404), the agent installs through the phone's App Store and the playtest runs there.
+- **Why:** Noel: price every product, go live with money, make App Store apps open.
+- **Files:** `business/src/{leads/orders.ts,billing/stripe.ts,app.ts,config.ts,store.ts,types.ts,db/schema.sql,mobile/install.ts,leads/playtest-offer.ts}`, `business/test/{orders,appstore-install}.test.ts`, `site/pricing.html`, `site/*.html` (nav), `site/styles.css`
+- **State:** works for billing and pricing (174 tests pass, site deployed, live links verified). App Store installs wait on a person signing in to the App Store on the new phone.
+- **Next / heads-up:** **Everyone:** real money now. Team emails stay tagged internal_test. Don't pay test orders with a team card unless you mean it. Cancel requests arrive by email, and a person cancels them in Stripe.
+
 ### 2026-11-07 19:21 PT · Pinara (Codex) · branch `pinara/game-ui`
 
 **What:** Added named practice cards with real level metadata in both games, optional persistent color labels for Splash Sort, and Turbo Lanes pause/resume controls (button, P/Escape, automatic pause when hidden). Improved result-dialog keyboard focus and removed a duplicate racer quit event on practice switching.
