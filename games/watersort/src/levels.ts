@@ -1,9 +1,13 @@
 // Built-in sample levels (playable with ?sample=N before the platform serves levels by id),
 // plus a seeded generator for making more. Every sample is checked by the tests: valid and solvable.
-import { COLORS, type Color, type Level } from "./engine.js";
+import { COLORS, type Color, isComplete, type Level, toTubes } from "./engine.js";
 import { mulberry32 } from "./bots.js";
+import { solveLevel, SolverLimitError } from "./solver.js";
 
-/** Deal `colors` colors of `capacity` units each, shuffled, into tubes, plus `spare` empty tubes. */
+/**
+ * Deal `colors` colors of `capacity` units each, shuffled, into tubes, plus `spare` empty tubes.
+ * This is a raw deal: it can be unsolvable. Use generateSolvableLevel for a level to publish.
+ */
 export function generateLevel(opts: {
   colors: number;
   capacity: number;
@@ -23,6 +27,25 @@ export function generateLevel(opts: {
   for (let t = 0; t < opts.colors; t++) tubes.push(units.slice(t * opts.capacity, (t + 1) * opts.capacity));
   for (let s = 0; s < opts.spare; s++) tubes.push([]);
   return { title: opts.title, capacity: opts.capacity, tubes, move_limit: opts.move_limit };
+}
+
+/**
+ * A deal the exact solver has proven solvable within `move_limit`, with no tube finished at the
+ * start. Tries the given seed first, then later seeds, so a seed that already gives a good deal
+ * returns exactly what generateLevel would.
+ */
+export function generateSolvableLevel(opts: Parameters<typeof generateLevel>[0], maxAttempts = 50): Level {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const level = generateLevel({ ...opts, seed: opts.seed + attempt });
+    if (toTubes(level).some((t) => isComplete(t, level.capacity))) continue;
+    try {
+      const r = solveLevel(level);
+      if (r.solvable && r.min_moves! <= level.move_limit) return level;
+    } catch (e) {
+      if (!(e instanceof SolverLimitError)) throw e;
+    }
+  }
+  throw new Error(`no solvable deal within ${opts.move_limit} pours in ${maxAttempts} seeds; add a spare tube or raise move_limit`);
 }
 
 export const SAMPLES: Level[] = [

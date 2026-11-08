@@ -9,7 +9,7 @@
 //   greedy  always takes the best-scoring pour now, and never repeats a position
 //   random  picks any useful pour at random
 import {
-  applyPour, isComplete, isSolved, type Level, type Pour, pourAmount, stateKey, toTubes, top, topRun, type Tubes, usefulPours,
+  applyPour, isComplete, isSolved, type Level, legalPours, type Pour, stateKey, toTubes, top, topRun, type Tubes, usefulPours,
 } from "./engine.js";
 
 export const BOTS = ["human", "greedy", "random"] as const;
@@ -69,21 +69,9 @@ function shortMemory(size: number): Memory {
 const REPEAT_PENALTY = 60;
 export const HUMAN_WASTE = 0.3;
 
-/** Every legal pour, including ones that can't help. */
-function anyPour(tubes: Tubes, cap: number): Pour[] {
-  const out: Pour[] = [];
-  for (let from = 0; from < tubes.length; from++) {
-    for (let to = 0; to < tubes.length; to++) {
-      const amount = pourAmount(tubes, cap, from, to);
-      if (amount > 0) out.push({ from, to, amount });
-    }
-  }
-  return out;
-}
-
 function pick(tubes: Tubes, cap: number, bot: BotName, rnd: () => number, memory: Memory): Pour | null {
   if (bot === "human" && rnd() < HUMAN_WASTE) {
-    const all = anyPour(tubes, cap);
+    const all = legalPours(tubes, cap);
     if (all.length) return all[Math.floor(rnd() * all.length)]!;
   }
   const moves = usefulPours(tubes, cap);

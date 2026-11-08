@@ -3,8 +3,10 @@
 //
 // A level is a row of tubes. Each tube holds up to `capacity` units of colored liquid, listed
 // bottom to top. A pour moves the top run of one color from one tube onto another tube that is
-// empty or whose top color matches, as much as fits. The level is solved when every tube is either
-// empty or full of a single color. The player has `move_limit` pours.
+// empty or whose top color matches, as much as fits. A tube that is full of one color is finished
+// and sealed: nothing pours out of it. The level is solved when every tube is either empty or full
+// of a single color. The player has `move_limit` pours. The genre rules this follows, with
+// sources, are in RULES.md.
 
 export const COLORS = [
   "red", "orange", "yellow", "lime", "green", "teal",
@@ -132,14 +134,50 @@ export function topRun(t: number[]): number {
 export const isUniform = (t: number[]): boolean => t.every((c) => c === t[0]);
 export const isComplete = (t: number[], cap: number): boolean => t.length === cap && isUniform(t);
 
-/** Units that would move from `from` to `to`; 0 if the pour is not allowed. */
-export function pourAmount(tubes: Tubes, cap: number, from: number, to: number): number {
-  if (from === to) return 0;
+/** Whether a player may pick this tube to pour from: it has liquid and isn't finished (sealed). */
+export function canPourFrom(tubes: Tubes, cap: number, i: number): boolean {
+  const t = tubes[i];
+  return !!t && t.length > 0 && !isComplete(t, cap);
+}
+
+export type PourBlock = "same-tube" | "empty-source" | "finished-source" | "full-target" | "color-mismatch";
+
+/** Why a pour isn't allowed, or null if it is. Shared by pourAmount and the game's messages. */
+export function pourBlock(tubes: Tubes, cap: number, from: number, to: number): PourBlock | null {
+  if (from === to) return "same-tube";
   const a = tubes[from];
   const b = tubes[to];
-  if (!a || !b || !a.length || b.length >= cap) return 0;
-  if (b.length && top(b) !== top(a)) return 0;
-  return Math.min(topRun(a), cap - b.length);
+  if (!a || !a.length) return "empty-source";
+  if (isComplete(a, cap)) return "finished-source";
+  if (!b || b.length >= cap) return "full-target";
+  if (b.length && top(b) !== top(a)) return "color-mismatch";
+  return null;
+}
+
+/**
+ * Units that would move from `from` to `to`; 0 if the pour is not allowed. The whole top run of
+ * one color moves, or as much of it as fits.
+ */
+export function pourAmount(tubes: Tubes, cap: number, from: number, to: number): number {
+  if (pourBlock(tubes, cap, from, to)) return 0;
+  return Math.min(topRun(tubes[from]!), cap - tubes[to]!.length);
+}
+
+/** Every legal pour, including ones that can't help (pouring back and forth). */
+export function legalPours(tubes: Tubes, cap: number): Pour[] {
+  const out: Pour[] = [];
+  for (let from = 0; from < tubes.length; from++) {
+    for (let to = 0; to < tubes.length; to++) {
+      const amount = pourAmount(tubes, cap, from, to);
+      if (amount > 0) out.push({ from, to, amount });
+    }
+  }
+  return out;
+}
+
+/** Not solved, and no legal pour is left: the player can only undo or restart. */
+export function isStuck(tubes: Tubes, cap: number): boolean {
+  return !isSolved(tubes, cap) && legalPours(tubes, cap).length === 0;
 }
 
 /** A copy of the tubes after the pour. */

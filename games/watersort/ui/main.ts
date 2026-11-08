@@ -4,8 +4,11 @@
 //   ?data=<b64>   play a level given inline as base64url JSON (no events)
 //   ?autoplay=1   pour the solver's shortest solution by itself (for phone playtests and demos)
 //   ?api=<url>    override the platform URL
+// Keyboard: 1-9 pick tubes 1-9, 0 picks tube 10, - picks tube 11, arrows move between tubes,
+// Esc cancels a selection, U or Ctrl/Cmd+Z undoes, R restarts.
 import {
-  applyPour, COLORS, type Color, isComplete, isSolved, type Level, pourAmount, toTubes, type Tubes, validateLevel,
+  applyPour, canPourFrom, COLORS, type Color, isComplete, isSolved, isStuck, type Level, pourAmount, pourBlock,
+  toTubes, top, type Tubes, validateLevel,
 } from "../src/engine.js";
 import { SAMPLES } from "../src/levels.js";
 import { solveLevel } from "../src/solver.js";
@@ -25,6 +28,18 @@ const API = (params.get("api") ?? __PLATFORM_URL__).replace(/\/+$/, "");
 const SESSION = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Math.random()).slice(2);
 
 type Status = "playing" | "won" | "lost";
+
+/** Undos per attempt. Like hints, an assist: bot measurements describe play without them. */
+const UNDOS = 3;
+const DEFAULT_HINT = "Tap a tube, then tap the tube to pour into.";
+
+interface LastPour {
+  from: number;
+  to: number;
+  amount: number;
+  color: number;
+}
+
 interface Game {
   level: Level;
   levelId: string | null; // set only for platform levels; practice plays are not reported
@@ -34,8 +49,10 @@ interface Game {
   selected: number | null;
   status: Status;
   startedAt: number;
-  fresh: Set<string>; // slots filled by the last pour, for the fill animation
-  splash: number | null;
+  lastPour: LastPour | null; // drives the pour animation for one render
+  history: Tubes[];          // positions before each pour, for undo
+  undos: number;
+  stuck: boolean;            // no legal pour left, but an undo is still available
   hints: number;
   hintPair: [number, number] | null;
 }
@@ -63,9 +80,13 @@ function sendEvent(type: "attempt" | "win" | "loss" | "quit", beacon = false): v
 
 // ---------- game flow ----------
 
+function setHint(text: string): void {
+  el("hint").textContent = text;
+}
+
 function start(level: Level, levelId: string | null, sample: number | null): void {
   window.clearInterval(autoTimer);
-  el("hint").textContent = "Tap a tube, then tap the tube to pour into.";
+  setHint(DEFAULT_HINT);
   game = {
     level, levelId, sample,
     tubes: toTubes(level),
@@ -73,8 +94,10 @@ function start(level: Level, levelId: string | null, sample: number | null): voi
     selected: null,
     status: "playing",
     startedAt: Date.now(),
-    fresh: new Set(),
-    splash: null,
+    lastPour: null,
+    history: [],
+    undos: UNDOS,
+    stuck: false,
     hints: 3,
     hintPair: null,
   };
@@ -85,15 +108,17 @@ function start(level: Level, levelId: string | null, sample: number | null): voi
   sendEvent("attempt");
 }
 
+/** Leaving an attempt that's still open: a stuck board counts as a loss, as it does for the bots. */
+function leaveAttempt(beacon = false): void {
+  if (game?.status === "playing") sendEvent(game.stuck ? "loss" : "quit", beacon);
+}
+
 function restart(): void {
-  if (game.status === "playing") sendEvent("quit");
+  leaveAttempt();
   start(game.level, game.levelId, game.sample);
 }
 
-function anyPour(tubes: Tubes, cap: number): boolean {
-  for (let a = 0; a < tubes.length; a++) for (let b = 0; b < tubes.length; b++) if (pourAmount(tubes, cap, a, b) > 0) return true;
-  return false;
-}
+const colorName = (c: number): string => COLORS[c] ?? "that color";
 
 function tap(i: number): void {
   if (game.status !== "playing") return;
@@ -101,36 +126,79 @@ function tap(i: number): void {
   const tube = game.tubes[i];
   if (!tube) return;
   game.hintPair = null;
-  game.fresh = new Set();
-  game.splash = null;
+  game.lastPour = null;
 
+  if (game.stuck) {
+    setHint("No pours left. Undo a pour or restart.");
+    render();
+    return shake(i);
+  }
   if (game.selected === null) {
-    if (!tube.length || isComplete(tube, cap)) return shake(i);
+    if (!canPourFrom(game.tubes, cap, i)) {
+      setHint(tube.length ? `Tube ${i + 1} is finished.` : `Tube ${i + 1} is empty. Pick a tube with liquid.`);
+      render();
+      return shake(i);
+    }
     game.selected = i;
+    setHint(`Tube ${i + 1} picked. Now tap the tube to pour into.`);
     return render();
   }
   if (game.selected === i) {
     game.selected = null;
+    setHint(DEFAULT_HINT);
     return render();
   }
   const from = game.selected;
-  const amount = pourAmount(game.tubes, cap, from, i);
-  if (amount === 0) {
-    // Not a legal pour: pick the tapped tube instead if it can be poured from.
-    if (tube.length && !isComplete(tube, cap)) game.selected = i;
+  const block = pourBlock(game.tubes, cap, from, i);
+  if (block) {
+    const why = block === "full-target"
+      ? `Tube ${i + 1} is full.`
+      : block === "color-mismatch"
+        ? `${colorName(top(game.tubes[from]!))} can't go on ${colorName(top(tube))}.`
+        : `Can't pour into tube ${i + 1}.`;
+    // Not a legal pour: pick the tapped tube instead if it can be poured from, as players expect.
+    if (canPourFrom(game.tubes, cap, i)) {
+      game.selected = i;
+      setHint(`${why} Picked tube ${i + 1} instead.`);
+      return render();
+    }
+    game.selected = null;
+    setHint(why);
     render();
     return shake(i);
   }
-  const before = game.tubes[i]!.length;
+  const amount = pourAmount(game.tubes, cap, from, i);
+  game.lastPour = { from, to: i, amount, color: top(game.tubes[from]!) };
+  game.history.push(game.tubes);
   game.tubes = applyPour(game.tubes, from, i, amount);
-  for (let k = 0; k < amount; k++) game.fresh.add(`${i}:${before + k}`);
-  game.splash = i;
   game.moves++;
   game.selected = null;
+  setHint(DEFAULT_HINT);
 
   if (isSolved(game.tubes, cap)) return finish("won");
   if (game.moves >= game.level.move_limit) return finish("lost", "Out of pours", "So close. Try a different order.");
-  if (!anyPour(game.tubes, cap)) return finish("lost", "No pours left", "Every tube is blocked. Try again.");
+  if (isStuck(game.tubes, cap)) {
+    if (game.undos > 0 && game.history.length) {
+      game.stuck = true;
+      setHint("No pours left. Undo a pour or restart.");
+    } else {
+      return finish("lost", "No pours left", "Every tube is blocked. Try again.");
+    }
+  }
+  render();
+}
+
+/** Take back the last pour: the board and the pour count go back one step. */
+function undo(): void {
+  if (game.status !== "playing" || game.undos === 0 || !game.history.length) return;
+  game.tubes = game.history.pop()!;
+  game.moves--;
+  game.undos--;
+  game.selected = null;
+  game.stuck = false;
+  game.lastPour = null;
+  game.hintPair = null;
+  setHint(game.undos ? DEFAULT_HINT : "That was your last undo.");
   render();
 }
 
@@ -156,7 +224,11 @@ function finish(status: "won" | "lost", title?: string, text?: string): void {
     setButton("Try again", restart);
   }
   const completedGame = game;
-  window.setTimeout(() => { if (game === completedGame) ov.classList.remove("hidden"); }, status === "won" ? 450 : 250);
+  window.setTimeout(() => {
+    if (game !== completedGame) return;
+    ov.classList.remove("hidden");
+    el("ov-btn").focus();
+  }, status === "won" ? 650 : 450);
 }
 
 function setButton(label: string, action: () => void): void {
@@ -165,8 +237,12 @@ function setButton(label: string, action: () => void): void {
   b.onclick = action;
 }
 
+function tubeButton(i: number): HTMLElement | null {
+  return el("board").querySelector<HTMLElement>(`.tube[data-index="${i}"]`);
+}
+
 function shake(i: number): void {
-  const node = el("board").children[i];
+  const node = tubeButton(i);
   if (!node) return;
   node.classList.remove("shake");
   void (node as HTMLElement).offsetWidth; // restart the animation
@@ -182,10 +258,45 @@ function tubeLabel(t: number[], i: number, cap: number): string {
   return `Tube ${i + 1}: ${names.join(", ")} from bottom to top, ${names[names.length - 1]} on top, ${free} free`;
 }
 
+/** Runs of one color, bottom to top: the liquid bands a tube is drawn with. */
+function bands(t: number[]): Array<{ color: number; n: number }> {
+  const out: Array<{ color: number; n: number }> = [];
+  for (const c of t) {
+    const last = out[out.length - 1];
+    if (last && last.color === c) last.n++;
+    else out.push({ color: c, n: 1 });
+  }
+  return out;
+}
+
+function liquid(color: number, n: number, fromN?: number): HTMLElement {
+  const band = document.createElement("div");
+  band.className = "liquid";
+  band.style.setProperty("--n", String(n));
+  band.style.backgroundColor = HEX[COLORS[color]!];
+  if (fromN !== undefined && fromN !== n) {
+    band.style.setProperty("--from-n", String(fromN));
+    band.classList.add("level");
+  }
+  return band;
+}
+
+/** Tubes per row: one row when they fit, otherwise two rows of nearly equal length. */
+function columns(n: number): number {
+  const wide = el("board").clientWidth >= 520;
+  return n <= (wide ? 7 : 5) ? n : Math.ceil(n / 2);
+}
+
 function render(): void {
   const cap = game.level.capacity;
   const board = el("board");
-  board.replaceChildren(
+  const focused = (document.activeElement as HTMLElement | null)?.dataset?.index;
+  const pour = game.lastPour;
+  const rack = document.createElement("div");
+  rack.className = "rack";
+  rack.style.setProperty("--cols", String(columns(game.tubes.length)));
+  rack.style.setProperty("--cap", String(cap));
+  rack.append(
     ...game.tubes.map((t, i) => {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -194,22 +305,27 @@ function render(): void {
       if (game.selected !== null && pourAmount(game.tubes, cap, game.selected, i) > 0) btn.classList.add("available");
       if (game.selected === i) btn.classList.add("selected");
       if (isComplete(t, cap)) btn.classList.add("done");
-      if (game.splash === i) btn.classList.add("splash");
       btn.setAttribute("aria-label", tubeLabel(t, i, cap));
       btn.setAttribute("aria-pressed", String(game.selected === i));
       btn.dataset.index = String(i);
       const glass = document.createElement("div");
       glass.className = "glass";
-      for (let k = 0; k < cap; k++) {
-        const slot = document.createElement("div");
-        slot.className = "slot";
-        const c = t[k];
-        if (c !== undefined) {
-          slot.classList.add("filled");
-          slot.style.backgroundColor = HEX[COLORS[c]!];
-          if (game.fresh.has(`${i}:${k}`)) slot.classList.add("new");
-        }
-        glass.appendChild(slot);
+      const runs = bands(t);
+      runs.forEach((b, k) => {
+        const isTop = k === runs.length - 1;
+        // Animate the level of the band the last pour changed.
+        let fromN: number | undefined;
+        if (pour && isTop && i === pour.to) fromN = b.n - pour.amount;
+        if (pour && isTop && i === pour.from && b.color === pour.color) fromN = b.n + pour.amount;
+        glass.appendChild(liquid(b.color, b.n, fromN));
+      });
+      if (pour && i === pour.from && (top(t) !== pour.color)) {
+        glass.appendChild(liquid(pour.color, 0, pour.amount)); // the poured band draining away
+      }
+      if (pour && i === pour.to) {
+        btn.classList.add("receiving");
+        glass.style.setProperty("--stream", HEX[COLORS[pour.color]!]);
+        glass.style.setProperty("--fill", String(t.length));
       }
       btn.appendChild(glass);
       const label = document.createElement("span");
@@ -220,16 +336,34 @@ function render(): void {
       return btn;
     }),
   );
+  board.replaceChildren(rack);
+  if (pour) tilt(pour.from, pour.to);
+  if (focused !== undefined) tubeButton(Number(focused))?.focus({ preventScroll: true });
+
   const complete = game.tubes.filter(t => isComplete(t, cap)).length;
   const total = new Set(game.level.tubes.flat()).size;
   el("objective").textContent = `${complete} / ${total} COLORS SORTED`;
   el("hints").textContent = String(game.hints);
-  el<HTMLButtonElement>("hint-btn").disabled = game.hints === 0 || game.status !== "playing";
+  el<HTMLButtonElement>("hint-btn").disabled = game.hints === 0 || game.status !== "playing" || game.stuck;
+  el("undos").textContent = String(game.undos);
+  const undoBtn = el<HTMLButtonElement>("undo-btn");
+  undoBtn.disabled = game.undos === 0 || !game.history.length || game.status !== "playing";
+  undoBtn.classList.toggle("urge", game.stuck);
   const left = game.level.move_limit - game.moves;
   const pill = el("moves");
   pill.textContent = `Pours ${game.moves} / ${game.level.move_limit}`;
   pill.classList.toggle("low", left <= 3 && game.status === "playing");
   el("meter").style.width = `${Math.max(0, (left / game.level.move_limit) * 100)}%`;
+}
+
+/** Tip the source tube toward the tube it poured into. */
+function tilt(from: number, to: number): void {
+  const a = tubeButton(from);
+  const b = tubeButton(to);
+  if (!a || !b) return;
+  const dir = b.getBoundingClientRect().left >= a.getBoundingClientRect().left ? 1 : -1;
+  a.style.setProperty("--tilt", `${dir * 24}deg`);
+  a.classList.add("pouring");
 }
 
 function renderSamples(): void {
@@ -262,7 +396,7 @@ function notice(text: string): void {
 
 function startSample(n: number): void {
   window.clearInterval(autoTimer);
-  if (game?.status === "playing") sendEvent("quit");
+  leaveAttempt();
   const i = Number.isInteger(n) && n >= 1 && n <= SAMPLES.length ? n : 1;
   start(SAMPLES[i - 1]!, null, i);
 }
@@ -326,8 +460,57 @@ function revealHint(): void {
   }
 }
 
+function moveFocus(step: number): void {
+  const n = game.tubes.length;
+  const current = Number((document.activeElement as HTMLElement | null)?.dataset?.index ?? (step > 0 ? -1 : n));
+  tubeButton((((current + step) % n) + n) % n)?.focus();
+}
+
+function onKey(e: KeyboardEvent): void {
+  if (!el("overlay").classList.contains("hidden")) return;
+  const k = e.key;
+  if ((e.metaKey || e.ctrlKey) && k.toLowerCase() === "z") {
+    e.preventDefault();
+    return undo();
+  }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const digit = "1234567890-".indexOf(k);
+  if (digit >= 0 && digit < game.tubes.length) {
+    e.preventDefault();
+    tap(digit);
+    tubeButton(digit)?.focus({ preventScroll: true });
+  } else if (k === "ArrowRight" || k === "ArrowDown") {
+    e.preventDefault();
+    moveFocus(1);
+  } else if (k === "ArrowLeft" || k === "ArrowUp") {
+    e.preventDefault();
+    moveFocus(-1);
+  } else if (k === "Escape" && game.selected !== null) {
+    game.selected = null;
+    setHint(DEFAULT_HINT);
+    render();
+  } else if (k === "u" || k === "U" || k === "Backspace") {
+    e.preventDefault();
+    undo();
+  } else if (k === "r" || k === "R") {
+    window.clearInterval(autoTimer);
+    restart();
+  }
+}
+
+let lastCols = 0;
+function onResize(): void {
+  if (!game) return;
+  const cols = columns(game.tubes.length);
+  if (cols !== lastCols) render();
+  lastCols = cols;
+}
+
 async function boot(): Promise<void> {
   el("hint-btn").addEventListener("click", revealHint);
+  el("undo-btn").addEventListener("click", undo);
+  document.addEventListener("keydown", onKey);
+  window.addEventListener("resize", onResize);
   el("restart").addEventListener("click", () => {
     window.clearInterval(autoTimer);
     restart();
@@ -354,18 +537,20 @@ async function boot(): Promise<void> {
   if (params.get("autoplay") === "1") autoplay();
 }
 
-window.addEventListener("pagehide", () => {
-  if (game?.status === "playing") sendEvent("quit", true);
-});
+window.addEventListener("pagehide", () => leaveAttempt(true));
 
 // Hooks for scripted browser checks (Playwright/CDP playtests). Read-only state plus the same
 // actions a player has.
 declare global {
   interface Window {
     splashSort: {
-      state(): { tubes: string[][]; moves: number; move_limit: number; status: Status; level_id: string | null };
+      state(): {
+        tubes: string[][]; moves: number; move_limit: number; status: Status; level_id: string | null;
+        stuck: boolean; undos_left: number;
+      };
       tap(i: number): void;
       pour(from: number, to: number): void;
+      undo(): void;
       restart(): void;
       autoplay(): void;
     };
@@ -378,6 +563,8 @@ window.splashSort = {
     move_limit: game.level.move_limit,
     status: game.status,
     level_id: game.levelId,
+    stuck: game.stuck,
+    undos_left: game.undos,
   }),
   tap,
   pour: (from, to) => {
@@ -385,6 +572,7 @@ window.splashSort = {
     tap(from);
     tap(to);
   },
+  undo,
   restart,
   autoplay,
 };

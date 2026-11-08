@@ -78,7 +78,6 @@ html, body {
 .tube.selected { transform: translateY(-18px); }
 .tube.done .glass { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55), 0 0 22px rgba(124, 92, 255, 0.55); }
 .tube.shake { animation: shake 0.28s; }
-.tube.splash .glass::after { animation: splash 0.45s ease-out; }
 
 .glass {
   position: relative;
@@ -96,15 +95,6 @@ html, body {
   background: radial-gradient(60% 30% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 70%);
   opacity: 0;
 }
-.slot {
-  height: var(--unit);
-  border-radius: 4px;
-  background: transparent;
-  transition: background-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
-}
-.slot.filled { box-shadow: inset 0 -6px 10px rgba(0, 0, 0, 0.18), inset 0 6px 8px rgba(255, 255, 255, 0.22); }
-.slot.new { animation: fill 0.32s ease-out; }
-.glass .slot:first-child { border-radius: 4px 4px 20px 20px; }
 
 .hint { text-align: center; color: var(--muted); margin: 0; font-size: 14px; }
 .notice {
@@ -143,8 +133,6 @@ html, body {
 
 .hidden { display: none !important; }
 
-@keyframes fill { from { transform: scaleY(0.2); opacity: 0.4; } to { transform: scaleY(1); opacity: 1; } }
-@keyframes splash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
 @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes fade { from { opacity: 0; } }
@@ -179,9 +167,6 @@ html,body { background:radial-gradient(ellipse at 5% 20%,#dce9dd,transparent 50%
 .btn.ghost { color:var(--ink); background:#ffffff90; border-color:#cbd9cf; font-size:12px; }
 .board { position:relative; border:1px solid #fff; border-radius:28px; background:linear-gradient(155deg,#ffffff7a,#ffffff20); box-shadow:inset 0 0 50px #fff8,0 18px 45px #355a4610; min-height:250px; gap:28px 23px; padding:32px 20px 22px; }
 .glass { border-width:2px; border-top-width:4px; border-radius:9px 9px 25px 25px; padding:5px 4px 5px; gap:1px; background:linear-gradient(90deg,#ffffffb0,#ffffff30 30%,#ffffff60 70%,#ffffffc0); box-shadow:inset 3px 0 3px #fff8,5px 8px 12px #304a3920; }
-.slot { position:relative; border-radius:1px; }
-.slot.filled { box-shadow:inset 5px 0 7px #ffffff50,inset -5px 0 7px #00000012,inset 0 3px 1px #ffffff60; }
-.slot.filled::after { content:""; position:absolute; width:3px; height:65%; top:15%; left:4px; border-radius:5px; background:#ffffff60; }
 .tube-number { color:#82978a; font:600 10px system-ui; letter-spacing:2px; margin-top:13px; }
 .tube.done .glass { border-color:#65a68e; box-shadow:0 0 0 4px #69a99018,5px 8px 12px #304a3915; }
 .tube.done .tube-number { color:#267d68; }
@@ -205,3 +190,51 @@ button:disabled { opacity:.45; cursor:default; }
 button:focus-visible { outline:3px solid #257d68; outline-offset:5px; }
 @media (max-width:420px) { #app { padding:20px 16px; gap:14px; } .mission { padding:18px 22px; } .mission h1 { font-size:33px; } .board { gap:22px 18px; padding:30px 12px 20px; } :root { --tube-w:48px; --unit:30px; } }
 @media (min-width:760px) { #app { padding-top:40px; } .board { min-height:330px; } }
+
+/* Liquid, layout and motion. Every tube in a level has the same size: the glass is exactly
+   capacity units tall, and one color run is one continuous band of liquid. */
+.board { display:flex; align-items:center; justify-content:center; --gap-x:23px; --gap-y:30px; }
+.rack {
+  width:100%;
+  max-width:calc(var(--cols) * var(--tube-w) + (var(--cols) - 1) * var(--gap-x));
+  display:flex; flex-wrap:wrap; justify-content:center; gap:var(--gap-y) var(--gap-x);
+}
+.tube { flex:0 0 calc((100% - (var(--cols) - 1) * var(--gap-x)) / var(--cols)); width:auto; min-width:0; touch-action:manipulation; }
+.glass { height:calc(var(--cap) * var(--unit) + 16px); gap:0; }
+.liquid {
+  position:relative; flex:none;
+  height:calc(var(--n) * var(--unit));
+  box-shadow:inset 5px 0 7px #ffffff50, inset -5px 0 7px #00000014, inset 0 2px 0 #ffffff70;
+}
+.liquid::after { content:""; position:absolute; width:3px; top:6px; bottom:6px; left:4px; border-radius:5px; background:#ffffff60; }
+.liquid:first-child { border-radius:0 0 19px 19px; }
+.liquid.level { animation:level 0.42s cubic-bezier(.3,.7,.4,1) both; }
+@keyframes level { from { height:calc(var(--from-n) * var(--unit)); } }
+
+/* A stream falls into the receiving tube while its level rises. */
+.tube.receiving .glass::before {
+  content:""; position:absolute; z-index:1; left:50%; top:0; width:6px; margin-left:-3px; border-radius:0 0 3px 3px;
+  height:calc((var(--cap) - var(--fill)) * var(--unit) + 6px);
+  background:var(--stream); transform-origin:top;
+  animation:stream 0.42s ease-out both;
+}
+@keyframes stream { 0% { transform:scaleY(0); opacity:1; } 45% { transform:scaleY(1); opacity:1; } 100% { transform:scaleY(1); opacity:0; } }
+.tube.pouring { animation:tip 0.42s ease-out; }
+@keyframes tip { 35% { transform:translateY(-16px) rotate(var(--tilt)); } 70% { transform:translateY(-10px) rotate(var(--tilt)); } }
+
+/* Selected tube lifts; tubes it can pour into get a ring; finished tubes are sealed. */
+.tube.selected { transform:translateY(-16px); }
+.tube.available .glass { border-color:#5fa892; box-shadow:0 0 0 4px #348e7812, 5px 8px 12px #304a3920; }
+.tube.done .glass { border-top-color:#2f8a72; }
+.tube:disabled, .tube.done { cursor:default; }
+
+#undos { display:inline-grid; place-items:center; background:#dcece2; border-radius:50%; width:21px; height:21px; margin-left:8px; }
+#undo-btn.urge { border-color:#267d68; box-shadow:0 0 0 4px #267d681f; }
+.tools { justify-content:flex-start; flex-wrap:wrap; gap:10px; }
+.tools>span { margin-left:auto; }
+.keys { display:none; margin:-8px 0 0; text-align:center; color:var(--muted); font-size:11px; }
+.keys kbd { font:600 10px system-ui; padding:1px 5px; border:1px solid #cbd9cf; border-bottom-width:2px; border-radius:4px; background:#fff9; }
+@media (hover:hover) and (pointer:fine) { .keys { display:block; } }
+@media (max-width:420px) { .board { --gap-x:14px; --gap-y:26px; } .tools>span { display:none; } }
+.tube { border-radius:14px; }
+.tube:focus-visible { outline-offset:3px; }

@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:08 PM PT · Noel · Claude Code (Splash Sort subagent) · main
+- **What:** Splash Sort follows standard water-sort rules (games/watersort/RULES.md, with sources incl. Ito et al. FUN 2022). The game and the bots now share one rule: a finished tube is sealed (the bots used to allow pouring out of it; re-measured win rates are unchanged). Undo (3 per attempt). A stuck board offers undo before it ends. Illegal taps say why. Keyboard play (1–9/0/-, arrows, Esc, U/Cmd+Z, R). Same-color units draw as one liquid band, tubes are exact capacity height, rows are balanced (an 11-tube board fits 390 px). Pour animation (respects reduced motion). `generateSolvableLevel` keeps only solver-proven deals. Level JSON is unchanged.
+- **Why:** Noel: fix every game to its real rules.
+- **Files:** `games/watersort/**`, `site/games/watersort/**`
+- **State:** works; 14/14 game tests, 19/19 solver tests, typecheck clean, headless Chrome keyboard/touch/stuck/undo/win checked, deployed (from a copy that kept the committed /play, since the match-3 rebuild is in progress).
+- **Next / heads-up:** **Pinara:** please review undo and the stuck-board flow. Undo is a player assist, so bot win rates still measure play without it.
+
 ### 2026-11-07 7:02 PM PT · Noel · Claude Code · main
 - **What:** Console pop-ups (moments) are a compact notification in the top-right corner in a normal window. Full screen keeps the big projector banner.
 - **Why:** Noel: the notifications looked zoomed in and covered the team and feed.

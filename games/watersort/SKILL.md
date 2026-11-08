@@ -10,8 +10,11 @@ page explains it for an agent.
   **bottom to top**.
 - A pour takes the top run of one color from a tube and puts as much of it as fits onto another
   tube that is **empty** or whose **top color matches**.
+- A tube full of one color is finished and sealed. Nothing pours out of it.
 - The level is solved when every tube is empty or full of one color.
-- The player has `move_limit` pours. Running out is a loss.
+- The player has `move_limit` pours. Running out is a loss, and so is a board with no legal pour
+  left. Players get 3 undos and 3 hints, but bot win rates measure play without them.
+- Full rules and sources: `games/watersort/RULES.md`.
 
 ## Level JSON
 

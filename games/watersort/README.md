@@ -30,10 +30,11 @@ npm run build      # static site in dist/ (index.html, style.css, app.js)
 
 | File | What it is |
 |---|---|
+| `RULES.md` | The genre rules the game follows, with sources, and where we differ on purpose |
 | `src/engine.ts` | The rules, the level JSON Schema, and `validateLevel`. Pure, so Node and the browser share it. |
 | `src/solver.ts` | Breadth-first search, which gives the fewest pours. Validation bounds (up to 9 colors, up to 2 spare tubes) keep it under a second. |
 | `src/bots.ts` | `human`, the reference bot: one pour of lookahead and short memory, but it wastes about 3 pours in 10 on a random legal pour, as people do. Also `greedy` and `random`. All seeded. |
-| `src/levels.ts` | 4 practice levels and a seeded generator |
+| `src/levels.ts` | 4 practice levels, a seeded deal (`generateLevel`), and `generateSolvableLevel`, which keeps only deals the solver proves solvable |
 | `adapter/index.ts` | The platform adapter (`platform/CONTRACTS.md` §1) |
 | `ui/main.ts`, `public/` | The phone game |
 | `SKILL.md` | The Naïve skill for the Designer and Tuner |
@@ -84,7 +85,9 @@ of the 3 bots take about 0.3 s.
 
 - **Tubes are buttons with labels,** for example "Tube 2: red, blue from bottom to top, blue on
   top, 2 free". The Mobilerun agent can read them and tap them.
-- **`window.splashSort` hooks** for Playwright/CDP checks: `state()`, `pour(from, to)`, `restart()`,
-  and `autoplay()`.
+- **`window.splashSort` hooks** for Playwright/CDP checks: `state()` (now with `stuck` and
+  `undos_left`), `pour(from, to)`, `undo()`, `restart()`, and `autoplay()`.
+- **Keyboard on desktop:** 1 to 9 (0 for tube 10, - for tube 11), arrows, Esc, U to undo, and R to
+  restart. See `RULES.md`.
 - **Events:** only levels opened with `?level=<uuid>` send `attempt`, `win`, `loss`, and `quit`.
   Practice play is never reported.
