@@ -38,7 +38,8 @@ done
 [ -n "$URL" ] || { echo "The tunnel didn't start. See $LOG_DIR/tunnel.log" >&2; kill "$TUNNEL_PID"; exit 1; }
 
 # Permanent public addresses: levelai.vercel.app forwards the live pages to this tunnel, so links in
-# emails, posts, and QR codes keep working across restarts. Agent tools (/mcp) stay on the tunnel URL.
+# emails, posts, QR codes, and the agents' tool address (/mcp, stored once in Naïve's vault) keep
+# working across restarts.
 SITE="${SITE_URL:-https://levelai.vercel.app}"
 cat > "$ROOT/site/vercel.json" <<JSON
 {
@@ -47,7 +48,8 @@ cat > "$ROOT/site/vercel.json" <<JSON
     { "source": "/leads", "destination": "$URL/leads" },
     { "source": "/playtest", "destination": "$URL/playtest" },
     { "source": "/playtest-orders", "destination": "$URL/playtest-orders" },
-    { "source": "/webhooks/:path*", "destination": "$URL/webhooks/:path*" }
+    { "source": "/webhooks/:path*", "destination": "$URL/webhooks/:path*" },
+    { "source": "/mcp", "destination": "$URL/mcp" }
   ]
 }
 JSON
@@ -60,7 +62,7 @@ fi
 
 set_env PUBLIC_BASE_URL "$PUBLIC"
 set_env DEMO_JOIN_URL "$PUBLIC/join"
-set_env BUSINESS_MCP_URL "$URL/mcp"
+set_env BUSINESS_MCP_URL "$PUBLIC/mcp"
 if ! grep -q "^BUSINESS_MCP_TOKEN=." "$ROOT/.env"; then set_env BUSINESS_MCP_TOKEN "$(openssl rand -hex 24)"; fi
 
 caffeinate -dimsu -w $$ &
@@ -70,7 +72,7 @@ echo ""
 echo "  Signup page:  $PUBLIC/join"
 echo "  Playtests:    $PUBLIC/playtest"
 echo "  Tunnel:       $URL"
-echo "  Agent tools:  $URL/mcp"
+echo "  Agent tools:  $PUBLIC/mcp"
 echo "  Health:       $URL/health"
 echo ""
 echo "  Written to .env as DEMO_JOIN_URL, BUSINESS_MCP_URL, and PUBLIC_BASE_URL. Restart ./demo.sh to show the QR."

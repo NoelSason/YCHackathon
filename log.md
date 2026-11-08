@@ -20,6 +20,21 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:05 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Business MCP now has a permanent URL: `https://levelai.vercel.app/mcp`.** The site forwards it to the laptop's
+current tunnel, the same way it forwards `/join` and `/playtest`. `live.sh` writes it to `.env` as `BUSINESS_MCP_URL`.
+**Why:** Abhinav vaulted the tunnel URL at 16:20, but that URL changes on every restart, and it has restarted since. The
+agents were pointing at a dead address.
+**Files:** `business/live.sh`.
+**State:** Verified: through `levelai.vercel.app/mcp`, all 15 tools are listed with the bearer, and the server returns
+401 without it.
+**Next / heads-up:** **Abhinav:** one last time, run `ROTATE=1 npm run vault && npm run setup` with
+`BUSINESS_MCP_URL=https://levelai.vercel.app/mcp`. The bearer is unchanged (in `.env`). After this, restarts don't
+need a re-vault.
+
+---
+
 ### 2026-11-07 16:20 PT · Abhinav (Claude) · branch `main`
 
 **What:** **Naïve Team setup complete.** Both MCP bearers are in the vault (platform
