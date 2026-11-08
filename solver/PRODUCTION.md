@@ -142,3 +142,13 @@ QA intercepted only outgoing telemetry to avoid manufacturing player metrics. Th
 public pack API returned all 100 ordered levels; Gem Garden loaded its opening pack and finished.
 The site's laptop-tunnel API intermittently returned 502/530 during testing and later recovered;
 this availability limitation is separate from the level data, which is live in Neon.
+
+## Lot Escape (added Nov 7, 23:30)
+
+Lot Escape uses its own generator (`games/lotescape/src/generate.ts`) and difficulty ladder: the
+learning slots use notch 1, normal levels climb from notch 1 to 9 with depth, challenges are three
+notches harder and recoveries two easier. `move_limit` is the tuned allowance (ceiling: exact
+minimum + 40, under the schema's 300 cap), measured with the game's `human` bot. Titles are
+`Lot 0001` … and ids are the same deterministic `levelId(game, position, series)` as the other
+games, so the Lot Escape page walks the verified series in order (Lot n → Lot n+1).
+

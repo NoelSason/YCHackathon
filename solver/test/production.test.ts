@@ -10,8 +10,12 @@ import { generateOne } from "../src/production/runner.js";
 import { levelId, saveAccepted } from "../src/production/store.js";
 import { runLevel } from "../src/run.js";
 
-test("all 3,000 catalog recipes use current game schemas, deterministic seeds, and bounded progression", () => {
-  for (const game of GAMES) for (let i = 1; i <= 1000; i++) {
+// Lot Escape builds each lot by search (milliseconds to seconds), so its check samples the ladder:
+// the opening, the first challenge and recovery, and positions spread to the deepest notch.
+const LOT_SAMPLE = [1, 2, 3, 4, 5, 6, 10, 11, 25, 50, 100, 250, 500, 750, 990, 1000];
+
+test("catalog recipes use current game schemas, deterministic seeds, and bounded progression", () => {
+  for (const game of GAMES) for (const i of game === "lotescape" ? LOT_SAMPLE : Array.from({ length: 1000 }, (_, k) => k + 1)) {
     const r = recipe(game, i);
     assert.ok(r.target >= 0.3 && r.target <= 0.9);
     assert.deepEqual(getAdapter(game)!.validate(r.level), { ok: true }, `${game} ${i}`);
@@ -93,4 +97,20 @@ test("checkpoint ownership prevents duplicate writers and a torn tail can resume
     const releaseAgain = await lockOutput(file);
     await releaseAgain();
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test("lotescape production: tuned move_limit is above the exact minimum and accepted by an independent human replay", () => {
+  // Like a production job: some layouts' integer move_limit can't hit the target, so try the next.
+  let accepted: ReturnType<typeof calibrate> | undefined;
+  for (let attempt = 0; attempt < 8 && !accepted; attempt++) {
+    try { accepted = calibrate(recipe("lotescape", 12, attempt)); } catch { /* next layout */ }
+  }
+  assert.ok(accepted, "no lotescape layout accepted in 8 attempts");
+  const a = getAdapter("lotescape")!;
+  assert.equal(accepted.bot, "human");
+  assert.ok(accepted.min_moves !== null && (accepted.level as { move_limit: number }).move_limit >= accepted.min_moves);
+  const replay = runLevel(a, accepted.level, [accepted.bot], 200, accepted.evidence.first_seed);
+  assert.deepEqual(replay.results[accepted.bot], accepted.evidence);
+  assert.equal(fingerprint("lotescape", accepted.level), fingerprint("lotescape", { ...(accepted.level as object), move_limit: 300, title: "Other" }));
+  assert.match((accepted.level as { title: string }).title, /^Lot 0012$/);
 });

@@ -114,3 +114,21 @@ test("bots: search wins the authored lots, random is deterministic per seed", ()
   for (const level of LEVELS) assert.equal(adapter.simulate(level, "search", 1).won, true);
   assert.deepEqual(adapter.simulate(LEVELS[0]!, "random", 7), adapter.simulate(LEVELS[0]!, "random", 7));
 });
+
+test("human bot: deterministic per seed, never wins below the fewest moves, wins more as move_limit loosens", () => {
+  const level = LEVELS[0]!;
+  const min = adapter.solve!(level).min_moves!;
+  assert.deepEqual(adapter.simulate(level, "human", 11), adapter.simulate(level, "human", 11));
+  const rate = (extra: number) => {
+    let wins = 0;
+    for (let seed = 1; seed <= 200; seed++) wins += Number(adapter.simulate({ ...level, move_limit: min + extra }, "human", seed).won);
+    return wins / 200;
+  };
+  assert.equal(adapter.simulate({ ...level, move_limit: min - 1 }, "human", 3).won, false);
+  const rates = [0, 4, 8, 14, 24].map(rate);
+  for (let i = 1; i < rates.length; i++) assert.ok(rates[i]! >= rates[i - 1]!, `win rate should not fall as move_limit grows: ${rates.join(", ")}`);
+  assert.ok(rates[0]! < 0.2 && rates.at(-1)! > 0.95, `human bot should span hard to easy: ${rates.join(", ")}`);
+  // Every human move is a legal engine move, and a won game ends with the lot cleared.
+  const out = adapter.simulate({ ...level, move_limit: min + 24 }, "human", 5);
+  assert.ok(out.won && out.moves_used >= min && (out.moves_used - min) % 2 === 0);
+});

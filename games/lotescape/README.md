@@ -59,7 +59,7 @@ made.stopped; // "target" (landed in the notch's score band) | "budget" | "time"
 - `src/solver.ts`: exact shortest-move solver (a 0-1 breadth-first search over back-steps; see RULES.md).
 - `src/generate.ts`: seeded level generator and difficulty rating (stable API above).
 - `src/levels.ts`: the six built-in lots and their solver-proven best move counts.
-- `src/bots.ts`: deterministic random and solver-backed simulations.
+- `src/bots.ts`: seeded bots. `human` (the reference bot for tuning) follows a shortest solution but sometimes backs a car up one cell and undoes it (2 moves per mistake, more mistakes on crowded lots), so its win rate falls smoothly as `move_limit` tightens. `search` is the exact solver (always 0% or 100%), `random` slides random cars.
 - `adapter/index.ts`: platform schema, validate, solve, simulate, and URL.
 - `ui/worker.ts`, `ui/jobs.ts`: the Web Worker that builds endless lots and checks saved ones off the main thread.
 - `ui/main.ts`, `public/`: responsive playable game, endless switch and level indicator, with original SVG car art that fills each vehicle's cells, per-vehicle exit gates, and system fonts (no web-font download).
