@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import QRCode from "qrcode";
+import { timingSafeEqual } from "node:crypto";
 import { loadOutreach } from "./outreach.js";
 import { computeStats, type StageEvent } from "./events.ts";
 import { DEFAULT_ACTIVITY, DEFAULT_STEPINS, LiveFeed, ReplayFeed, SampleFeed, parseTables, type Feed, type HealthItem, type Pipeline } from "./feeds.ts";
@@ -145,8 +146,27 @@ function printHealth(items: HealthItem[]): void {
 
 const page = (): string => readFileSync(join(demoDir, "public", "index.html"), "utf8");
 
+/**
+ * Password for the public console. Set DEMO_PASSWORD and every request needs HTTP Basic auth (any
+ * username, that password). Unset = open, which is fine on localhost only.
+ */
+const password = env.DEMO_PASSWORD ?? "";
+function authorized(req: import("node:http").IncomingMessage): boolean {
+  if (!password) return true;
+  const m = /^Basic\s+(.+)$/i.exec(req.headers.authorization ?? "");
+  if (!m) return false;
+  const pass = Buffer.from(m[1]!, "base64").toString("utf8").split(":").slice(1).join(":");
+  const a = Buffer.from(pass), b = Buffer.from(password);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
+  if (!authorized(req)) {
+    res.writeHead(401, { "www-authenticate": 'Basic realm="Level AI console", charset="UTF-8"', "content-type": "text/plain" });
+    res.end("Level AI console: password required.");
+    return;
+  }
   try {
     switch (url.pathname) {
       case "/":

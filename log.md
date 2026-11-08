@@ -20,6 +20,27 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:15 PT · Noel (Claude Code) · branch `main`
+
+**What:**
+- **Public, password-protected console: https://levelai-console.vercel.app.** That's the demo stage (`./demo.sh`, port 4545)
+  plus `/outreach`. `demo/console.sh` opens a Cloudflare tunnel to 4545 and deploys a separate Vercel project
+  (`levelai-console`) that forwards everything to it. The demo server now requires HTTP Basic auth when `DEMO_PASSWORD`
+  is set (any username; the password is in `.env`). Because proxies can buffer the live stream, the page falls back to
+  checking `/api/state` every 4 s.
+- **Stripe wired (test mode):** account "Level AI" (`acct_1UZJ…`, charges not enabled until Noel finishes business
+  verification). Created a test webhook `we_1UZK9r…` → `https://levelai.vercel.app/webhooks/stripe`
+  (`checkout.session.completed`); its secret is in `.env`. `PLAYTEST_PRICE_USD=5`, so playtest orders now return a Stripe
+  checkout link (`buy.stripe.com/test_…`), and the paid webhook starts the playtest.
+**Files:** `demo/src/server.ts`, `demo/public/index.html`, `demo/console.sh`, `demo/console-site/`.
+**State:** Verified: the console returns 401 without the password and 200 with it, and the state, `/outreach`, and phone
+image all load through the public URL. `/offer` returns 5, and an order returned a test payment link. A test payment
+hasn't been completed end to end yet (it needs the 4242 test card in a browser).
+**Next / heads-up:** after `live.sh` or the console tunnel restarts, rerun `demo/console.sh`. For real revenue: finish
+Stripe verification, swap in the `sk_live_` key, create the live webhook, and set `BILLING_ALLOW_LIVE=1`.
+
+---
+
 ### 2026-11-07 17:00 PT · Noel (Claude Code) · branch `main`
 
 **What:** **Website: new pages in the main design, plus credibility.**

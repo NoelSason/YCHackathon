@@ -434,10 +434,29 @@ async function boot() {
   if (autoHealth) $("health").classList.add("show");
 
   const es = new EventSource("/api/stream");
+  // Fallback for the public console: some proxies buffer the live stream. If no message arrives
+  // within 6 s, poll the state every 4 s and add only events we haven't shown yet.
+  let streamAlive = false;
+  const shown = new Set((state.events || []).map((e) => e.id));
+  setTimeout(() => {
+    if (streamAlive) return;
+    setInterval(async () => {
+      try {
+        const s2 = await (await fetch("/api/state", { cache: "no-store" })).json();
+        const fresh = (s2.events || []).filter((e) => !shown.has(e.id));
+        for (const e of fresh) shown.add(e.id);
+        if (fresh.length) { addEvents(fresh, true); state.stats = s2.stats; renderStats(s2.stats); }
+        if (s2.clock) setClock(s2.clock);
+        state.pipeline = s2.pipeline; renderPipeline(s2.pipeline);
+      } catch {}
+    }, 4000);
+  }, 6000);
   es.onmessage = (msg) => {
+    streamAlive = true;
     const m = JSON.parse(msg.data);
     if (m.clock) setClock(m.clock);
     if (m.type === "events") {
+      for (const e of m.events || []) shown.add(e.id);
       state.stats = m.stats;
       if (autoHealth) { autoHealth = false; $("health").classList.remove("show"); }
       addEvents(m.events, true);
