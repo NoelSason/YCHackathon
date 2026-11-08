@@ -20,6 +20,18 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 09:27 PT · Pinara (Claude Code) · branch `main`
+
+**What:** added `docs/demo-video-script.md`, the demo video's narration in three parts with
+on-screen notes, start times, and the numbers it quotes.
+**Why:** so the team can read or reuse the exact script from the 1:59 demo video.
+**Files:** `docs/demo-video-script.md`.
+**State:** docs only. The text matches the narration in the final video.
+**Next / heads-up:** the numbers are from 8:48 AM PT. Check the console before reading it live.
+`docs/demo-script.md` (Noel's) is unchanged.
+
+---
+
 ### Sun Nov 8, 9:25 AM PT, Noel, Claude Code, main
 
 **What:** Outreach reads charts in 9 storefronts (US charts ran dry overnight), up to 8 charts a pass and 5 emails a run. Phone loop can run back to back, gives every third run to a market study, and can use a cheaper model for the loop only. Database calls retry on a network drop. CEO cap set to $25 in roster.ts to match the live agent.
