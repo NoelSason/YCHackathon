@@ -20,6 +20,58 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:50 PT · Pinara (Claude Code) · branch `main`
+
+**What:**
+- **Answer to Noel's 5:19 and 5:22 heads-ups, checked in Neon at 17:35.**
+  - A worker *was* running: `pinara-laptop`, started 3:59 PM. All 4 solver runs are `done`.
+    The 3 runs queued from 2:52 to 3:25 PM finished at 3:57 PM, and the 5:27 PM run finished in
+    0.5 s.
+  - **The real bug:** that worker loaded the adapter registry before match3 was added (4:29 PM),
+    so it knows only `stub`. Any match3 solve would have failed with "no adapter", and the Tuner
+    would then have rejected a good level.
+  - **The levels "stuck in solving"** are 4 `stub` levels with notes `smoke`, made by
+    `platform/mcp/src/smoke.ts`, which calls `solve_level` and never accepts or rejects. They
+    aren't Designer output. **No Designer session has saved a level yet**, which is why match3 has
+    0 levels.
+  - I left the 4 rows as they are. Rejecting them would add 4 to `levels_rejected` in
+    `get_company_metrics`.
+- **Worker fix:**
+  - It claims only runs for games in its registry. Runs for other games stay queued instead of
+    failing.
+  - It logs `queued_for_unknown_games` with a "git pull, then restart" hint.
+  - Every 30 s it writes a heartbeat to `settings` under `solver_worker:<WORKER_ID>`:
+    `{ worker, games, started_at, at, stopped? }`. That's a new key; the schema is unchanged.
+- **`solver_queue` check** (Pinara's) now reads the heartbeat. It fails when queued runs are for
+  a game no live worker knows, or (after switch-on) when no worker has written in 3 minutes.
+- **Also included, at its request:** the runner from Pinara's other session. `runLevelSmart`
+  plays slow games across worker threads under a per-run time budget (`SOLVER_THREADS`,
+  `SOLVER_MAX_SECONDS`), and adds the result fields `budget_hit` and `runs_requested`. Match3
+  takes about 70 s for 2 bots × 200 games on one thread, so it needs this.
+
+**Why:** Match-3 levels couldn't make it through tuning with a stale worker, and nobody could tell
+from outside whether a worker was alive or which games it knew.
+**Files:** `solver/src/{queue,worker,run,sim-worker}.ts`, `solver/test/{queue,smart}.test.ts`,
+`solver/README.md`, `solver/.env.example`, `platform/checks/src/checks/02-solver-queue.ts`.
+**State:**
+- Works locally: solver tests 19/19, and the solver and checks typechecks are clean.
+- The new check, run read-only on Neon, reports "no live worker heartbeat". That's correct,
+  because the old worker predates the heartbeat.
+- **Not verified end to end:** no match3 level exists yet to solve.
+
+**Next / heads-up:**
+- **Pinara:**
+  1. Ctrl-C the old worker in its terminal.
+  2. `git pull`, then `cd solver && caffeinate -i npm run worker`.
+  3. Confirm that the started line lists `match3, platformer, racer, stub, watersort`. Within 30 s
+     the check should show the worker.
+- **Abhinav:**
+  - (a) `smoke.ts` should `reject_level` its stub level, or the metrics should skip
+    `game_id = 'stub'`.
+  - (b) Match3 levels need one design → tune pass, either through the CEO or by starting the
+    Designer directly. This clone has no `NAIVE_API_KEY`, so Pinara can't start it from here.
+- **Noel:** `/play` stays empty until a match3 level is accepted and published.
+
 ### 2026-11-07 5:40 PM PT · Noel · Claude Code · main
 - **What:** Console (levelai-console.vercel.app) was down: its tunnel process had died, most likely at the same moment as the business tunnel around 5:30. Restarted with `demo/console.sh`. `demo/keepalive.sh` now also checks the public console every 10 s, and after 3 failures it reruns `console.sh` (new tunnel, console site redeployed).
 - **Why:** Noel: "the console is not working."

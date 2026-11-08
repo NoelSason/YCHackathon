@@ -6,7 +6,7 @@ import { beforeEach, test } from "node:test";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { getAdapter } from "../../platform/mcp/src/adapters.js";
-import { claimNext, failStale, processNext, type Query } from "../src/queue.js";
+import { claimNext, failStale, processNext, unplayableQueued, writeHeartbeat, type Query } from "../src/queue.js";
 
 const schema = await readFile(new URL("../../platform/db/schema.sql", import.meta.url), "utf8");
 
@@ -101,4 +101,37 @@ test("a run left 'running' too long is failed once, with a readable reason", asy
   assert.equal(row!.status, "failed");
   assert.match(String(row!.error), /harness stopped before finishing \(claimed by crashed\)/);
   assert.deepEqual(await failStale(q, 15), []);
+});
+
+test("a worker given its games leaves other games' runs queued instead of failing them", async () => {
+  await q(`insert into games(game_id, name) values ('newgame', 'Added after the worker started')`);
+  const [lvl] = await q(
+    `insert into levels(game_id, level, target_win_rate) values ('newgame', '{}', 0.4) returning level_id`,
+  );
+  const [newRun] = await q(`insert into solver_runs(level_id, bots) values ($1, '["random"]') returning run_id`, [
+    lvl!.level_id,
+  ]);
+  const stubRun = await queueStubRun({ width: 5, height: 5, moves: 10 }, ["random"], 20);
+
+  // The newgame run is older, but this worker only knows stub: it takes the stub run.
+  const out = await processNext(q, "old-worker", getAdapter, { games: ["stub"] });
+  assert.equal(out.kind, "done");
+  assert.equal((out as { run_id: string }).run_id, stubRun);
+  assert.deepEqual(await processNext(q, "old-worker", getAdapter, { games: ["stub"] }), { kind: "idle" });
+  const [row] = await q(`select status, claimed_by, error from solver_runs where run_id = $1`, [newRun!.run_id]);
+  assert.deepEqual({ ...row }, { status: "queued", claimed_by: null, error: null });
+  assert.deepEqual(await unplayableQueued(q, ["stub"]), { newgame: 1 });
+  assert.deepEqual(await unplayableQueued(q, ["stub", "newgame"]), {});
+});
+
+test("the heartbeat is one settings row per worker, updated in place", async () => {
+  const hb = { worker: "w1", games: ["match3", "stub"], started_at: "2026-11-07T23:00:00.000Z", at: "2026-11-07T23:00:00.000Z" };
+  await writeHeartbeat(q, hb);
+  await writeHeartbeat(q, { ...hb, at: "2026-11-07T23:00:30.000Z" });
+  const rows = await q(`select key, value from settings where key like 'solver_worker:%'`);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0]!.key, "solver_worker:w1");
+  assert.deepEqual(rows[0]!.value, { ...hb, at: "2026-11-07T23:00:30.000Z" });
+  const [kill] = await q(`select value from settings where key = 'kill_switch'`);
+  assert.equal(kill!.value, false); // other settings untouched
 });

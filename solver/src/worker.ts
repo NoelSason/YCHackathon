@@ -4,8 +4,8 @@
 import os from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 import pg from "pg";
-import { getAdapter } from "../../platform/mcp/src/adapters.js";
-import { failStale, processNext, type Query } from "./queue.js";
+import { getAdapter, listAdapters } from "../../platform/mcp/src/adapters.js";
+import { failStale, processNext, unplayableQueued, writeHeartbeat, type Query } from "./queue.js";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -24,7 +24,16 @@ const q: Query = async (text, params = []) => (await pool.query(text, params)).r
 const workerId = process.env.WORKER_ID ?? `${os.hostname()}:${process.pid}`;
 const pollMs = Number(process.env.POLL_MS ?? 1000);
 const staleMinutes = Number(process.env.STALE_MINUTES ?? 15);
+// Slow games are played across threads, and each run stops at a time budget (see run.ts).
+const threads = Number(process.env.SOLVER_THREADS ?? Math.max(1, os.availableParallelism() - 2));
+const maxSeconds = Number(process.env.SOLVER_MAX_SECONDS ?? 240);
 const once = process.argv.includes("--once");
+// The games this worker can play: the adapter registry as it was when the worker started. A game
+// added later needs a pull and a restart; until then its runs stay queued (see claimNext) and the
+// heartbeat and log below say which game is waiting.
+const games = listAdapters().map((a) => a.game_id).sort();
+const startedAt = new Date().toISOString();
+const HEARTBEAT_MS = 30_000;
 
 let stopping = false;
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
@@ -36,8 +45,10 @@ for (const sig of ["SIGINT", "SIGTERM"] as const) {
 
 const log = (o: Record<string, unknown>) => console.log(JSON.stringify({ ts: new Date().toISOString(), worker: workerId, ...o }));
 
-log({ event: "started", once, poll_ms: pollMs, stale_minutes: staleMinutes });
+log({ event: "started", once, games, poll_ms: pollMs, stale_minutes: staleMinutes, threads, max_seconds: maxSeconds });
 let lastStaleCheck = 0;
+let lastHeartbeat = 0;
+let lastUnplayable = "";
 let errorsInARow = 0;
 
 while (!stopping) {
@@ -46,8 +57,18 @@ while (!stopping) {
       const stale = await failStale(q, staleMinutes);
       if (stale.length) log({ event: "stale_runs_failed", run_ids: stale });
       lastStaleCheck = Date.now();
+      const waiting = await unplayableQueued(q, games);
+      const key = JSON.stringify(waiting);
+      if (Object.keys(waiting).length && key !== lastUnplayable) {
+        log({ event: "queued_for_unknown_games", waiting, games, hint: "git pull, then restart the worker" });
+      }
+      lastUnplayable = key;
     }
-    const out = await processNext(q, workerId, getAdapter);
+    if (!once && Date.now() - lastHeartbeat > HEARTBEAT_MS) {
+      await writeHeartbeat(q, { worker: workerId, games, started_at: startedAt, at: new Date().toISOString() });
+      lastHeartbeat = Date.now();
+    }
+    const out = await processNext(q, workerId, getAdapter, { threads, maxSeconds, games });
     errorsInARow = 0;
     if (out.kind === "idle") {
       if (once) break;
@@ -64,5 +85,9 @@ while (!stopping) {
   }
 }
 
+if (!once) {
+  await writeHeartbeat(q, { worker: workerId, games, started_at: startedAt, at: new Date().toISOString(), stopped: true })
+    .catch(() => undefined); // best effort: a stale heartbeat reads as stopped anyway
+}
 await pool.end();
 log({ event: "stopped" });

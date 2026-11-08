@@ -4,7 +4,7 @@
 // error ('failed'). The Tuner polls get_solver_run. Levels are never changed here: the Tuner
 // accepts or rejects them.
 import type { Adapter } from "../../platform/mcp/src/adapters.js";
-import { firstSeedFor, runLevel, summarize } from "./run.js";
+import { firstSeedFor, runLevelSmart, summarize } from "./run.js";
 
 export type Row = Record<string, unknown>;
 export type Query = (text: string, params?: unknown[]) => Promise<Row[]>;
@@ -27,19 +27,26 @@ export type Outcome =
 
 const asJson = (v: unknown): unknown => (typeof v === "string" ? JSON.parse(v) : v);
 
-/** Atomically claim the oldest queued run. Safe with several workers (SKIP LOCKED). */
-export async function claimNext(q: Query, workerId: string): Promise<ClaimedRun | null> {
+/**
+ * Atomically claim the oldest queued run. Safe with several workers (SKIP LOCKED).
+ * With `games`, only runs for those games are claimed: a worker started before a game's adapter
+ * was added leaves that game's runs queued for an up-to-date worker, instead of failing them
+ * (a failed run makes the Tuner reject a level that was fine).
+ */
+export async function claimNext(q: Query, workerId: string, games?: string[]): Promise<ClaimedRun | null> {
   const run = (
     await q(
       `update solver_runs
           set status = 'running', claimed_by = $1, started_at = now()
-        where run_id = (select run_id from solver_runs
-                         where status = 'queued'
-                         order by created_at
-                         for update skip locked
+        where run_id = (select r.run_id from solver_runs r
+                          join levels l on l.level_id = r.level_id
+                         where r.status = 'queued'
+                           and ($2::text[] is null or l.game_id = any($2::text[]))
+                         order by r.created_at
+                         for update of r skip locked
                          limit 1)
         returning run_id, level_id, bots, runs_per_bot`,
-      [workerId],
+      [workerId, games ?? null],
     )
   )[0];
   if (!run) return null;
@@ -63,17 +70,29 @@ async function logActivity(q: Query, action: string, result: string, runId: stri
   );
 }
 
+export interface ProcessOptions {
+  maxSeconds?: number; // time budget per run (default 240 s, well under the 15-minute stale rule)
+  threads?: number;    // worker threads for slow games (default 1)
+  games?: string[];    // claim only runs for these games (the worker passes its adapter registry)
+}
+
 /** Claim one run and finish it. Returns what happened; never throws for a bad run. */
-export async function processNext(q: Query, workerId: string, getAdapter: GetAdapter): Promise<Outcome> {
-  const run = await claimNext(q, workerId);
+export async function processNext(q: Query, workerId: string, getAdapter: GetAdapter, opts: ProcessOptions = {}): Promise<Outcome> {
+  const run = await claimNext(q, workerId, opts.games);
   if (!run) return { kind: "idle" };
   const t0 = Date.now();
 
   let error: string;
   try {
     const adapter = getAdapter(run.game_id);
-    if (!adapter) throw new Error(`no adapter for game ${run.game_id || "(unknown)"}`);
-    const out = runLevel(adapter, run.level, run.bots, run.runs_per_bot, firstSeedFor(run.run_id));
+    if (!adapter) {
+      throw new Error(`no adapter for game ${run.game_id || "(unknown)"} in this worker; pull and restart the worker`);
+    }
+    const out = await runLevelSmart(adapter, run.level, run.bots, run.runs_per_bot, firstSeedFor(run.run_id), {
+      gameId: run.game_id,
+      maxSeconds: opts.maxSeconds,
+      threads: opts.threads,
+    });
     const done = await q(
       `update solver_runs
           set status = 'done', results = $3, solvable = $4, min_moves = $5, error = null, finished_at = now()
@@ -116,4 +135,35 @@ export async function failStale(q: Query, minutes: number): Promise<string[]> {
   const ids = rows.map((r) => String(r.run_id));
   for (const id of ids) await logActivity(q, "solver_run.failed", "harness stopped before finishing", id);
   return ids;
+}
+
+export interface Heartbeat {
+  worker: string;
+  games: string[];     // the game ids this worker can play (its adapter registry at start)
+  started_at: string;
+  at: string;          // last write; readers treat a worker as gone when this is old
+  stopped?: true;      // written on a clean stop
+}
+
+/**
+ * Writes this worker's heartbeat to settings under 'solver_worker:<worker id>', so the readiness
+ * check and teammates can see that a worker is alive and which games it knows. Only this key.
+ */
+export async function writeHeartbeat(q: Query, hb: Heartbeat): Promise<void> {
+  await q(
+    `insert into settings(key, value) values ($1, $2)
+     on conflict (key) do update set value = excluded.value`,
+    [`solver_worker:${hb.worker}`, JSON.stringify(hb)],
+  );
+}
+
+/** Queued runs for games none of `games` covers, per game. The worker warns about these. */
+export async function unplayableQueued(q: Query, games: string[]): Promise<Record<string, number>> {
+  const rows = await q(
+    `select l.game_id, count(*)::int as n from solver_runs r join levels l on l.level_id = r.level_id
+      where r.status = 'queued' and not (l.game_id = any($1::text[]))
+      group by l.game_id order by l.game_id`,
+    [games],
+  );
+  return Object.fromEntries(rows.map((r) => [String(r.game_id), Number(r.n)]));
 }
