@@ -5,5 +5,7 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src"]
+  "include": ["src"],
+  // These import the games and the solver (outside src/), so they run only from source (tsx).
+  "exclude": ["src/levels/pack-maker.ts", "src/levels/pack-worker.ts"]
 }

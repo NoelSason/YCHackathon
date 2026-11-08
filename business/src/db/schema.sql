@@ -93,3 +93,37 @@ create table if not exists biz_subscriptions (
   started_at   timestamptz not null default now(),
   cancelled_at timestamptz
 );
+
+-- Level packs owed after a payment (or a demo run), made and emailed by levels/deliver-pack.ts.
+-- One row per delivery: a pack is one row; a month of the subscription is two (part 1 now, part 2
+-- two weeks later). payment_id is null only for demo runs. The curve (a target win rate per level)
+-- and the phone study it came from are kept with the row; pack_id is set before the pack is saved,
+-- so a restart mid-save never makes a second pack.
+create table if not exists biz_pack_deliveries (
+  id               uuid primary key default gen_random_uuid(),
+  payment_id       uuid references payments (id),
+  part             int not null default 1,
+  studio_id        uuid references studios (studio_id),
+  plan             text not null check (plan in ('level_pack', 'subscription')),
+  game_id          text not null,
+  difficulty       text not null check (difficulty in ('easy', 'medium', 'hard')),
+  levels_owed      int not null,
+  studied_game     text,
+  game_url         text,
+  bundle_id        text,
+  test_order       boolean not null default false,
+  demo             boolean not null default false,
+  state            text not null default 'queued' check (state in ('queued', 'working', 'delivered', 'partial', 'failed')),
+  due_at           timestamptz not null default now(),
+  study            jsonb,
+  curve            jsonb,
+  pack_id          uuid,
+  levels_delivered int,
+  detail           text,
+  email_message_id text,
+  created_at       timestamptz not null default now(),
+  started_at       timestamptz,
+  finished_at      timestamptz
+);
+create unique index if not exists biz_pack_deliveries_payment_part on biz_pack_deliveries (payment_id, part) where payment_id is not null;
+create index if not exists biz_pack_deliveries_queue on biz_pack_deliveries (state, due_at);

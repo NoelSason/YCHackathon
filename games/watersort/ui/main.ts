@@ -1,5 +1,6 @@
 // Splash Sort in the browser. Uses the same rules module as the solver and the bots.
 //   ?level=<id>   play a level saved on the platform (sends player events)
+//   ?pack=<id>    play a published pack in order, from the site's /api/packs/<id> (&n=<k> starts at level k)
 //   ?sample=<n>   play a built-in practice level (no events)
 //   ?data=<b64>   play a level given inline as base64url JSON (no events)
 //   ?autoplay=1   pour the solver's shortest solution by itself (for phone playtests and demos)
@@ -58,6 +59,8 @@ interface Game {
 }
 
 let game: Game;
+/** Set when playing a pack (?pack=): its levels in order and which one is on screen (1-based). */
+let pack: { levels: Array<{ level_id: string; level: unknown }>; n: number } | null = null;
 let colorLabels = false;
 try { colorLabels = localStorage.getItem("splash-sort-color-labels") === "true"; } catch { /* Storage can be unavailable in private browsers. */ }
 
@@ -116,6 +119,7 @@ function leaveAttempt(beacon = false): void {
 }
 
 function restart(): void {
+  if (pack) return startPackLevel(pack.n);
   leaveAttempt();
   start(game.level, game.levelId, game.sample);
 }
@@ -217,8 +221,10 @@ function finish(status: "won" | "lost", title?: string, text?: string): void {
     el("ov-title").textContent = "Sorted!";
     el("ov-text").textContent = `${game.moves} pours · ${secs}s`;
     el("ov-stars").innerHTML = [1, 2, 3].map((n) => `<span class="${n <= stars ? "" : "off"}">★</span>`).join("");
+    const nextInPack = pack && pack.n < pack.levels.length ? pack.n + 1 : null;
     const next = game.sample !== null && game.sample < SAMPLES.length ? game.sample + 1 : null;
-    setButton(next ? "Next level" : "Play again", () => (next ? startSample(next) : restart()));
+    if (nextInPack) setButton("Next level", () => startPackLevel(nextInPack));
+    else setButton(next ? "Next level" : "Play again", () => (next ? startSample(next) : restart()));
   } else {
     el("ov-title").textContent = title ?? "Try again";
     el("ov-text").textContent = text ?? "";
@@ -437,6 +443,26 @@ async function fetchLevel(id: string): Promise<Level> {
   return checked(body.level ?? body);
 }
 
+async function fetchPack(id: string): Promise<NonNullable<typeof pack>["levels"]> {
+  // Packs come from the site's public API (same origin as this page), not the platform URL.
+  const base = (params.get("packapi") ?? `${location.origin}/api`).replace(/\/+$/, "");
+  const res = await fetch(`${base}/packs/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error(`the site answered ${res.status}`);
+  const body = (await res.json()) as { game_id?: string; levels?: Array<{ level_id: string; level: unknown }> };
+  if (body.game_id && body.game_id !== GAME_ID) throw new Error(`that pack belongs to ${body.game_id}`);
+  if (!body.levels?.length) throw new Error("the pack has no levels");
+  return body.levels;
+}
+
+function startPackLevel(n: number): void {
+  if (!pack) return;
+  leaveAttempt();
+  pack.n = Math.max(1, Math.min(pack.levels.length, n));
+  const l = pack.levels[pack.n - 1]!;
+  start(checked(l.level), UUID_RE.test(l.level_id) ? l.level_id : null, null);
+  el("title").textContent = `${game.level.title ?? "Level"} · ${pack.n} of ${pack.levels.length}`;
+}
+
 let autoTimer: number | undefined;
 
 /** Pour the solver's shortest solution, one pour at a time, so a phone or a screen can show it. */
@@ -540,8 +566,18 @@ async function boot(): Promise<void> {
   });
   const id = params.get("level");
   const data = params.get("data");
+  const packId = params.get("pack");
   let loaded = false;
-  if (id) {
+  if (packId) {
+    try {
+      pack = { levels: await fetchPack(packId), n: 1 };
+      startPackLevel(Number(params.get("n") ?? 1) || 1);
+      loaded = true;
+    } catch (e) {
+      pack = null;
+      notice(`Couldn't load that level pack (${e instanceof Error ? e.message : String(e)}). Playing a practice level instead.`);
+    }
+  } else if (id) {
     try {
       start(await fetchLevel(id), UUID_RE.test(id) ? id : null, null);
       loaded = true;

@@ -2,3 +2,4 @@
 node_modules/
 site/vercel.json
 .gstack/
+business/.scratch*

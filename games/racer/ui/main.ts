@@ -1,6 +1,7 @@
 // Turbo Lanes in the browser. The rules run in fixed ticks with the same step() the solver and the
 // bots use; the screen only interpolates between ticks so it scrolls smoothly.
 //   ?level=<id>   play a level saved on the platform (sends player events)
+//   ?pack=<id>    play a published pack in order, from the site's /api/packs/<id> (&n=<k> starts at level k)
 //   ?sample=<n>   play a built-in practice track (no events)
 //   ?data=<b64>   play a track given inline as base64url JSON (no events)
 //   ?autoplay=1   drive the solver's fastest run by itself (for phone playtests and demos)
@@ -44,6 +45,8 @@ interface Run {
 }
 
 let run: Run;
+/** Set when playing a pack (?pack=): its levels in order and which one is on screen (1-based). */
+let pack: { levels: Array<{ level_id: string; level: unknown }>; n: number } | null = null;
 let ROW = 40;  // px per row
 let LANE = 70; // px per lane (always ROW × GEOMETRY.laneAspect)
 const nodes = new Map<number, HTMLElement>();
@@ -196,7 +199,27 @@ function resume(): void {
 
 function restart(): void {
   if (run.status === "running") sendEvent("quit");
+  if (pack) return startPackLevel(pack.n);
   load(run.level, run.levelId, run.sample);
+}
+
+async function fetchPack(id: string): Promise<NonNullable<typeof pack>["levels"]> {
+  // Packs come from the site's public API (same origin as this page), not the platform URL.
+  const base = (params.get("packapi") ?? `${location.origin}/api`).replace(/\/+$/, "");
+  const res = await fetch(`${base}/packs/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error(`the site answered ${res.status}`);
+  const body = (await res.json()) as { game_id?: string; levels?: Array<{ level_id: string; level: unknown }> };
+  if (body.game_id && body.game_id !== GAME_ID) throw new Error(`that pack belongs to ${body.game_id}`);
+  if (!body.levels?.length) throw new Error("the pack has no levels");
+  return body.levels;
+}
+
+function startPackLevel(n: number): void {
+  if (!pack) return;
+  pack.n = Math.max(1, Math.min(pack.levels.length, n));
+  const l = pack.levels[pack.n - 1]!;
+  load(checked(l.level), UUID_RE.test(l.level_id) ? l.level_id : null, null);
+  el("track-title").textContent = `${run.level.title ?? "Track"} · ${pack.n} of ${pack.levels.length}`;
 }
 
 function steer(dir: Action): void {
@@ -247,7 +270,12 @@ function end(won: boolean): void {
   hud();
   const secs = (run.state.tick / run.level.speed).toFixed(1);
   const next = run.sample !== null && run.sample < SAMPLES.length ? run.sample + 1 : null;
-  if (won) {
+  const nextInPack = pack && pack.n < pack.levels.length ? pack.n + 1 : null;
+  if (won && nextInPack) {
+    const stars = run.crashes === 0 ? 3 : run.crashes <= 2 ? 2 : 1;
+    const starsHtml = [1, 2, 3].map((n) => `<span class="${n <= stars ? "" : "off"}">★</span>`).join("");
+    showOverlay("Finished!", `${secs}s · ${run.coins} coins · ${run.crashes} crash${run.crashes === 1 ? "" : "es"}`, starsHtml, "Next track", () => startPackLevel(nextInPack));
+  } else if (won) {
     const stars = run.crashes === 0 ? 3 : run.crashes <= 2 ? 2 : 1;
     const starsHtml = [1, 2, 3].map((n) => `<span class="${n <= stars ? "" : "off"}">★</span>`).join("");
     showOverlay("Finished!", `${secs}s · ${run.coins} coins · ${run.crashes} crash${run.crashes === 1 ? "" : "es"}`, starsHtml,
@@ -469,8 +497,18 @@ async function boot(): Promise<void> {
   document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
   const id = params.get("level");
   const data = params.get("data");
+  const packId = params.get("pack");
   let loaded = false;
-  if (id) {
+  if (packId) {
+    try {
+      pack = { levels: await fetchPack(packId), n: 1 };
+      startPackLevel(Number(params.get("n") ?? 1) || 1);
+      loaded = true;
+    } catch (e) {
+      pack = null;
+      notice(`Couldn't load that level pack (${e instanceof Error ? e.message : String(e)}). Playing a practice track instead.`);
+    }
+  } else if (id) {
     try {
       load(await fetchLevel(id), UUID_RE.test(id) ? id : null, null);
       loaded = true;

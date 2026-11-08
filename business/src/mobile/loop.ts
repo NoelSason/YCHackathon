@@ -105,7 +105,7 @@ export const LoopResultSchema = z.object({
 export type LoopResult = z.infer<typeof LoopResultSchema>;
 
 export type LoopWork =
-  | { kind: "own"; name: string; url: string; levelId: string; targetWinRate: number | null }
+  | { kind: "own"; name: string; url: string; levelId: string; targetWinRate: number | null; genre?: string; howToPlay?: string }
   | { kind: "market"; name: string; url: string; game: MarketGame };
 
 export type CycleOutcome =
@@ -212,9 +212,9 @@ export function workToTask(work: LoopWork): string {
   const play =
     work.kind === "own"
       ? [
-          "Goal: playtest one match-3 level made by our level designer, as a first-time player would.",
+          `Goal: playtest one ${work.genre ?? "match-3"} level made by our level designer, as a first-time player would.`,
           open,
-          "How to play: swap two neighboring tiles to make a line of three or more of the same kind. The goals and the moves left are shown at the top.",
+          `How to play: ${work.howToPlay ?? "swap two neighboring tiles to make a line of three or more of the same kind. The goals and the moves left are shown at the top."}`,
           "Play until you win, run out of moves, or have made 15 moves. Count every move.",
         ]
       : [

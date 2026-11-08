@@ -12,7 +12,9 @@ import { levelsQuery, publicLevelRoutes, studioLevels } from "./levels/public.js
 import { joinPage } from "./leads/join-page.js";
 import { playtestPage } from "./leads/playtest-page.js";
 import { createPlaytestOrder, enqueue, runPlaytestOrder } from "./leads/playtest-offer.js";
-import { afterOrderPaid, createOrder } from "./leads/orders.js";
+import { afterOrderPaid, createOrder, queueLevelDelivery } from "./leads/orders.js";
+import { GENRES, packGameFor, packGameOpen } from "./levels/deliver-pack.js";
+import { PACK_GAME_IDS } from "./levels/pack-types.js";
 import { status as progressStatus, step as progressStep } from "./leads/progress.js";
 import { watchRoutes } from "./leads/watch.js";
 import { mobilerunClient } from "./mobile/playtest.js";
@@ -32,6 +34,7 @@ import type { PaymentRecord } from "./types.js";
  *   GET  /join                the QR signup page
  *   POST /leads               the table QR form; starts the live audit and welcome email
  *   POST /orders              a level pack or subscription order; answers with the checkout page to pay on
+ *   POST /orders/demo-run     a level pack for a team address, no payment, same delivery path (Bearer BUSINESS_MCP_TOKEN)
  *   GET  /health              which integrations are configured (booleans only)
  *   GET  /games, /levels, /levels/:id, /packs/:id, /levels-latest   public levels (levels/public.ts)
  *   GET  /studio/levels       a studio's levels (Bearer lvl_ developer key)
@@ -51,6 +54,7 @@ export function buildContext(config: Config): ToolContext {
     stripe: activeStripeKey(config) ? stripeClient(activeStripeKey(config)!, config.BILLING_ALLOW_LIVE === "1") : null,
     mobilerun: config.MOBILERUN_API_KEY ? mobilerunClient(config.MOBILERUN_API_KEY) : null,
     naive: config.NAIVE_API_KEY ? naiveClient(config.NAIVE_API_KEY, config.NAIVE_BASE_URL) : null,
+    db: levelsQuery(config.DATABASE_URL),
   };
 }
 
@@ -122,7 +126,7 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
 
   /** Renewals and cancellations: logged for the team, who deliver the month's levels or stop work. */
   async function afterSubscriptionEvent(
-    outcome: { kind: "renewal"; payment: PaymentRecord; subscriptionId: string } | { kind: "cancelled"; subscriptionId: string; leadId: string | null; livemode: boolean },
+    outcome: { kind: "renewal"; payment: PaymentRecord; subscriptionId: string; metadata?: Record<string, string> } | { kind: "cancelled"; subscriptionId: string; leadId: string | null; livemode: boolean },
   ): Promise<void> {
     const leadId = outcome.kind === "renewal" ? outcome.payment.leadId : outcome.leadId;
     const livemode = outcome.kind === "renewal" ? outcome.payment.livemode : outcome.livemode;
@@ -139,7 +143,15 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
     if (p.amountMinor !== Math.round(config.SUBSCRIPTION_PRICE_USD * 100)) {
       await log("payment amount differs from the set price: subscription", `expected ${config.SUBSCRIPTION_PRICE_USD.toFixed(2)} USD, got ${(p.amountMinor / 100).toFixed(2)} USD`, `recorded what was paid${mode}; left for a person`);
     }
-    await log(`delivery owed: level subscription for ${company} (this month)`, `${config.SUBSCRIPTION_LEVELS} levels and ${config.SUBSCRIPTION_PLAYTESTS} playtests`, `left for the team${mode}`);
+    // This month's levels: made and emailed automatically when we know the game type (two halves).
+    const meta = outcome.metadata ?? {};
+    const sub = await ctx.store.getSubscription(outcome.subscriptionId).catch(() => null);
+    const queued = await queueLevelDelivery(ctx, {
+      plan: "subscription", paymentId: p.id, leadId: p.leadId, company, gameId: packGameFor(meta.game_id),
+      difficulty: meta.difficulty || sub?.difficulty || null, gameUrl: meta.game_url || sub?.gameUrl || null, test: !p.livemode,
+    }).catch(() => false);
+    if (!queued) await log(`delivery owed: level subscription for ${company} (this month)`, `${config.SUBSCRIPTION_LEVELS} levels and ${config.SUBSCRIPTION_PLAYTESTS} playtests`, `left for the team${mode}`);
+    else await log(`playtests owed: level subscription for ${company} (this month)`, `${config.SUBSCRIPTION_PLAYTESTS} iPhone playtests, ordered by the customer at /playtest`, `waiting for the customer${mode}`);
   }
 
   async function route(request: Request): Promise<Response> {
@@ -240,6 +252,35 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       return json(result.ok ? 201 : 400, result.ok ? { ok: true, id: result.lead.id, payUrl: result.payUrl } : { ok: false, error: result.error });
     }
 
+    if (request.method === "POST" && url.pathname === "/orders/demo-run") {
+      // The stage trigger: the same delivery path as a paid pack, for a team address, with no payment.
+      if (!bearerOk(config.BUSINESS_MCP_TOKEN, request.headers.get("authorization"))) return json(401, { error: "unauthorized" });
+      const b = JSON.parse(await readBody(request)) as Record<string, unknown>;
+      const s = (k: string): string | null => (typeof b[k] === "string" && (b[k] as string).trim() ? (b[k] as string).trim().slice(0, 200) : null);
+      const email = s("email")?.toLowerCase() ?? null;
+      const team = config.TEAM_EMAILS.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+      if (!email || !team.includes(email)) return json(400, { ok: false, error: "email must be one of TEAM_EMAILS" });
+      const gameId = packGameFor(s("genre"));
+      if (!gameId || !packGameOpen(gameId)) return json(400, { ok: false, error: `genre must be one of: ${PACK_GAME_IDS.filter(packGameOpen).join(", ")}` });
+      if (!ctx.db) return json(503, { ok: false, error: "no database on this server" });
+      const game = s("game");
+      const company = s("company") ?? "Level AI demo studio";
+      const difficulty = s("difficulty") ?? "medium";
+      const lead = await ctx.store.upsertLead({
+        company, appId: s("bundleId"), contactName: s("name") ?? "Demo", email, source: "inbound_form", stage: "pilot_paid",
+        reason: `Demo run: a ${GENRES[gameId].label} level pack calibrated to ${game ?? "their game"} (no payment).`, sampleUrl: null, crmContactId: null,
+      });
+      await ctx.store.logActivity({
+        at: new Date().toISOString(), agent: "sales", action: `level pack ordered by ${company} (demo run)`,
+        why: `${game ?? "their game"} (${GENRES[gameId].label}, ${difficulty})`, result: "no payment: a team test order", costUsd: null, human: false,
+      });
+      await queueLevelDelivery(ctx, {
+        plan: "level_pack", paymentId: null, leadId: lead.id, company, gameId, difficulty, gameUrl: s("url"), test: true, demo: true,
+        studiedGame: game, bundleId: s("bundleId"),
+      });
+      return json(202, { ok: true, leadId: lead.id, status: "queued; watch the activity log" });
+    }
+
     if (request.method === "POST" && url.pathname === "/orders") {
       const result = await createOrder(ctx, JSON.parse(await readBody(request)));
       return json(result.ok ? 201 : 400, result.ok ? { ok: true, id: result.lead.id, payUrl: result.payUrl } : { ok: false, error: result.error });
@@ -311,6 +352,7 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
         subscriptionPriceUsd: config.SUBSCRIPTION_PRICE_USD,
         subscriptionLevels: config.SUBSCRIPTION_LEVELS,
         subscriptionPlaytests: config.SUBSCRIPTION_PLAYTESTS,
+        packGames: PACK_GAME_IDS.map((id) => ({ id, label: GENRES[id].label, open: packGameOpen(id) })),
         checkoutOpen: Boolean(ctx.stripe),
       });
     }

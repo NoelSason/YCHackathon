@@ -13,11 +13,15 @@ import { neonQuery, type Query } from "../store.js";
  *
  * Only levels the Tuner accepted (or the CEO published) are served, for any game in the platform's
  * games table except the internal `stub` test game. Drafts, rejected levels, notes, and which agent
- * made them stay private. The key-authenticated studio view (`studioLevels`) lives here too.
+ * made them stay private. Levels made for a customer's paid pack (created_by 'pack-delivery') open by
+ * id (/levels/:id, /packs/:id) but stay out of the public lists, so one studio's pack isn't our free set. The key-authenticated studio view (`studioLevels`) lives here too.
  */
 
 /** The one game the web player at /play runs. /levels-latest defaults to it. */
 export const PLAYABLE_GAMES = ["match3"] as const;
+/** Who made a customer's pack levels (levels/deliver-pack.ts); kept out of the public lists. */
+export const CUSTOMER_PACK_MAKER = "pack-delivery";
+const NOT_CUSTOMER = `created_by is distinct from '${CUSTOMER_PACK_MAKER}'`;
 /** In the games table for smoke tests only; never public. */
 const HIDDEN_GAMES = ["stub"];
 const PLAYABLE_STATUSES = ["accepted", "published"];
@@ -104,11 +108,11 @@ export async function getPublicLevel(q: Query, id: string): Promise<PublicLevel 
   return rows[0] ? toLevel(rows[0]) : null;
 }
 
-async function levelsById(q: Query, ids: string[], gameId: string): Promise<PublicLevel[]> {
+async function levelsById(q: Query, ids: string[], gameId: string, publicOnly = false): Promise<PublicLevel[]> {
   const valid = ids.filter((id) => UUID.test(id));
   if (!valid.length) return [];
   const rows = await q(
-    `select ${LEVEL_COLUMNS} from levels where level_id = any($1::uuid[]) and game_id = $2 and status = any($3::text[])`,
+    `select ${LEVEL_COLUMNS} from levels where level_id = any($1::uuid[]) and game_id = $2 and status = any($3::text[])${publicOnly ? ` and ${NOT_CUSTOMER}` : ""}`,
     [valid, gameId, PLAYABLE_STATUSES],
   );
   const byId = new Map(rows.map((r) => [String(r.level_id), toLevel(r)]));
@@ -147,13 +151,13 @@ export async function latestLevels(q: Query, gameId: string, limit = 10): Promis
     [gameId],
   );
   for (const p of packs) {
-    const levels = await levelsById(q, packIds(p.level_ids), gameId);
+    const levels = await levelsById(q, packIds(p.level_ids), gameId, true);
     if (levels.length) return { game_id: gameId, pack: { pack_id: String(p.pack_id), name: String(p.name) }, levels: levels.slice(0, n) };
   }
   const rows = await q(
     `select * from (
        select ${LEVEL_COLUMNS} from levels
-       where game_id = $1 and status = any($2::text[])
+       where game_id = $1 and status = any($2::text[]) and ${NOT_CUSTOMER}
        order by created_at desc limit $3
      ) newest order by measured_win_rate desc nulls last, created_at desc`,
     [gameId, PLAYABLE_STATUSES, n],
@@ -165,7 +169,7 @@ export async function latestLevels(q: Query, gameId: string, limit = 10): Promis
 export async function listGames(q: Query): Promise<PublicGame[]> {
   const rows = await q(
     `select g.game_id, g.name, count(l.level_id)::int as levels_available
-       from games g left join levels l on l.game_id = g.game_id and l.status = any($2::text[])
+       from games g left join levels l on l.game_id = g.game_id and l.status = any($2::text[]) and l.${NOT_CUSTOMER}
       where g.game_id <> all($1::text[])
       group by g.game_id, g.name order by g.game_id`,
     [HIDDEN_GAMES, PLAYABLE_STATUSES],
@@ -189,7 +193,7 @@ export async function listLevels(q: Query, opts: { gameId?: string | null; limit
   const n = Number.isFinite(raw) ? Math.max(1, Math.min(MAX_LIST_LIMIT, raw)) : 20;
   const rows = await q(
     `select ${LEVEL_COLUMNS} from levels
-      where status = any($1::text[]) and game_id <> all($2::text[])
+      where status = any($1::text[]) and game_id <> all($2::text[]) and ${NOT_CUSTOMER}
         and ($3::text is null or game_id = $3) and ($4::timestamptz is null or updated_at > $4)
       order by ${opts.since ? "updated_at asc" : "updated_at desc"}, level_id limit $5`,
     [PLAYABLE_STATUSES, HIDDEN_GAMES, opts.gameId ?? null, opts.since ?? null, n],

@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import type Stripe from "stripe";
 import type Mobilerun from "@mobilerun/sdk";
 import type { Config } from "../config.js";
-import type { Store } from "../store.js";
+import type { Query, Store } from "../store.js";
+import type { PackMaker } from "../levels/pack-types.js";
 import type { Lead, PipelineStage, Target } from "../types.js";
 import type { MonidRunner } from "../research/monid.js";
 import { buildTarget, findTargets } from "../research/targets.js";
@@ -28,6 +29,10 @@ export interface ToolContext {
   stripe: Stripe | null;
   mobilerun: Mobilerun | null;
   naive: NaiveClient | null;
+  /** The platform database for levels and packs (level pack delivery). Absent in most tests. */
+  db?: Query | null;
+  /** Makes a pack's levels. Defaults to a worker thread running levels/pack-maker.ts. */
+  packMaker?: PackMaker;
 }
 
 const targetsByApp = new Map<string, Target>();

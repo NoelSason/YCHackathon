@@ -28,6 +28,10 @@ const EnvSchema = z.object({
   SOCIAL_LOOP: z.enum(["0", "1"]).default("1"),
   SOCIAL_LOOP_MINUTES: z.coerce.number().int().positive().default(120),
   SOCIAL_DAILY_CAP: z.coerce.number().int().positive().default(4),
+  /** Pacific hours when the scheduled social loop doesn't post, e.g. "3-14" (3 AM to 2 PM). On-demand posts still go. */
+  SOCIAL_QUIET_HOURS: z.string().default(""),
+  /** Extra posts per network per rolling 24 h that only POST /social/post-now may use (kept for the demo). */
+  SOCIAL_DEMO_RESERVE: z.coerce.number().int().min(0).default(2),
 
   // Monid (CLI reads its own configured key; this is only checked for presence)
   MONID_API_KEY: z.string().optional(),

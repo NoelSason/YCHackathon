@@ -63,7 +63,7 @@ function setup(opts: { stripe?: Stripe | null; key?: string } = {}) {
   return { ctx, store, sent, calls: fake.calls, handle: createHandler(ctx.config, ctx, null) };
 }
 
-const ORDER = { name: "Ada Lovelace", email: "ada@studio.example", company: "Ada Games", gameUrl: "https://ada.example/game", difficulty: "medium", consent: true };
+const ORDER = { name: "Ada Lovelace", email: "ada@studio.example", company: "Ada Games", gameUrl: "https://ada.example/game", difficulty: "medium", game: "watersort", consent: true };
 
 function webhook(event: object): Request {
   const payload = JSON.stringify(event);
@@ -115,14 +115,14 @@ describe("creating a checkout", () => {
     expect(calls.pricesCreate).toEqual([expect.objectContaining({ unit_amount: 4900, lookup_key: "levelai_level_pack_4900", currency: "usd" })]);
     expect(calls.pricesCreate[0]).not.toHaveProperty("recurring");
     const s = calls.sessions[0]!;
-    const metadata = { product: "pilot_pack", lead_id: r.lead.id, game_url: "https://ada.example/game", difficulty: "medium" };
+    const metadata = { product: "pilot_pack", lead_id: r.lead.id, game_url: "https://ada.example/game", difficulty: "medium", game_id: "watersort" };
     expect(s).toMatchObject({
       mode: "payment", line_items: [{ price: "price_1", quantity: 1 }], customer_email: "ada@studio.example", client_reference_id: r.lead.id,
       metadata, payment_intent_data: { metadata },
       success_url: "https://levelai.vercel.app/pricing?paid=pack&test=1", cancel_url: "https://levelai.vercel.app/pricing?plan=pack&cancelled=1#order",
     });
     expect((await store.getLead(r.lead.id))!.stage).toBe("pilot_offered");
-    expect(await actions(store)).toContainEqual("level pack ordered by Ada Games | https://ada.example/game (medium) | checkout opened at $49 (test mode)");
+    expect(await actions(store)).toContainEqual("level pack ordered by Ada Games | https://ada.example/game (water-sort, medium) | checkout opened at $49 (test mode)");
   });
 
   it("opens a subscription checkout on a monthly price, and reuses the price by lookup key instead of making one per order", async () => {

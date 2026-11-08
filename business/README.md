@@ -13,6 +13,7 @@ Naïve agents call. See `docs/master-plan.md` for where this fits.
 | CRM | Mirrors every lead into Naïve's CRM (`client.crm`) | `src/naive.ts` |
 | Billing | Stripe payment links and Checkout at the team's set price, and the webhook that records a payment once and queues delivery | `src/billing/stripe.ts` |
 | Level orders | The pricing page's order form: a level pack ($49, one-time) or the level subscription ($199 a month) through Checkout, then a confirmation email and a "delivery owed" line with a due date. Renewals (`invoice.paid`) and cancellations (`customer.subscription.deleted`) are recorded once. | `src/leads/orders.ts` |
+| Level pack delivery | A paid pack (or each half of a subscription month, or a demo run) delivers itself: the main phone studies the customer's game, that sets a 20-level difficulty curve, the levels are built one at a time in our engine for their genre and measured by the game's bots, then saved as a published pack, emailed with play and JSON links, and level 1 is played on the phone. See "Level pack delivery" below. | `src/levels/deliver-pack.ts`, `pack-maker.ts`, `pack-worker.ts` |
 | Finance | Revenue (real and test mode kept apart), spend by source, margin, cost per level. A source it can't read is reported as missing, never as zero. | `src/finance/snapshot.ts` |
 | Lead form | The QR code at our table: a signup becomes a lead | `src/leads/intake.ts` |
 | Phone playtests | Turns a plan into a Mobilerun Agent task with a structured result per level | `src/mobile/` |
@@ -20,6 +21,59 @@ Naïve agents call. See `docs/master-plan.md` for where this fits.
 | Agents | The business agents live in Abhinav's roster (`platform/naive/src/roster.ts`), which attaches this server's tools by name (`businessTools`). `src/agents/definitions.ts` is the earlier standalone version; `agents:apply` is disabled so it can't overwrite the roster. | `platform/naive/src/roster.ts` |
 | Server | One fetch handler for `/mcp`, `/webhooks/stripe`, `/webhooks/agentmail`, `/leads`, and `/health`. It runs on Node (`src/server.ts`) and as a Neon Function (`src/fn.ts`). | `src/app.ts` |
 | Smoke checks | The business rows of the demo-readiness table | `src/smoke/business.ts` |
+
+## Level pack delivery
+
+No person in the loop from payment to inbox. `afterOrderPaid` (`src/leads/orders.ts`) adds a row to
+`biz_pack_deliveries` (one per pack; a subscription month is two rows, 20 levels now and 20 two weeks
+later) and starts the queue. The queue runs one delivery at a time:
+
+1. **Phone study.** Through the shared phone queue (`enqueue`, so it never collides with paid
+   playtests or the playtest loop), the main phone plays the customer's game: a known App Store app
+   by bundle id (`MARKET_GAMES`, e.g. Candy Crush Saga), or a web link. Logged as "studying <game> on
+   the iPhone to set the difficulty curve" and "<game>: gets harder after N moves; players get stuck
+   at …". No phone, or no playable link: the standard curve for the difficulty, said so in the log.
+2. **Curve.** `curveFor`: 85% at level 1, held for a plateau the study sets (moves before the ramp ÷ 2,
+   1 to 6 levels), then a straight line to the difficulty's end point (easy 55%, medium 40%, hard 28%;
+   5 points harder when the game ramped within 5 moves, 8 easier when it never did). A heuristic, and
+   the email says where it came from. Stored on the row as `curve`.
+3. **Build.** `pack-maker.ts` in a worker thread, slot by slot: the game's own generator (match-3 uses
+   our practice board shapes with a fresh seed; Splash Sort and Turbo Lanes use their generators; Lot
+   Escape uses `games/lotescape/src/generate.ts` notches), measured by the game's reference bot
+   through its platform adapter, the knob moved by the solver's `nextEase`, accepted by the solver's
+   `onTarget`. Match-3 tunes with 30-game looks and accepts on 100 games across worker threads. A
+   candidate that misses after 6 rounds is replaced. Each acceptance logs "level pack for <studio>:
+   level k of 20 accepted at X% (target Y%)".
+4. **Save.** One statement: the levels (`published`, `created_by = 'pack-delivery'`), one `solver_runs`
+   row each (replayable seeds), and the pack. Customer levels open by id but stay out of the public lists.
+5. **Email** (keyed to the row, so it sends once): the play link (`/play?pack=` or
+   `/games/<id>/?pack=`), the JSON link (`/api/packs/<id>`), and each level's target vs. measured.
+6. **Closing shot.** The main phone opens level 1 of the pack in our player and plays it ("playtested
+   level 1 of <studio>'s <genre> pack").
+
+Short of the full count within the caps (`PACK_MAX_MINUTES`, default 40; 6 candidates per slot), it
+delivers what passed, says so, and logs "step-in needed". On boot, rows a restart cut off go back in
+the queue; a pack already saved is only emailed, never remade. Every 10 minutes the queue picks up
+deliveries that came due (subscription second halves). The maker runs from source (tsx), as
+`live.sh` and `keepalive.sh` run the server; `npm run build` leaves it out.
+
+Measured on this laptop, Nov 7: 20 Splash Sort levels in about 4 s, 20 Turbo Lanes levels in about
+80 s, 20 match-3 levels in about 8 minutes (12 threads).
+
+### The stage trigger
+
+`POST /orders/demo-run` runs the exact same path as a paid pack, with no payment, for a team address
+(it's stored as an internal test, `demo = true`):
+
+```bash
+curl -X POST "$BUSINESS_BASE_URL/orders/demo-run" -H "authorization: Bearer $BUSINESS_MCP_TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"game":"Candy Crush Saga","bundleId":"com.midasplayer.apps.candycrushsaga","genre":"match3","email":"<a TEAM_EMAILS address>"}'
+```
+
+Optional fields: `url` (a web game to study instead of an app), `company`, `name`, `difficulty`
+(`easy`, `medium`, `hard`). `genre` is `match3`, `watersort`, `racer`, or `lotescape` (or "sort",
+"parking"…). It answers 202 at once; follow the activity log.
 
 ## Where the data goes
 

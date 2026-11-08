@@ -321,7 +321,7 @@
   <span class="tok-k">"error"</span><span class="tok-p">:</span> <span class="tok-s">"pack not found"</span>
 }</code></pre>
 </div>
-<p>Match-3 packs play at <code class="inline-code">https://levelai.vercel.app/play?pack={pack_id}</code>.</p>
+<p>Match-3 packs play at <code class="inline-code">https://levelai.vercel.app/play?pack={pack_id}</code>. Sort and racer packs play at <code class="inline-code">https://levelai.vercel.app/games/watersort/?pack={pack_id}</code> and <code class="inline-code">https://levelai.vercel.app/games/racer/?pack={pack_id}</code>. A level pack you order is a pack like this: its link and this JSON come in the delivery email, and each level&rsquo;s <code class="inline-code">target_win_rate</code> is its point on your pack&rsquo;s difficulty curve.</p>
 <h3 id="get-latest">Get the newest set</h3>
 <p class="docs-endpoint"><span class="docs-method get">GET</span><code>/api/levels-latest</code><span class="docs-auth">Auth: None</span></p>
 <p>What our web player shows: the newest published pack in its own order, or, before any pack exists, the newest accepted levels from easiest to hardest.</p>

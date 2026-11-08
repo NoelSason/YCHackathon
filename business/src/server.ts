@@ -7,6 +7,7 @@ import { runOutreachCycle } from "./outreach/autopilot.js";
 import { startSocialLoop } from "./marketing/loop.js";
 import { resumePaidOrders } from "./leads/playtest-offer.js";
 import { startPlaytestLoop } from "./mobile/loop.js";
+import { resumePackDeliveries, startPackDeliveryLoop } from "./levels/deliver-pack.js";
 
 /**
  * The business server on Node: `npm run webhooks` (dev) or `npm start` (built, `node dist/server.js`).
@@ -58,7 +59,10 @@ if (config.OUTREACH_AUTOPILOT === "1" && config.OUTREACH_SEND === "1") {
 // Paid playtests that a restart dropped from the in-memory queue go back in line.
 setTimeout(() => {
   void resumePaidOrders(ctx).then((n) => n && console.log(`resumed ${n} paid playtest(s)`)).catch(() => undefined);
+  // Level packs: deliveries a restart cut off go back in the queue; due ones run.
+  void resumePackDeliveries(ctx).then((n) => n && console.log(`resumed ${n} level pack(s)`)).catch(() => undefined);
 }, 15_000);
+startPackDeliveryLoop(ctx);
 
 if (config.SOCIAL_LOOP === "1" && config.NAIVE_API_KEY_SOCIAL && config.NAIVE_SOCIAL_IDENTITY_ID) {
   startSocialLoop(ctx, config.SOCIAL_LOOP_MINUTES);

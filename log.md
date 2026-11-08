@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 8:00 PM PT · Noel · Claude Code (checkpoint of running agents) · main
+- **What:** A checkpoint of in-progress work from the agents still running: level-pack delivery (`business/src/levels/{deliver-pack,pack-maker,pack-worker,pack-types}.ts`, wired into orders and the server), plus demo-hardening edits to billing/orders, the level API, the phone loop, developer docs, pricing, and the game players (pack/level URL support in Splash Sort and Turbo Lanes).
+- **Why:** Noel asked to push everything; it builds and the tests pass right now.
+- **Files:** `business/**`, `docs/developers.md`, `games/{racer,watersort}/ui/main.ts`, `site/{developers,pricing}.html`, `site/styles.css`, `.gitignore` (scratch files)
+- **State:** partly works; business typecheck clean and 186/186 tests pass, but the agents haven't finished or end-to-end tested these yet.
+- **Next / heads-up:** Final versions land as each agent reports. Don't rely on pack delivery until its entry says it was tested end to end.
+
 ### 2026-11-07 7:57 PM PT · Noel · Claude Code · main
 - **What:** Lot Escape auto-advances: 1.4 s after you clear a built-in lot, the next one loads; after the last built-in, endless mode turns on by itself. Rebuilt the hosted games (Lot Escape, plus Splash Sort and Turbo Lanes from their latest pushed source) and deployed.
 - **Why:** Noel: auto-advance Lot Escape when you finish a level.

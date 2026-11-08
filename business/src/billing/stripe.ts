@@ -134,7 +134,7 @@ export type WebhookOutcome =
   | { kind: "ignored"; type: string }
   | { kind: "duplicate"; eventId: string }
   | { kind: "paid"; payment: PaymentRecord; metadata: Record<string, string>; customerEmail: string | null; subscriptionId: string | null }
-  | { kind: "renewal"; payment: PaymentRecord; subscriptionId: string }
+  | { kind: "renewal"; payment: PaymentRecord; subscriptionId: string; metadata?: Record<string, string> }
   | { kind: "cancelled"; subscriptionId: string; leadId: string | null; livemode: boolean };
 
 const idOf = (v: string | { id: string } | null | undefined): string | null => (typeof v === "string" ? v : v?.id ?? null);
@@ -235,5 +235,5 @@ async function handleInvoicePaid(event: Stripe.InvoicePaidEvent, store: Store): 
   });
   if (!payment) return { kind: "duplicate", eventId: event.id };
   await store.addDelivery({ paymentId: payment.id, leadId, status: "pending", detail: "this month's subscription levels" });
-  return { kind: "renewal", payment, subscriptionId };
+  return { kind: "renewal", payment, subscriptionId, metadata: { ...(details?.metadata ?? {}) } };
 }

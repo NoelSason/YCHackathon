@@ -99,7 +99,9 @@ export function fitForX(content: string): string {
 export async function postedToday(store: Store, platform: SocialPlatform, now = new Date()): Promise<number> {
   const since = new Date(now.getTime() - 24 * 3600_000).toISOString();
   const rows: ActivityEntry[] = await store.listActivity(500);
-  return rows.filter((r) => r.agent === "marketing" && r.at >= since && r.action.startsWith("posted") && (r.result ?? "").includes(`[${platform}]`)).length;
+  // Only posts the network confirmed (or that the phone saw go out) count. An API post still
+  // "scheduled" or "processing" never showed up on X on Nov 7, so it doesn't use up the cap.
+  return rows.filter((r) => r.agent === "marketing" && r.at >= since && r.action.startsWith("posted") && (r.result ?? "").startsWith(`[${platform}] posted`)).length;
 }
 
 export async function publish(args: {
@@ -146,6 +148,16 @@ export async function publish(args: {
         await new Promise((r) => setTimeout(r, args.pollMs ?? 4000));
         const p = await getPost.call(args.naive.social, args.identityId, res.id).catch(() => null);
         if (p) { status = p.status; error = p.error ?? null; }
+      }
+      if (status !== "failed" && status !== "posted") {
+        // Accepted but never confirmed: say so instead of claiming it went out, and let the caller
+        // fall back (X: post from the phone; a duplicate there is refused by X itself).
+        skipped.push({ platform, reason: `not confirmed by the network (still ${status})` });
+        await args.store.logActivity({
+          at: new Date().toISOString(), agent: "marketing", action: `sent a post to ${platform}, not confirmed`,
+          why: `the network still says "${status}"`, result: `[${platform}] ${status} ${res.id}`, costUsd: null, human: false,
+        });
+        continue;
       }
       if (status === "failed") {
         skipped.push({ platform, reason: error ?? "the network rejected the post" });

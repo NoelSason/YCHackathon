@@ -1078,6 +1078,7 @@ p { margin: 0; }
 .choices.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .choices legend { padding: 0; margin-bottom: 6px; font-weight: 700; font-size: 15.5px; }
 .choice { position: relative; display: grid; cursor: pointer; }
+.choice[hidden] { display: none; }
 .choice input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
 .choice span {
   display: grid; gap: 2px; min-height: 52px; align-content: center; padding: 10px 14px;

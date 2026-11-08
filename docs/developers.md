@@ -240,7 +240,7 @@ Response 404 (live, Nov 7, 2026, 6:20 PM PT):
 }
 ```
 
-Match-3 packs play at `https://levelai.vercel.app/play?pack={pack_id}`.
+Match-3 packs play at `https://levelai.vercel.app/play?pack={pack_id}`. Sort and racer packs play at `https://levelai.vercel.app/games/watersort/?pack={pack_id}` and `https://levelai.vercel.app/games/racer/?pack={pack_id}` (add `&n={k}` to start at level k). A paid level pack you ordered is a pack like this: its link and this JSON come in the delivery email. Each level's `target_win_rate` is its point on your pack's difficulty curve.
 
 ### Get the newest set
 
@@ -658,6 +658,8 @@ Each level goes through four agents before this API serves it:
 3. **Tuner** compares the target with the win rate of the reference bot, the bot that plays most like a person. Within 5 points, it accepts the level. Otherwise it makes one small change, such as one more move, and tests again. After 4 rounds it rejects the level instead.
 4. **CEO** agent publishes accepted levels in packs and adjusts plans from how real players do.
 
+A level pack you order is made the same way, by a program instead of the Designer and Tuner agents: our iPhone first plays your game to see how quickly it gets harder; that and the difficulty you pick set a target win rate for each level (about 85% at level 1, ramping down); then each level is generated in our own game for your genre and played by the reference bot until it lands on its target (within 5 points, or 8 when the target is inside the measurement's 95% interval). Match-3 levels are measured over 100 games, the others over 200. Parking puzzles have one exact answer, so they're rated by the solver's fewest moves instead of a win rate. The levels are ours, in the formats above; we don't build inside your game.
+
 What the numbers mean, honestly:
 
 - `measured_win_rate` is how often our reference bot won, not real players. Bots are a stand-in for people. Real play can differ.
@@ -666,7 +668,7 @@ What the numbers mean, honestly:
 
 ## What's not here yet
 
-- **Levels for your own game.** Our agents make levels for our own games. Making levels in your game's format, linked to your account, isn't built yet. `/api/studio/levels` shows only samples we've sent you.
+- **Levels for your own game.** Our agents make levels for our own games, including the ones in a pack you order. Making levels in your game's own format, linked to your account, isn't built yet. `/api/studio/levels` shows only samples we've sent you. Levels made for a customer's pack open by id but aren't in the public lists.
 - **Webhooks.** Poll `/api/levels` with `since` instead.
 - **Writes.** The API is read-only. You can't upload levels or change a target.
 - **Real-player win rates.** The API returns the measured bot win rate, not live player results.

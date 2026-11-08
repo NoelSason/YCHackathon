@@ -82,9 +82,9 @@
           <h3 id="plan-pack">Level pack</h3>
           <p class="plan-price"><b data-price="pack">$49</b><span>one-time</span></p>
           <ul class="plan-list">
-            <li><span><span data-count="pack">20</span> new levels designed for your game</span></li>
-            <li>Each one tested by bot players and tuned to the difficulty you pick</li>
-            <li>Delivered within 48 hours</li>
+            <li><span><span data-count="pack">20</span> levels for your match-3, water-sort, lane-racer, or parking-puzzle game</span></li>
+            <li>Each one played by our bots to your chosen difficulty, on a curve set from how your game plays on our iPhone</li>
+            <li>Delivered as playable previews plus JSON in a <a class="text-link" href="/developers#formats">documented format</a>, within 48 hours</li>
           </ul>
           <a class="btn" href="/pricing?plan=pack#order" data-plan="level_pack">Buy a level pack</a>
         </article>
@@ -146,16 +146,24 @@
             <div class="field">
               <label for="gameUrl">Your game's link</label>
               <input id="gameUrl" name="gameUrl" type="url" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" required data-check="https" data-missing="Paste a link to your game." placeholder="https://apps.apple.com/… or https://yourgame.com" aria-describedby="gameUrl-hint gameUrl-err">
-              <p class="hint" id="gameUrl-hint">A store page or a web link, so we can match your game's style.</p>
+              <p class="hint" id="gameUrl-hint">A store page or a web link. Our iPhone plays it to see how its difficulty ramps.</p>
               <p class="field-error" id="gameUrl-err" hidden></p>
             </div>
+            <fieldset class="choices" aria-describedby="game-hint">
+              <legend>Your game type</legend>
+              <label class="choice" data-game="match3"><input type="radio" name="game" value="match3" checked><span><strong>Match-3</strong></span></label>
+              <label class="choice" data-game="watersort"><input type="radio" name="game" value="watersort"><span><strong>Water sort</strong></span></label>
+              <label class="choice" data-game="racer"><input type="radio" name="game" value="racer"><span><strong>Lane racer</strong></span></label>
+              <label class="choice" data-game="lotescape"><input type="radio" name="game" value="lotescape"><span><strong>Parking puzzle</strong></span></label>
+            </fieldset>
+            <p class="hint" id="game-hint">We make the levels in our own game of this type, in a documented JSON format you can adapt. We don't edit your game.</p>
             <fieldset class="choices three" aria-describedby="difficulty-hint">
               <legend>Target difficulty</legend>
               <label class="choice"><input type="radio" name="difficulty" value="easy"><span><strong>Easy</strong></span></label>
               <label class="choice"><input type="radio" name="difficulty" value="medium" checked><span><strong>Medium</strong></span></label>
               <label class="choice"><input type="radio" name="difficulty" value="hard"><span><strong>Hard</strong></span></label>
             </fieldset>
-            <p class="hint" id="difficulty-hint">We tune every level until it lands on this target. You can ask for a different mix later.</p>
+            <p class="hint" id="difficulty-hint">Levels start easy and ramp to this. Our bots play every level until it lands on its target. You can ask for a different mix later.</p>
             <div class="check-field">
               <label for="consent">
                 <input id="consent" name="consent" type="checkbox" required data-missing="Check this box so we can email you about your order." aria-describedby="consent-err">
@@ -277,6 +285,15 @@
       if (typeof v !== 'number' || !isFinite(v) || v <= 0) return;
       document.querySelectorAll('[data-count="' + k + '"]').forEach(function (el) { el.textContent = String(v); });
     });
+    // Hide game types we can't make packs for yet.
+    (o.packGames || []).forEach(function (g) {
+      if (g.open) return;
+      var el = form.querySelector('[data-game="' + g.id + '"]');
+      if (!el) return;
+      var input = el.querySelector('input');
+      if (input && input.checked) { var first = form.querySelector('input[name="game"][value="match3"]'); if (first) first.checked = true; }
+      el.hidden = true;
+    });
     label();
   }).catch(function () { /* keep the prices on the page */ });
   label();
@@ -285,7 +302,7 @@
     url: '/orders',
     sendingLabel: 'Opening checkout…',
     body: function (v) {
-      return { plan: checked('plan'), name: v.name, email: v.email, company: v.company, gameUrl: v.gameUrl, difficulty: checked('difficulty'), consent: true };
+      return { plan: checked('plan'), name: v.name, email: v.email, company: v.company, gameUrl: v.gameUrl, game: checked('game'), difficulty: checked('difficulty'), consent: true };
     },
     onSuccess: function (data) {
       if (data.payUrl) {
