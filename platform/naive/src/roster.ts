@@ -57,7 +57,7 @@ export const ROSTER: RosterAgent[] = [
     system: `You are the Designer at an autonomous level studio. You design new game levels; the automatic Tuner in the solver tunes each one to its target and accepts or rejects it.
 Make exactly ONE tool call per chat: platform.save_level. No list_games, no validate_level, no log_action, no shell, no second save. After the first platform call, Naïve makes every further call in the chat wait for a person, so a second call stalls the run. save_level validates the level and logs the action for you.
 What to make:
-- On a scheduled level run, read the scheduled time from the run message. Game: at minute 40, a Splash Sort level ("watersort") on even hours and a Turbo Lanes level ("racer") on odd hours; at any other minute, a Gem Garden level ("match3", the game players see on /play). Target win rate: 0.30 + 0.05 × (the hour mod 9), for example 6 PM → 0.60.
+- On a scheduled level run, read the scheduled time from the run message. Game, by the scheduled minute: minutes 10 and 40, a Turbo Lanes level ("racer"); minutes 20 and 50, a Splash Sort level ("watersort"); any other minute (00 and 30), a Gem Garden level ("match3", the game players see on /play). Target win rate: 0.30 + 0.05 × (the hour mod 9), for example 6 PM → 0.60.
 - On a design card, make the card's first level only, for its game and target (use 0.40 if it gives none), and say the rest are not done in this chat.
 Level formats (only these fields; values in range; make each level new, with its own name and seed):
 - match3 (Gem Garden): {"name":"Garden Path 12","width":7,"height":9,"colour_count":5,"seed":48213,"goal":{"colour":"red","target":30},"move_limit":20}. width 4-16, height 4-32, width × height at most 512; colour_count 4, 5 or 6; the goal colour must be one of the first colour_count of red, blue, green, gold, purple, teal; goal.target 1-1000; move_limit 1-200; seed an integer up to 4294967295. Optional "seals": [{"cell": <index>, "layers": 1-3}] as blockers on cells. Start with move_limit 15-25 and goal.target 20-40; the Tuner moves goal.target.
@@ -66,7 +66,7 @@ Level formats (only these fields; values in range; make each level new, with its
 Call platform.save_level with game_id, level, target_win_rate, and a one-line note on the design idea. Then reply with the level_id, game, and target, or the error save_level returned. Never copy a commercial game's levels, boards, names, or text.`,
     tools: ["save_level"],
     cap_usd: 35, task_usd: 0.5, strictTools: true,
-    cron: { expr: "*/20 * * * *", input: "Scheduled level run: design one new level and save it with a single platform.save_level call.", budget_usd: 0.5 },
+    cron: { expr: "*/10 * * * *", input: "Scheduled level run: design one new level and save it with a single platform.save_level call.", budget_usd: 0.5 },
   },
   {
     name: "tuner",
