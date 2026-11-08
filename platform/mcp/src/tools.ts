@@ -37,6 +37,7 @@ async function audit(action: string, ref?: { kind: string; id: string }, result?
 // agents (CEO, Designer, Tuner, Playtest) get a catalog with nothing people-flavored on it, served
 // at /mcp, and the pipeline tools live at /mcp/crm for Finance and Sales only.
 export type Catalog = "core" | "crm";
+export const READ_TOOLS = new Set(["check_decision", "get_company_metrics", "get_level", "get_pipeline_metrics", "get_player_stats", "get_recent_decisions", "get_solver_run", "get_spend", "list_games", "validate_level"]);
 export const CRM_TOOLS = new Set(["get_pipeline_metrics", "crm_upsert", "crm_set_stage", "record_email", "create_payment_link"]);
 
 export function registerTools(realServer: McpServer, catalog: Catalog = "core") {
@@ -47,7 +48,12 @@ export function registerTools(realServer: McpServer, catalog: Catalog = "core") 
       return (name: string, ...rest: unknown[]) => {
         const isCrm = CRM_TOOLS.has(name);
         if ((catalog === "core" && isCrm) || (catalog === "crm" && !isCrm)) return undefined;
-        return (target.registerTool as unknown as (...a: unknown[]) => unknown)(name, ...rest);
+        // MCP tool annotations: everything here is our own database (closed world); reads are
+        // read-only and idempotent. If Naïve keys its people-data rule on these hints, this is
+        // where it would see them.
+        const [config, cb] = rest as [Record<string, unknown>, unknown];
+        const annotated = { ...config, annotations: { readOnlyHint: READ_TOOLS.has(name), destructiveHint: false, idempotentHint: READ_TOOLS.has(name), openWorldHint: false, ...(config.annotations as object | undefined) } };
+        return (target.registerTool as unknown as (...a: unknown[]) => unknown)(name, annotated, cb);
       };
     },
   }) as McpServer;

@@ -20,6 +20,24 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 19:35 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Catalog split did not fix `read_people`.** Probe `ses_e9f0pnhfdr12kghsmgp2k4bssm`
+against the clean `/mcp` (17 tools, nothing CRM/email/people): `list_games` completed, then
+`log_action` was held with `read_people: true`. Conclusion: Naïve treats **any output from any
+MCP server** as reading people's data; content, field names, and catalog don't matter. Last
+cheap probe: every tool now carries MCP annotations (`readOnlyHint` on reads, `openWorldHint:
+false` on all). If Naïve keys on those, the next `approval-test` passes; if not, there is no
+app-side fix and the team picks B or C.
+**Why:** To stop chasing content-based fixes and settle the decision with evidence.
+**Files:** `platform/mcp/src/tools.ts`.
+**State:** Typechecks; annotations verified on `tools/list` locally; smoke OK. Needs a redeploy
+and one more `approval-test`.
+**Next / heads-up:** **Team, decide now:** (B) policy auto-approver for our own servers, every
+approval logged as `platform.auto_approve` and disclosed on stage; or (C) humans approve each
+held session with scope "session", logged as step-ins. (A) still worth one more ask of Naïve
+staff with the probe session id above.
+
 ### 2026-11-07 19:25 PT · Abhinav (Claude) · branch `main`
 
 **What:** The Naïve client in `platform/naive` now retries every SDK call on 429/503 with backoff
