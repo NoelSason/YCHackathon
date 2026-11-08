@@ -403,14 +403,14 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
     if (request.method === "GET" && url.pathname === "/public-stats") {
       // Aggregate counts only, for the website's proof section. No names, no emails.
       // Counted over the whole history: the newest log rows are mostly bulk level work.
-      const leads = await ctx.store.listLeads();
-      const counts = await ctx.store.publicCounts();
+      // In parallel: each query is a ~75 ms round trip to the database; the work itself is <2 ms.
+      const [leads, counts, runs] = await Promise.all([ctx.store.listLeads(), ctx.store.publicCounts(), ctx.store.listResearchRuns(500)]);
       return json(200, {
         studiosAudited: leads.filter((l) => l.source === "research").length,
         playtestsRun: counts.playtestsRun,
         emailsSent: counts.emailsSent,
         signups: leads.filter((l) => l.source === "inbound_form").length,
-        reviewsRead: (await ctx.store.listResearchRuns(500)).reduce((n, r) => n + r.reviewsRead, 0),
+        reviewsRead: runs.reduce((n, r) => n + r.reviewsRead, 0),
       });
     }
 

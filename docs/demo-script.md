@@ -90,10 +90,14 @@ It's registered to the team studio for `noel_sason@berkeley.edu` (generator
      -H "Authorization: Bearer $BUSINESS_MCP_TOKEN" -H "content-type: application/json" \
      -d '{"email":"noel_sason@berkeley.edu","generator_id":"9fbe79ac-23f1-470b-af8d-ca05fbce724e","levels":5,"company":"Level AI Test Agency"}'
    ```
-4. **The console shows**, from agent `level-delivery`: "building <studio>'s level pack with their own generator
-   …", then per level "asked <studio>'s generator for level 3 at difficulty 0.41", "<studio>'s level 3 measured 38% vs 55%
-   target: too hard; difficulty 0.41 → 0.24", "<studio>'s level 3 measured 57% vs 55% target: accepted", then the
-   pack summary and "delivered level pack to <studio>".
+4. **The console shows** (agent `level-delivery`), for example from the real run at 9:47 PM on Nov 7:
+   - "building Level AI Test Agency's level pack with their own generator "Example generator (Level AI sample)""
+   - "asked Level AI Test Agency's generator for level 4 at difficulty 0.64"
+   - "Level AI Test Agency's level 4 measured 29% vs 51% target: too hard; difficulty 0.64 → 0.42"
+   - "Level AI Test Agency's level 4 measured 51% vs 51% target: accepted"
+   - "delivered level pack to Level AI Test Agency"
+
+   That run took 12.7 s from start to delivered: 5 levels, 36 calls to the generator.
 5. **The email** (to noel_sason@berkeley.edu, subject "[Test order] Your level pack is ready: 5 parking-puzzle levels
    from your generator") says the levels were made by YOUR generator, measured by YOUR bot (casual-player), and tuned
    by our agents, with a table of target, measured (wins/100), difficulty setting, and tries per level, a play link,

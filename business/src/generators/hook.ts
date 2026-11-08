@@ -15,7 +15,14 @@ type PackModule = { runExternalPackDelivery(ctx: ToolContext, d: PackDelivery, g
 
 export async function externalPackRunner(ctx: ToolContext, d: PackDelivery): Promise<ExternalRunner | null> {
   if (!ctx.db || !d.leadId) return null;
-  const gen = await activeGeneratorFor(ctx.db, d.leadId, d.gameId);
+  let gen: Generator | null;
+  try {
+    gen = await activeGeneratorFor(ctx.db, d.leadId, d.gameId);
+  } catch (err) {
+    // The table isn't in this database yet (schema not applied): no studio has a generator here.
+    if (/biz_generators/.test(String(err instanceof Error ? err.message : err)) && /does not exist/.test(String(err instanceof Error ? err.message : err))) return null;
+    throw err;
+  }
   if (!gen) return null;
   const mod = (await import("./" + "pack.js")) as PackModule;
   return (opts) => mod.runExternalPackDelivery(ctx, d, gen, opts);

@@ -158,3 +158,11 @@ test("pickRecent keeps every agent visible when the compiler logs a burst", asyn
   assert.equal(picked.filter((e) => e.agent === "compiler").length, 20);
   assert.deepEqual(picked.map((e) => e.at), [...picked.map((e) => e.at)].sort());
 });
+
+test("a customer pack's level on the phone reads as a pack level, not an app", () => {
+  const p = momentFor(row("playtest-lead", "playtesting level 1 of Acme's water-sort pack on the iPhone"))!;
+  assert.equal(p.kind, "playtest_started");
+  assert.equal(p.surface, "pack");
+  assert.equal(p.title, "Now playtesting level 1 of Acme's water-sort pack");
+  assert.equal(p.subject, "Acme");
+});

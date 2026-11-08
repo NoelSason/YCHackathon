@@ -928,6 +928,7 @@ const SURFACE = {
   ios: ["App Store game, market study", "An App Store game. A real iPhone plays it to study how the genre leader ramps difficulty."],
   own: ["one of our levels", "A level our agents made. A real iPhone plays it before players do."],
   x: ["@uselevelai", "The Marketing agent posts on X from Safari on the phone."],
+  pack: [null, "A level from a pack our agents just built. A real iPhone plays it before it's delivered."],
 };
 function trackPlaytests(list) {
   for (const e of list) {
@@ -948,7 +949,7 @@ function trackPlaytests(list) {
   const app = shortUrl(last.app) || `${last.who}'s app`;
   $("nt-app").textContent = app;
   const kind = SURFACE[last.surface];
-  $("nt-who").textContent = `${kind ? `${kind[0]}, ` : last.who ? `for ${last.who}, ` : ""}${last.open ? "started" : "at"} ${hm(last.at)}`;
+  $("nt-who").textContent = `${kind && kind[0] ? `${kind[0]}, ` : last.who ? `for ${last.who}, ` : ""}${last.open ? "started" : "at"} ${hm(last.at)}`;
   $("pb-k").textContent = k;
   $("pb-title").textContent = app;
   if ($("phone-big").classList.contains("show")) fit($("pb-title"));

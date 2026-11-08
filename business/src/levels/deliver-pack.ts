@@ -8,6 +8,8 @@ import { enqueue } from "../leads/playtest-offer.js";
 import { idempotencyKey } from "../outreach/send.js";
 import { MARKET_GAMES, runWork, type LoopResult, type LoopWork } from "../mobile/loop.js";
 import { captureScreen } from "../mobile/screen.js";
+import { activePhoneTask, LoopResultSchema, summarize as summarizeLoop } from "../mobile/loop.js";
+import { sendCustomerEmail } from "../billing/outbox.js";
 import * as E from "../email/html.js";
 // BYOG hook (see runPackDelivery): a studio's own registered level generator.
 import { externalPackRunner } from "../generators/hook.js";
@@ -387,20 +389,18 @@ interface Recipient { to: string | null; first: string; company: string; test: b
 async function sendRecap(ctx: ToolContext, who: Recipient, key: string, mail: { subject: string; body: string; html: string }, shot: { data: Buffer; type: string; ext: string } | null, what: string): Promise<string | null> {
   const log = (action: string, why: string | null, result: string | null) => ctx.store.logActivity({ at: new Date().toISOString(), agent: AGENT, action, why, result, costUsd: null, human: false });
   const mode = who.test ? " (test order)" : "";
-  if (!who.to || !ctx.mail) { await log(`${what} not emailed: ${who.company}`, !who.to ? "no email address on the order" : "no mail sender on this server", null); return null; }
+  if (!who.to) { await log(`${what} not emailed: ${who.company}`, "no email address on the order", null); return null; }
   if (await ctx.store.isSuppressed(who.to)) { await log(`${what} not emailed: ${who.company}`, "the customer opted out of email", null); return null; }
-  try {
-    const { messageId } = await ctx.mail.send({
-      to: who.to, subject: mail.subject, text: mail.body, html: mail.html, idempotencyKey: idempotencyKey("pack-recap", key),
-      ...(shot ? { attachments: [{ filename: `iphone.${shot.ext}`, contentType: shot.type, contentBase64: shot.data.toString("base64"), contentId: "iphone-shot", inline: true }] } : {}),
-    });
-    if (who.leadId) await ctx.store.addOutreach({ leadId: who.leadId, to: who.to, subject: mail.subject, body: mail.body, status: "sent", blockedReason: null, providerMessageId: messageId });
-    await log(`emailed the ${what} to ${who.company}`, mail.subject, `message ${messageId}${shot ? ", with an iPhone screenshot" : ""}${mode}`);
-    return messageId;
-  } catch (err) {
-    await log(`couldn't email the ${what} to ${who.company}`, errText(err), `not sent${mode}`);
-    return null;
-  }
+  // Through the customer outbox: a refused send (e.g. the new-recipient cap) is kept and retried.
+  const r = await sendCustomerEmail(ctx, {
+    kind: "level-pack", leadId: who.leadId, company: who.company, to: who.to, subject: mail.subject, text: mail.body, html: mail.html,
+    idempotencyKey: idempotencyKey("pack-recap", key), test: who.test,
+    ...(shot ? { attachments: [{ filename: `iphone.${shot.ext}`, contentType: shot.type, contentBase64: shot.data.toString("base64"), contentId: "iphone-shot", inline: true }] } : {}),
+  });
+  if (!r.sent) return null;
+  if (who.leadId) await ctx.store.addOutreach({ leadId: who.leadId, to: who.to, subject: mail.subject, body: mail.body, status: "sent", blockedReason: null, providerMessageId: r.messageId });
+  await log(`emailed the ${what} to ${who.company}`, mail.subject, `message ${r.messageId}${shot ? ", with an iPhone screenshot" : ""}${mode}`);
+  return r.messageId;
 }
 
 const shotHtml = `<img src="cid:iphone-shot" width="240" alt="Screenshot from our iPhone" style="display:block;max-width:240px;width:100%;height:auto;border-radius:14px;margin:4px 0 18px;border:0">`;
@@ -499,6 +499,29 @@ export function composeLevelOneRecap(args: {
   return { subject: args.test ? `[Test order] ${subject}` : subject, body, html };
 }
 
+/**
+ * Before starting a phone study: if the phone is already running a task (for example a study a
+ * restarted server left behind), wait for it instead of piling a second one on. When that task is a
+ * study of this same game, its result is used. Waits at most 8 minutes.
+ */
+export async function waitForPhone(client: NonNullable<ToolContext["mobilerun"]>, deviceId: string, game: string, pollMs = 10_000): Promise<{ result: LoopResult; taskId: string } | null> {
+  const until = Date.now() + 8 * 60_000;
+  let adoptId: string | null = null;
+  while (Date.now() < until) {
+    const active = await activePhoneTask(client, deviceId).catch(() => null);
+    if (!active) break;
+    if (!adoptId) {
+      const prompt = await client.tasks.retrieve(active).then((t) => t.task.task).catch(() => "");
+      if (prompt.includes(`"${game}"`) && /for game-design research/.test(prompt)) adoptId = active;
+    }
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
+  if (!adoptId) return null;
+  const st = await client.tasks.getStatus(adoptId).catch(() => null);
+  const parsed = LoopResultSchema.safeParse(st?.output);
+  return parsed.success && parsed.data.loaded ? { result: parsed.data, taskId: adoptId } : null;
+}
+
 async function studyGame(ctx: ToolContext, d: PackDelivery, who: Recipient, pollMs?: number): Promise<PackStudy | null> {
   const company = who.company;
   const log = (action: string, why: string | null, result: string | null) => ctx.store.logActivity({ at: new Date().toISOString(), agent: AGENT, action, why, result, costUsd: null, human: false });
@@ -517,6 +540,12 @@ async function studyGame(ctx: ToolContext, d: PackDelivery, who: Recipient, poll
   const t0 = Date.now();
   let shotPng: Uint8Array | null = null;
   const out = await enqueue(async () => {
+    const left = await waitForPhone(client, deviceId, work.name, pollMs);
+    if (left) {
+      await log(`picked up the iPhone session of ${work.name} a restart left running`, `level pack for ${company}`, `task ${left.taskId}`);
+      shotPng = await captureScreen(client, deviceId);
+      return { result: left.result, taskId: left.taskId, summary: summarizeLoop(left.result), error: null };
+    }
     const o = await runWork(ctx, client, deviceId, work, { maxSeconds: 6 * 60, moves: 10, maxSteps: 20, ...(pollMs ? { pollMs } : {}) });
     if (o?.result) shotPng = await captureScreen(client, deviceId);
     return o;
@@ -693,7 +722,8 @@ export async function runPackDelivery(ctx: ToolContext, d: PackDelivery, opts: R
     // their generator makes each level, their bot measures it, our loop tunes it (generators/pack.ts).
     // A failed lookup (e.g. its table isn't in this database yet) must not stop the normal path.
     const external = await externalPackRunner(ctx, d).catch(async (err: unknown) => {
-      await log(`own-generator check skipped for ${company}'s pack`, errText(err), "using our engine");
+      // The generator table not being in this database yet just means nobody registered one.
+      if (!/does not exist/i.test(errText(err))) await log(`own-generator check skipped for ${company}'s pack`, errText(err), "using our engine");
       return null;
     });
     if (external) return await external(opts);
@@ -748,8 +778,8 @@ export async function runPackDelivery(ctx: ToolContext, d: PackDelivery, opts: R
     // Email: once per delivery (AgentMail dedupes on the key, so a retry after a crash doesn't resend).
     const to = lead?.email ?? null;
     let messageId: string | null = null;
-    if (!to || !ctx.mail) {
-      await log(`level pack not emailed: ${company}`, !to ? "no email address on the order" : "no mail sender on this server", `left for a person${mode}`);
+    if (!to) {
+      await log(`level pack not emailed: ${company}`, "no email address on the order", `left for a person${mode}`);
     } else if (await ctx.store.isSuppressed(to)) {
       await log(`level pack not emailed: ${company}`, "the customer opted out of email", `nothing sent${mode}`);
     } else {
@@ -761,11 +791,14 @@ export async function runPackDelivery(ctx: ToolContext, d: PackDelivery, opts: R
         replyTo: ctx.config.AGENTMAIL_INBOX_ID ?? "levelai@agentmail.to", bot: firstMade?.bot ?? (d.gameId === "match3" ? "greedy" : d.gameId === "lotescape" ? "search" : "human"),
         runs: firstMade?.runs ?? (d.gameId === "match3" ? 100 : 200),
       });
-      try {
-        messageId = (await ctx.mail.send({ to, subject: mail.subject, text: mail.body, html: mail.html, idempotencyKey: idempotencyKey("level-pack", d.id) })).messageId;
+      // Through the customer outbox (sends once per delivery; a refused send is retried, not lost).
+      const r = await sendCustomerEmail(ctx, {
+        kind: "level-pack", leadId: lead?.id ?? null, company, to, subject: mail.subject, text: mail.body, html: mail.html,
+        idempotencyKey: idempotencyKey("level-pack", d.id), test: d.test,
+      });
+      if (r.sent) {
+        messageId = r.messageId;
         if (lead) await ctx.store.addOutreach({ leadId: lead.id, to, subject: mail.subject, body: mail.body, status: "sent", blockedReason: null, providerMessageId: messageId });
-      } catch (err) {
-        await log(`couldn't email ${company} their level pack`, errText(err), `pack ${packId} saved; left for a person${mode}`);
       }
     }
 
@@ -823,15 +856,28 @@ export function runDueDeliveries(ctx: ToolContext, opts: RunOptions = {}): Promi
 }
 
 /** On boot: deliveries a restart cut off go back in the queue, then the queue runs. */
+/** A delivery a restart cut off goes back in the queue at most this many times; then a person is asked. */
+export const MAX_RESUMES = 2;
+
 export async function resumePackDeliveries(ctx: ToolContext, opts: RunOptions = {}): Promise<number> {
   if (!ctx.db) return 0;
   // Only rows claimed before this process started: a delivery this process already picked up keeps going.
-  const r = await ctx.db(`update biz_pack_deliveries set state = 'queued' where state = 'working' and started_at < $1 returning id`, [PROCESS_START.toISOString()]);
-  for (const row of r) {
-    await ctx.store.logActivity({ at: new Date().toISOString(), agent: AGENT, action: "resumed a level pack after a restart", why: "the server restarted before this pack was delivered", result: `delivery ${String(row.id)}`, costUsd: null, human: false });
+  const cut = await ctx.db(`select id, resumes from biz_pack_deliveries where state = 'working' and started_at < $1`, [PROCESS_START.toISOString()]);
+  let n = 0;
+  for (const row of cut) {
+    const id = String(row.id);
+    const resumes = Number(row.resumes ?? 0);
+    if (resumes >= MAX_RESUMES) {
+      await ctx.db(`update biz_pack_deliveries set state = 'failed', detail = $2, finished_at = now() where id = $1 and state = 'working'`, [id, `cut off by ${resumes + 1} restarts`]);
+      await ctx.store.logActivity({ at: new Date().toISOString(), agent: AGENT, action: "step-in needed: a level pack was cut off by restarts", why: `${resumes + 1} server restarts before it finished; not resumed again`, result: `delivery ${id}; left for a person`, costUsd: null, human: false });
+      continue;
+    }
+    await ctx.db(`update biz_pack_deliveries set state = 'queued', resumes = resumes + 1 where id = $1 and state = 'working'`, [id]);
+    await ctx.store.logActivity({ at: new Date().toISOString(), agent: AGENT, action: "resumed a level pack after a restart", why: `the server restarted before this pack was delivered (resume ${resumes + 1} of ${MAX_RESUMES})`, result: `delivery ${id}`, costUsd: null, human: false });
+    n++;
   }
   void runDueDeliveries(ctx, opts).catch(() => undefined);
-  return r.length;
+  return n;
 }
 
 /** Checks for due deliveries (the second half of a subscription month) every `minutes`. */

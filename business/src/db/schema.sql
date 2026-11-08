@@ -127,6 +127,8 @@ create table if not exists biz_pack_deliveries (
 );
 create unique index if not exists biz_pack_deliveries_payment_part on biz_pack_deliveries (payment_id, part) where payment_id is not null;
 create index if not exists biz_pack_deliveries_queue on biz_pack_deliveries (state, due_at);
+-- How many times a restart put this delivery back in the queue (capped; then a person is asked).
+alter table biz_pack_deliveries add column if not exists resumes int not null default 0;
 
 -- Bring your own level generator (src/generators/): a studio's own HTTPS endpoint that makes and plays
 -- levels for its game. Level packs for that studio and genre are built by it: it makes each level, its

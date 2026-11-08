@@ -11,7 +11,7 @@ import { createHandler } from "../src/app.js";
 import { clearPriceCache } from "../src/billing/stripe.js";
 import { createOrder } from "../src/leads/orders.js";
 import { makePack } from "../src/levels/pack-maker.js";
-import { addPackDelivery, curveFor, CURVE_END, getPackDelivery, resumePackDeliveries, runDueDeliveries, studyWork } from "../src/levels/deliver-pack.js";
+import { addPackDelivery, curveFor, CURVE_END, getPackDelivery, resumePackDeliveries, runDueDeliveries, studyWork, waitForPhone } from "../src/levels/deliver-pack.js";
 import type { MadeLevel, MakeRequest, PackMaker } from "../src/levels/pack-types.js";
 import type { ToolContext } from "../src/mcp/tools.js";
 
@@ -266,6 +266,15 @@ describe("a paid level pack delivers itself", () => {
     expect((await getPackDelivery(s.q, d.id))!.state).toBe("working");
   });
 
+  it("puts a cut-off delivery back at most twice, then asks for a person", async () => {
+    const s = await setup({ maker: fakeMaker(3) });
+    const d = (await addPackDelivery(s.q, { paymentId: null, leadId: null, plan: "level_pack", gameId: "watersort", difficulty: "medium", levelsOwed: 3, studiedGame: null, gameUrl: null, bundleId: null, test: true }))!;
+    await s.q(`update biz_pack_deliveries set state = 'working', started_at = now() - interval '1 hour', resumes = 2 where id = $1`, [d.id]);
+    expect(await resumePackDeliveries(s.ctx)).toBe(0);
+    expect((await getPackDelivery(s.q, d.id))!.state).toBe("failed");
+    expect(await actions(s.ctx)).toContainEqual("step-in needed: a level pack was cut off by restarts");
+  });
+
   it("delivers a subscription's first half now and keeps the second half for two weeks later", async () => {
     const calls: MakeRequest[] = [];
     const s = await setup({ maker: fakeMaker((r) => r.targets.length, calls) });
@@ -404,5 +413,20 @@ describe("the phone: study first, play level 1 last", () => {
     expect(s.sent[0]!.text).toMatch(/^Hi Noel,\n\nOur iPhone's session of Candy Crush Saga just now didn't finish \(Task execution timed out after 300 seconds\), so we used its earlier session/);
     expect(calls[0]!.targets).toEqual([0.85, 0.85, 0.4]); // 6 moves → plateau 3, capped at 2 for a 3-level pack
     expect(s.sent.find((m) => m.subject.includes("is ready"))!.text).toContain("(from our iPhone's earlier session");
+  });
+
+  it("waits for a study a restart left running on the phone and uses its result instead of starting another", async () => {
+    let polls = 0;
+    const output = { loaded: true, touchOk: true, won: false, levelReached: 2, movesUsed: 7, movesBeforeRamp: 5, stuckAt: "jelly", designNote: "Jelly on level 2.", visualIssues: [] };
+    const phone = {
+      tasks: {
+        list: async () => ({ items: polls++ < 2 ? [{ id: "t_orphan", deviceId: "dev_1", status: "running" }] : [] }),
+        retrieve: async () => ({ task: { task: 'Goal: study the iOS puzzle app "Candy Crush Saga" (match-3) the way a new player would, for game-design research.' } }),
+        getStatus: async () => ({ status: "completed", output }),
+      },
+    } as unknown as Mobilerun;
+    expect(await waitForPhone(phone, "dev_1", "Candy Crush Saga", 1)).toEqual({ result: output, taskId: "t_orphan" });
+    polls = 0;
+    expect(await waitForPhone(phone, "dev_1", "Some Other Game", 1)).toBeNull(); // waits, but doesn't adopt another game's task
   });
 });

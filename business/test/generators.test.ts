@@ -291,6 +291,13 @@ describe("a level pack built by the studio's generator", () => {
     expect(await externalPackRunner(s.ctx, d)).not.toBeNull();
   });
 
+  it("treats a database without the generators table as no generator", async () => {
+    const s = await setup();
+    await s.q(`drop table biz_generators`);
+    const { externalPackRunner } = await import("../src/generators/hook.js");
+    expect(await externalPackRunner(s.ctx, { leadId: s.studio.id, gameId: "match3" } as Parameters<typeof externalPackRunner>[1])).toBeNull();
+  });
+
   it("pauses when their endpoint dies: sends the levels that passed, marked short, and asks for a person", async () => {
     const s = await setup();
     const { body } = await register(s);

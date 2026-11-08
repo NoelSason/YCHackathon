@@ -39,7 +39,7 @@ export interface Moment {
   /** Playtests only: true for a market study of someone else's web game (no customer). */
   market?: boolean;
   /** What the phone is on: a web game, an App Store app, one of our own levels, or X in Safari. */
-  surface?: "web" | "ios" | "own" | "x";
+  surface?: "web" | "ios" | "own" | "x" | "pack";
 }
 
 /** Results that are plumbing (message ids, lead ids), not something to show the room. */
@@ -89,6 +89,13 @@ export function momentFor(e: StageEvent): Moment | null {
   }
   if (/^couldn't post on x from the iphone$/i.test(a)) {
     return m("x_posted", "small", "X", "Couldn't post on X from the iPhone", { subject: "", app: "X (x.com)", surface: "x", detail: e.why });
+  }
+  // A level from a customer's pack on the phone (levels/deliver-pack.ts): "playtesting level 1 of Acme's water-sort pack on the iPhone".
+  if ((x = a.match(/^playtesting level (\d+) of (.+?)'s (.+?) pack(?: on the iPhone)?$/i))) {
+    return m("playtest_started", "big", "Pack level", `Now playtesting level ${x[1]} of ${x[2]}'s ${x[3]} pack`, { subject: x[2]!, app: `Level ${x[1]} of their ${x[3]} pack`, surface: "pack" });
+  }
+  if ((x = a.match(/^playtested level (\d+) of (.+?)'s (.+?) pack(?::\s*(.*))?$/i))) {
+    return m("playtest_done", "small", "Pack level", `Played level ${x[1]} of ${x[2]}'s ${x[3]} pack`, { subject: x[2]!, app: `Level ${x[1]} of their ${x[3]} pack`, surface: "pack", detail: x[4] ?? cleanResult(e.result) });
   }
   // Our own levels on the phone (mobile/loop.ts): "playtesting our Gem Garden level Garden 0041 on the iPhone".
   if ((x = a.match(/^playtesting our (.+?) level (.+?)(?: on the iPhone)?$/i))) {
