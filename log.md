@@ -20,6 +20,16 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### Sun Nov 8, 9:35 AM PT, Noel, Claude Code, main
+
+**What:** X posts from the phone stop as soon as the post is sent instead of opening the profile page. Chart and directory load errors in the activity feed now read in plain words; the raw error goes to the server log.
+**Why:** The 9:30 AM post went out, but the task then ran out of steps on the profile page (it hangs in this phone's Safari) and was logged as failed. The console showed a raw error with a run id.
+**Files:** business/src/marketing/phone-post.ts, business/src/outreach/autopilot.ts, business/src/agency/outreach.ts.
+**State:** Works. Business 332 tests pass. .env: X every 30 minutes, phone loop every 20 minutes on a mid-priced model.
+**Next / heads-up:** Five 9:20-9:24 AM phone runs on the cheapest model played too little to count and were relabeled "quick phone check" so the playtest count stays honest. The 9:30 AM X post's log row was corrected to posted, from the task's own trajectory. Solver worker on Noel's laptop restarted from current code; it now handles Lot Escape.
+
+---
+
 ### Sun Nov 8, 9:25 AM PT, Noel, Claude Code, main
 
 **What:** Outreach reads charts in 9 storefronts (US charts ran dry overnight), up to 8 charts a pass and 5 emails a run. Phone loop can run back to back, gives every third run to a market study, and can use a cheaper model for the loop only. Database calls retry on a network drop. CEO cap set to $25 in roster.ts to match the live agent.

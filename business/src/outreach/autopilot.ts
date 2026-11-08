@@ -148,7 +148,8 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
       });
     } catch (err) {
       chartErrors++;
-      await log("research", `couldn't read the ${chart.label} chart`, err instanceof Error ? err.message.slice(0, 160) : "unknown error", "trying another chart");
+      console.error(`outreach loop: chart ${chart.label} failed: ${err instanceof Error ? err.message.slice(0, 300) : "unknown"}`);
+      await log("research", `couldn't read the ${chart.label} chart`, "the store chart didn't load this time", "trying another chart");
     }
   }
   if (!read.length) {

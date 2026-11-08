@@ -16,7 +16,6 @@ const ResultSchema = z.object({
   problem: z.string().nullable(),
 });
 type Result = z.infer<typeof ResultSchema>;
-const PROFILE_URL = "https://x.com/uselevelai";
 const TERMINAL = new Set(["completed", "failed", "cancelled", "stopped", "succeeded", "error", "timed_out"]);
 
 export function phonePostTask(text: string): string {
@@ -28,7 +27,7 @@ export function phonePostTask(text: string): string {
     "3. Tap the text box and type exactly this text, character for character:",
     text,
     "4. Tap the Post button. Wait until the post is sent (the compose box closes or a 'Your post was sent' notice shows).",
-    `5. Report posted=true only if you saw it sent. Put the account handle you saw in logged_in_as. Then open ${PROFILE_URL} so our post is on screen.`,
+    "5. As soon as you see it was sent, stop and report posted=true, with the account handle you saw in logged_in_as. Don't open any other page.",
   ].join("\n");
 }
 
@@ -80,10 +79,9 @@ export async function postOnXFromPhone(
     }
     if (!TERMINAL.has(String(s.status))) await client.tasks.stop(task.id).catch(() => undefined);
     const parsed = ResultSchema.safeParse((s as { output?: unknown }).output);
-    // Posted: end on our public profile, so the new post is what the room sees (never the compose
-    // box). Not posted: the home screen, never a stuck X splash or a sign-in page.
-    if (parsed.success && parsed.data.posted) await client.devices.deepLink.executeDeepLink(deviceId, { deepLink: PROFILE_URL }).catch(() => undefined);
-    else await client.devices.actions.global(deviceId, { action: 2 }).catch(() => undefined);
+    // Posted: stay on X, where the sent notice shows (the profile page hangs on this phone's Safari,
+    // Nov 8). Not posted: the home screen, never a stuck X splash or a sign-in page.
+    if (!(parsed.success && parsed.data.posted)) await client.devices.actions.global(deviceId, { action: 2 }).catch(() => undefined);
     const r: Result | null = parsed.success ? parsed.data : null;
     const posted = Boolean(r?.posted);
     const problem = posted ? null : r?.problem ?? `phone task ${String(s.status)}`;

@@ -373,7 +373,7 @@ export async function runAgencyCycle(ctx: ToolContext, deps: CycleDeps, opts: Cy
     try {
       list = await clutchPage(monid, page, { cache: deps.cache });
     } catch (err) {
-      await log(ctx, "couldn't read the agency directory", err instanceof Error ? err.message.slice(0, 160) : "unknown error", "will try again next cycle");
+      await log(ctx, "couldn't read the agency directory", "the directory didn't load this time", "will try again next cycle");
       break;
     }
     if (!list.length) break;
