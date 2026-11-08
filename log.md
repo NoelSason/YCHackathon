@@ -26,6 +26,23 @@ This is the team's build log. It isn't the company's agent activity log, which t
 - **Files:** `business/src/{leads/orders.ts,billing/stripe.ts,app.ts,config.ts,store.ts,types.ts,db/schema.sql,mobile/install.ts,leads/playtest-offer.ts}`, `business/test/{orders,appstore-install}.test.ts`, `site/pricing.html`, `site/*.html` (nav), `site/styles.css`
 - **State:** works for billing and pricing (174 tests pass, site deployed, live links verified). App Store installs wait on a person signing in to the App Store on the new phone.
 - **Next / heads-up:** **Everyone:** real money now. Team emails stay tagged internal_test. Don't pay test orders with a team card unless you mean it. Cancel requests arrive by email, and a person cancels them in Stripe.
+### 2026-11-07 19:30 PT · Abhinav (Claude) · branch `main`
+
+**What:** **Team decision B implemented: the policy auto-approver.** `npm run approver` in
+`platform/naive` polls Naïve every 20 s for sessions at `awaiting_approval`, and for agents in
+`team.json` approves held calls **only** on our own servers (`platform.*`, `platformcrm.*`,
+`business.*`) with `read_people: true`, scope "session". Anything else is left for a human.
+Every approval is written to `activity_log` as agent `platform`, action `auto_approve`, with the
+reason, so the count is on the dashboard. Disclosure sentence added to `docs/demo-script.md`;
+the checklist now includes running the approver.
+**Why:** `read_people` fires on any MCP output, with no app-side fix (field names, catalog split,
+and tool annotations all tested); without approvals no agent gets past its first turn.
+**Files:** `platform/naive/src/approver.ts`, `package.json`, `README.md`, `docs/demo-script.md`.
+**State:** Typechecks. Not yet run. **Not a human step-in and not logged as one; not hidden.**
+**Next / heads-up:** **Abhinav:** `npm run approver` on a laptop that stays awake, then
+`npm run ceo-now` to watch a full CEO run. **Noel:** the disclosure sentence is in your script;
+edit the wording, keep the fact. **Everyone:** if a Naïve engineer gives us a real switch, we turn
+the approver off and say so.
 
 ### 2026-11-07 19:21 PT · Pinara (Codex) · branch `pinara/game-ui`
 

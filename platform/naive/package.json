@@ -10,7 +10,8 @@
     "kill": "node --env-file=.env --import tsx src/kill-switch.ts",
     "vault": "node --env-file=.env --import tsx src/vault.ts",
     "ceo-now": "node --env-file=.env --import tsx src/run-ceo.ts",
-    "inspect": "node --env-file=.env --import tsx src/inspect-session.ts"
+    "inspect": "node --env-file=.env --import tsx src/inspect-session.ts",
+    "approver": "node --env-file=.env --import tsx src/approver.ts"
   },
   "dependencies": {
     "@usenaive-sdk/managed-agents": "^0.12.3",
