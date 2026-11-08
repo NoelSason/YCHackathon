@@ -6,6 +6,8 @@ import { adapter as platformer } from "../../../games/platformer/adapter/index.j
 // Pinara's games 4 and 5 (games/watersort, games/racer).
 import { adapter as watersort } from "../../../games/watersort/adapter/index.js";
 import { adapter as racer } from "../../../games/racer/adapter/index.js";
+// Max's game 6: Crate Grove.
+import { adapter as crategrove } from "../../../games/crategrove/adapter/index.js";
 
 export interface ValidateOk { ok: true }
 export interface ValidateErr { ok: false; errors: string[] }
@@ -73,6 +75,7 @@ const registry = new Map<string, Adapter>([
   [platformer.game_id, platformer],
   [watersort.game_id, watersort],
   [racer.game_id, racer],
+  [crategrove.game_id, crategrove],
   [stubAdapter.game_id, stubAdapter],
 ]);
 

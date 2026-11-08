@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#17251e"><title>Crate Grove</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="shell">
+    <header><div class="brand"><span class="mark">✿</span><div><p class="eyebrow">A quiet little puzzle</p><h1>Crate Grove</h1></div></div><button id="reset" class="icon-button" aria-label="Restart level">↻</button></header>
+    <section class="intro"><div><p id="level-name" class="eyebrow">Fern Crossing</p><h2>Guide every crate<br>to a lantern.</h2></div><div class="moves"><strong id="moves">0</strong><span>moves</span></div></section>
+    <section class="board-wrap"><div id="board" class="board" aria-label="Puzzle board"></div></section>
+    <p id="message" class="message" aria-live="polite">Use the arrow keys or the grove controls.</p>
+    <nav class="controls" aria-label="Movement controls"><span></span><button data-dir="up" aria-label="Move up">↑</button><span></span><button data-dir="left" aria-label="Move left">←</button><button data-dir="down" aria-label="Move down">↓</button><button data-dir="right" aria-label="Move right">→</button></nav>
+    <footer><button id="undo" class="text-button">Undo step</button><span id="limit">Move limit 30</span><button id="next" class="text-button">Next trail ↗</button></footer>
+  </main>
+  <script>window.STUDIO_API = window.STUDIO_API || __PLATFORM_URL__;</script>
+  <script type="module" src="./game.js"></script>
+</body>
+</html>

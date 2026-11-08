@@ -11,12 +11,11 @@ breaks. Every step-in is logged.
 
 ## The company
 
-- **The product is the platform, not a game.** Any casual game can plug in through a small
-  adapter. We don't build a game.
-- **Three initial workflows:** a match-3 adapter, a platformer adapter, and a
-  Geometry Dash editor workflow run through Mobilerun. The editor workflow is not a shipped game
-  integration. The two adapters connect data-driven games to the platform; the editor workflow
-  demonstrates bounded mobile operation separately.
+- **The product is the platform.** Any casual game can plug in through a small adapter. Original
+  sample games exercise the adapters and give studios something visible to play.
+- **Five game projects:** match-3, a grid-platformer prototype, Splash Sort, Turbo Lanes, and
+  Crate Grove. Four have browser clients; the platformer currently has adapter rules only. The
+  separate Geometry Dash editor workflow runs through Mobilerun and is not a shipped game.
 - **What "levels" means depends on the genre:** match-3 boards with move limits, platformer maps
   with reachable routes and hazards, and editor drafts authored in Geometry Dash. The editor
   workflow is checked visually through Mobilerun, not headlessly solved.
@@ -24,12 +23,14 @@ breaks. Every step-in is logged.
   or complaining about difficulty, make sample content for that genre *before* reaching out, and
   sell a pilot pack.
 
-The pitch to a studio: "Our agents have been making and tuning content through two game adapters,
-and we've also used an agent to author a local mobile-game draft. Here's the data. Plug yours in."
+The pitch to a studio: "Our agents have been making and tuning content across five original game
+adapters, with four browser clients to play. We've also used an agent to author a local mobile-game
+draft. Here's the data. Plug yours in."
 
 ## Our game integrations and editor workflow
 
-The product adapters target match-3 and platformer. Geometry Dash is a separate editor workflow.
+The product adapters target match-3, platformer, water sort, lane racing, and crate pushing.
+Geometry Dash is a separate editor workflow.
 Candy Crush, Geometry Dash, and Mario are references only; their names, code, assets, music,
 levels, and other content are not part of our product.
 
@@ -143,6 +144,8 @@ Everything depends on this, so Max and Abhinav agree on it by **3:00 PM** and wr
 | Events | Sends attempt, win, quit, and moves-used to our API | CEO, dashboard |
 | `SKILL.md` | The rules and level format, written for an agent | Designer (as a Naïve skill) |
 
+The game directories each contain an engine, browser client, adapter, and skill. See the index in
+[`games/README.md`](games/README.md), including [Crate Grove](games/crategrove/README.md).
 The match-3 skill and integration notes live in [`games/match3/`](games/match3/). The skill uses
 the active adapter schema and simulation tools rather than defining a second level format.
 The platformer adapter and authoring skill live in [`games/platformer/`](games/platformer/).
@@ -312,8 +315,9 @@ Open with the result, not the architecture.
    them to `allow`. But once a chat reads people's data (such as an inbound email), every send,
    phone action, and MCP call in that chat asks *each time, even at `allow`.* Abhinav tests this in
    the first hour. Every approval clicked overnight is a step-in judges count.
-2. **Game clients are not connected yet.** The match-3 and platformer adapters are registered,
-   but their open-source game forks and browser loaders still need integration.
+2. **Hosting is per game.** Original clients are runnable locally and their adapters are
+   registered, but each game's public deployment and platform URL must be configured before
+   claiming hosted end-to-end play.
 3. **Headless play.** Some open-source games mix rules with drawing code, so their rules won't run
    in Node. Check this before choosing a game.
 4. **Licenses and art.** Check every license. Skip any repo with art copied from a commercial game.

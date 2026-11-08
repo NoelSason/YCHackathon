@@ -34,9 +34,9 @@
   "interfaces": {
     "match3_adapter": {
       "mode": "programmatic",
-      "availability": "planned_not_connected",
-      "operations": ["validate_level", "solve_level", "save_level"],
-      "verification": "Schema and rules validation, then seeded bot simulation. Do not claim completion until the adapter is connected and returns results."
+      "availability": "adapter_registered_local_client",
+      "operations": ["list_games", "get_game_schema", "validate_level", "save_level", "solve_level"],
+      "verification": "Confirm list_games reports adapter_loaded:true, fetch the authoritative schema, validate and save through MCP, then use the solver harness for seeded bot simulation. Hosting remains a separate deployment step."
     },
     "platformer_adapter": {
       "mode": "programmatic",
@@ -52,15 +52,21 @@
     },
     "watersort_adapter": {
       "mode": "programmatic",
-      "availability": "planned_not_connected",
-      "operations": ["validate_level", "solve_level", "save_level"],
-      "verification": "Schema and rules validation, exact breadth-first solve (solvable within move_limit, minimum pours), then seeded bot simulation (human, greedy, random). The adapter is in games/watersort/adapter but not registered in platform/mcp/src/adapters.ts yet; do not claim results until the platform returns them."
+      "availability": "adapter_registered_local_client",
+      "operations": ["list_games", "get_game_schema", "validate_level", "save_level", "solve_level"],
+      "verification": "Confirm adapter_loaded:true, validate the level, use the exact breadth-first solver, then report seeded bot results from the registered adapter. Public hosting remains a separate deployment step."
     },
     "racer_adapter": {
       "mode": "programmatic",
-      "availability": "planned_not_connected",
-      "operations": ["validate_level", "solve_level", "save_level"],
-      "verification": "Schema and rules validation, exact fastest-finish solve (solvable within time_limit, minimum ticks), then seeded bot simulation (human, greedy, random). The adapter is in games/racer/adapter but not registered in platform/mcp/src/adapters.ts yet; do not claim results until the platform returns them."
+      "availability": "adapter_registered_local_client",
+      "operations": ["list_games", "get_game_schema", "validate_level", "save_level", "solve_level"],
+      "verification": "Confirm adapter_loaded:true, validate the track, use the exact fastest-finish solver, then report seeded bot results from the registered adapter. Public hosting remains a separate deployment step."
+    },
+    "crategrove_adapter": {
+      "mode": "programmatic",
+      "availability": "adapter_registered_local_client",
+      "operations": ["list_games", "get_game_schema", "validate_level", "solve_level", "save_level"],
+      "verification": "Confirm the platform reports adapter_loaded:true, validate the map, and use the exact solver to measure minimum pushes/steps. Seeded random-bot results are a separate difficulty signal. The browser client works locally; hosting is not configured."
     }
   },
   "games": {
@@ -107,6 +113,15 @@
         "design": "games/racer/SKILL.md",
         "evaluate": "games/racer/SKILL.md",
         "implement": "games/racer/SKILL.md"
+      }
+    },
+    "crategrove": {
+      "label": "Crate Grove (crate-pushing puzzle)",
+      "interface": "crategrove_adapter",
+      "skills": {
+        "design": "games/crategrove/SKILL.md",
+        "evaluate": "games/crategrove/SKILL.md",
+        "implement": "games/crategrove/SKILL.md"
       }
     }
   }

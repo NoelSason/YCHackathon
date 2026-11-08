@@ -20,6 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:05 PT · Max (Codex) · branch `max-game-prism-pipes`
+
+**What:** Created Crate Grove, an original crate-pushing puzzle with a responsive local browser game, shared engine, seeded bots, exact solver, level adapter, and Designer skill. Registered it with the platform and added the MCP schema lookup so the Designer can use an adapter's authoritative schema.
+**Why:** Continue expanding the studio's original game catalog while keeping browser, solver, and platform validation on one set of rules.
+**Files:** `games/crategrove/`, `platform/mcp/`, `platform/naive/src/roster.ts`, `platform/CONTRACTS.md`, `games/skill-routing.json`, game catalog and project docs. Generated `dist/` files are ignored and not shipped in Git.
+**State:** Crate Grove build and strict typecheck passed; MCP and Naïve typechecks passed; routing JSON parsed; `git diff --check` passed. Hosting and a live Designer run were not configured here.
+**Next / heads-up:** Pinara/Abhinav: publish `games/crategrove/SKILL.md` as `game-crategrove@1` and attach it to Designer/Tuner. Max: set `PLATFORM_URL` when building for hosted saved-level URLs and events. The master plan still describes the earlier game roster; update it with team agreement.
+
 ### 2026-11-07 16:55 PT · Pinara (Claude Code) · branch `main`
 
 **What:**

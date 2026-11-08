@@ -6,7 +6,7 @@ create extension if not exists pgcrypto;
 -- ---------- games and levels ----------
 
 create table if not exists games (
-  game_id          text primary key,            -- 'match3', 'board', 'runner', 'stub'
+  game_id          text primary key,            -- match3, platformer, watersort, racer, crategrove, stub
   name             text not null,               -- our fork's own name
   bots             jsonb not null default '[]',
   default_win_rate numeric not null default 0.40,
