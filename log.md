@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:51 PM PT · Noel · Claude Code · main
+- **What:** The outreach loop emails each studio the moment its game qualifies, instead of after reading the whole 30-game chart. Games read in the last 6 h are kept in a temp file, so a server restart doesn't re-read them (or pay again).
+- **Why:** Passes take ~6 min, and agents restart the server often, so passes were cut off before their send step (e.g. a word-games pass at 5:46 PM).
+- **Files:** `business/src/outreach/autopilot.ts`, `business/src/research/targets.ts`
+- **State:** works; typecheck clean, tests pass (except the playtest-loop subagent's in-progress test file).
+- **Next / heads-up:** none.
+
 ### 2026-11-07 5:47 PM PT · Noel · Claude Code · main
 - **What:** More research and outreach. The outreach loop now cycles 15 store charts (top free, top-grossing, and top paid × puzzle, casual, word, board, card), reads up to 30 games per pass, runs every 10 min (was 20), and sends up to 3 emails per pass. The daily cold cap is now 40 (was 20). Contacts: the Google Play listing's developer email is used first if it's role-based, then Hunter generic addresses for the listing's website domain, then Hunter by company name. Personal addresses are never used.
 - **Why:** Noel: much more market research and outreach. Most strong targets had been skipped with "no public contact."

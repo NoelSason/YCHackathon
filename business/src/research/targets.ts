@@ -64,7 +64,7 @@ export interface FindTargetsOptions {
   /** App ids to skip (already contacted, or read recently). */
   skip?: Set<string>;
   /** Called for every game read, pass or not, so the loop can report market research totals. */
-  onRead?: (target: Target) => void;
+  onRead?: (target: Target) => unknown;
   /**
    * Second pass over a game's evidence (the model check in `verify.ts`). It gets the regex target
    * and the reviews, and returns the target to use. It runs before `onRead`.
@@ -83,7 +83,7 @@ export async function findTargets(monid: MonidRunner, opts: FindTargetsOptions =
     const reviews = await fetchRecentReviews(monid, game.appId);
     const regex = buildTarget(game, reviews);
     const target = opts.verify ? await opts.verify(game, reviews, regex) : regex;
-    opts.onRead?.(target);
+    await opts.onRead?.(target);
     const total = Object.values(target.signalCounts).reduce((a, b) => a + b, 0);
     if (total >= minSignals) targets.push(target);
   }

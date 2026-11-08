@@ -1,3 +1,6 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ToolContext } from "../mcp/tools.js";
 import type { Target } from "../types.js";
 import { rememberTarget, toolDraftOutreach, toolSaveLead, toolSendOutreach } from "../mcp/tools.js";
@@ -26,7 +29,25 @@ const CHART_KINDS: Array<[string, string]> = [["topselling_free", "top free"], [
 const CHARTS: Array<{ chart: string; category: string; label: string }> = CHART_KINDS.flatMap(([chart, cl]) =>
   CATEGORIES.map(([category, gl]) => ({ chart, category, label: `${cl} ${gl}` })),
 );
-const recentlyRead = new Map<string, number>();
+// Games read in the last 6 hours, kept in a temp file so a restart doesn't re-read (and re-pay for) them.
+const READ_FILE = join(tmpdir(), "levelai-games-read.json");
+const recentlyRead = new Map<string, number>(
+  (() => {
+    try {
+      return Object.entries(JSON.parse(readFileSync(READ_FILE, "utf8")) as Record<string, number>);
+    } catch {
+      return [];
+    }
+  })(),
+);
+function markRead(appId: string) {
+  recentlyRead.set(appId, Date.now());
+  try {
+    writeFileSync(READ_FILE, JSON.stringify(Object.fromEntries(recentlyRead)));
+  } catch {
+    // Best effort; worst case a restart re-reads a few games.
+  }
+}
 // Start the rotation from the clock, so a server restart moves on to a new chart instead of
 // re-reading the first one.
 let cycleCount = Math.floor(Date.now() / (10 * 60_000));
@@ -43,8 +64,28 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
   for (const [id, at] of recentlyRead) if (at < cutoff) recentlyRead.delete(id);
   const skip = new Set([...known, ...recentlyRead.keys()]);
   await log("research", `scanning the ${chart.label} games for unhappy players`, "outreach loop", null);
-  let targets;
   const read: Target[] = [];
+  const qualified: Target[] = [];
+  let sent = 0;
+  let stop = false;
+  const pitch = async (t: Target) => {
+    rememberTarget(t);
+    const email = await findGenericContact(ctx.monid!, t.developer, t.appId).catch(() => null);
+    if (!email) {
+      await log("research", `no public contact for ${t.developer}`, "only role-based addresses are used", "skipped");
+      return;
+    }
+    await log("research", `found a public contact for ${t.developer}`, t.reason, email.replace(/^[^@]+/, (m) => `${m[0]}…`));
+    const lead = await toolSaveLead(ctx, { appId: t.appId, company: t.developer, email });
+    const draft = await toolDraftOutreach(ctx, { leadId: lead.id, senderName: "Noel Sason" });
+    if (draft.blockedReason) {
+      await log("sales-sender", `held the email to ${t.developer}`, draft.blockedReason, "not sent");
+      if (/Daily cap/.test(draft.blockedReason)) stop = true;
+      return;
+    }
+    const res = await toolSendOutreach(ctx, { draftId: draft.draftId });
+    if (res.status === "sent") sent++;
+  };
   try {
     // The keyword match is the cheap first pass. Games it says have enough evidence get their quotes
     // double-checked by a model before anyone is emailed; the counts and quotes come from what holds up.
@@ -56,36 +97,24 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
       if (line) await log("research", line.action, line.why, line.result).catch(() => undefined);
       return target;
     };
-    targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 30, minSignals: 2, chart: chart.chart, category: chart.category, skip, onRead: (t) => read.push(t), verify });
+    await findTargets(ctx.monid, {
+      maxGames: opts.maxGames ?? 30, minSignals: 2, chart: chart.chart, category: chart.category, skip, verify,
+      // Pitch each studio as soon as its game qualifies, so a restart mid-pass doesn't lose the emails.
+      onRead: async (t) => {
+        read.push(t);
+        markRead(t.appId);
+        if (stop || sent >= perRun) return;
+        if (t.primarySignal === null || t.signalCounts[t.primarySignal] < MIN_EVIDENCE || t.score < (opts.minScore ?? 1.2)) return;
+        qualified.push(t);
+        await pitch(t);
+      },
+    });
   } catch (err) {
     await log("research", `couldn't read the ${chart.label} chart`, err instanceof Error ? err.message.slice(0, 160) : "unknown error", "will try the next chart next cycle");
-    return { sent: 0, reason: "store chart unavailable" };
+    return { sent, reason: "store chart unavailable" };
   }
-  for (const t of read) recentlyRead.set(t.appId, Date.now());
   await recordResearch(ctx, chart.label, read, log);
-  const fresh = targets.filter((t) => t.primarySignal !== null && t.signalCounts[t.primarySignal] >= MIN_EVIDENCE && t.score >= (opts.minScore ?? 1.2));
-  await log("research", `found ${fresh.length} new studios worth pitching`, fresh.slice(0, 3).map((t) => t.appTitle).join(", ") || null, null);
-
-  let sent = 0;
-  for (const t of fresh) {
-    if (sent >= perRun) break;
-    rememberTarget(t);
-    const email = await findGenericContact(ctx.monid, t.developer, t.appId).catch(() => null);
-    if (!email) {
-      await log("research", `no public contact for ${t.developer}`, "only role-based addresses are used", "skipped");
-      continue;
-    }
-    await log("research", `found a public contact for ${t.developer}`, t.reason, email.replace(/^[^@]+/, (m) => `${m[0]}…`));
-    const lead = await toolSaveLead(ctx, { appId: t.appId, company: t.developer, email });
-    const draft = await toolDraftOutreach(ctx, { leadId: lead.id, senderName: "Noel Sason" });
-    if (draft.blockedReason) {
-      await log("sales-sender", `held the email to ${t.developer}`, draft.blockedReason, "not sent");
-      if (/Daily cap/.test(draft.blockedReason)) break;
-      continue;
-    }
-    const res = await toolSendOutreach(ctx, { draftId: draft.draftId });
-    if (res.status === "sent") sent++;
-  }
+  await log("research", `found ${qualified.length} new studios worth pitching`, qualified.slice(0, 3).map((t) => t.appTitle).join(", ") || null, sent ? `${sent} emailed` : null);
   return { sent, reason: null };
 }
 
