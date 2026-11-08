@@ -20,6 +20,16 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 19:25 PT · Abhinav (Claude) · branch `main`
+
+**What:** The Naïve client in `platform/naive` now retries every SDK call on 429/503 with backoff
+(`src/client.ts` wraps the client), so `vault`, `setup`, `kill`, and the watchers survive "the
+service is at capacity". Platform redeployed at 19:12 with the two catalogs.
+**Why:** `vault` died on a 429 before it could store the `/mcp/crm` credential.
+**Files:** `platform/naive/src/client.ts`.
+**State:** Typechecks. Vault/setup/approval-test not yet run with the split.
+**Next / heads-up:** Abhinav: `npm run vault && npm run setup && npm run approval-test`.
+
 ### 2026-11-07 7:14 PM PT · Pinara · Claude Code · main
 - **What:** The speed tests in Splash Sort and Turbo Lanes measure CPU time (`process.cpuUsage`) instead of wall time. The limits are the same (3 s and 4 s).
 - **Why:** Turbo Lanes' test failed 4 of 5 runs while a solver worker was using the laptop's cores (load average about 30 on 8 cores): 6.0 s wall time, but only 2.1 s of CPU. A test that fails on a busy machine says nothing about the game.
