@@ -20,7 +20,7 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
-### 2026-11-07 7:46 PM PT · Noel · Claude Code · main
+### 2026-11-07 7:35 PM PT · Noel · Claude Code · main
 - **What:** Auto-tuner: MAX_ROUNDS 6 → 12. It also accepts a level when the target lies inside the measurement's 95% interval and the measurement is within 8 pts (`onTarget`; the strict ±5 still accepts as before). Restarted the solver worker on Noel's laptop.
 - **Why:** Every tuned level was rejected (12 match-3, 4 water sort, 0 accepted), so nothing ever reached /play. They were converging and running out of rounds (e.g. 0% → 14% → 28% vs a 35% target; the last one's interval was 20–39%).
 - **Files:** `solver/src/autotune.ts`, `solver/test/autotune.test.ts`
@@ -52,7 +52,7 @@ has no `NAIVE_API_KEY`.
 
   Otherwise both run. That's harmless but doubles match3 at :00 and :40. Spend: this is up to
   144 runs a day against the Designer's $35 daily cap.
-### 2026-11-07 7:40 PM PT · Noel · Claude Code · main
+### 2026-11-07 7:31 PM PT · Noel · Claude Code · main
 - **What:** Candy Crush Saga and Sudoku.com installed on the main cloud iPhone from Mobilerun's catalog (18 s and 9 s), and added to the phone loop's market-study rotation as native apps: started by bundle id, labeled "(iOS app, market study)", shown on the console as "Now playtesting Candy Crush Saga, an App Store game". We study the genre leader's difficulty ramp; we never use its name or art in our games.
 - **Why:** Noel spotted Candy Crush in Mobilerun's catalog. Real App Store games on the phone make a stronger Mobilerun demo.
 - **Files:** `business/src/mobile/loop.ts`, `business/test/playtest-loop.test.ts`, `demo/src/moments.ts`
@@ -79,7 +79,7 @@ posts, pays, or touches a phone is approvable.
 `ses_dgf2ak…` by hand:** that's a step-in; add a row to `interventions` (who/what/why) so the
 count is honest.
 
-### 2026-11-07 7:28 PM PT · Noel · Claude Code (pricing + App Store subagents + main) · main
+### 2026-11-07 7:26 PM PT · Noel · Claude Code (pricing + App Store subagents + main) · main
 - **What:** (1) **Billing is LIVE.** Stripe account activated as an individual (no Atlas), charges and payouts enabled. Live webhook we_1UZMf3… (checkout.session.completed, invoice.paid, customer.subscription.deleted). Server uses `STRIPE_SECRET_KEY_LIVE` when `BILLING_ALLOW_LIVE=1` (`activeStripeKey` in config.ts) and verifies both test and live webhook secrets. Verified: a live $5 payment link from /playtest-orders, live checkout sessions for the pack and subscription; nothing was paid. (2) **Every product has a price:** $5 iPhone playtest, $49 level pack (20 tuned levels in 48 h), $199/month subscription (40 levels + 4 playtests a month + API). `POST /orders` (Checkout, one-time or subscription, prices reused by lookup key), webhook handling for purchases, renewals, and cancellations, honest confirmation emails, "delivery owed" log lines, `biz_subscriptions` table. `/pricing` page, a pricing section on home, "Pricing" in every nav. (3) **App Store installs:** second cloud iPhone "Level AI App Store iPhone" (`MOBILERUN_APPSTORE_DEVICE_ID`, from Mobilerun's granted 3-day subscription). When the API install 404s (Mobilerun's catalog lacks our games; the 9 queued apps still 404), the agent installs through the phone's App Store and the playtest runs there.
 - **Why:** Noel: price every product, go live with money, make App Store apps open.
 - **Files:** `business/src/{leads/orders.ts,billing/stripe.ts,app.ts,config.ts,store.ts,types.ts,db/schema.sql,mobile/install.ts,leads/playtest-offer.ts}`, `business/test/{orders,appstore-install}.test.ts`, `site/pricing.html`, `site/*.html` (nav), `site/styles.css`
