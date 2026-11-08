@@ -9,6 +9,8 @@ import { handleStripeWebhook, stripeClient } from "./billing/stripe.js";
 import { intakeLead } from "./leads/intake.js";
 import { runLiveSignup } from "./leads/live.js";
 import { joinPage } from "./leads/join-page.js";
+import { playtestPage } from "./leads/playtest-page.js";
+import { createPlaytestOrder, enqueue, runPlaytestOrder } from "./leads/playtest-offer.js";
 import { mobilerunClient } from "./mobile/playtest.js";
 import { naiveClient, startSession } from "./naive.js";
 import { buildMcpServer } from "./mcp/server.js";
@@ -86,6 +88,10 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
       const outcome = await handleStripeWebhook({
         stripe: ctx.stripe, webhookSecret: config.STRIPE_WEBHOOK_SECRET, rawBody: raw, signature: header(request, "stripe-signature"), store: ctx.store,
       });
+      if (outcome.kind === "paid" && outcome.metadata.product === "playtest" && outcome.payment.leadId && outcome.metadata.app_url) {
+        const lead = await ctx.store.getLead(outcome.payment.leadId);
+        if (lead) void enqueue(() => runPlaytestOrder(ctx, lead, outcome.metadata.app_url!, outcome.metadata.focus || null)).catch(() => undefined);
+      }
       return json(200, { received: true, outcome: outcome.kind });
     }
 
@@ -110,6 +116,17 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
 
     if (request.method === "GET" && (url.pathname === "/join" || url.pathname === "/")) {
       return new Response(joinPage(config.COMPANY_NAME), { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
+    if (request.method === "GET" && url.pathname === "/playtest") {
+      return new Response(playtestPage(config.COMPANY_NAME, ctx.stripe ? config.PLAYTEST_PRICE_USD : undefined, url.searchParams.get("paid") === "1"), {
+        status: 200, headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/playtest-orders") {
+      const result = await createPlaytestOrder(ctx, JSON.parse(await readBody(request)));
+      return json(result.ok ? 201 : 400, result.ok ? { ok: true, payUrl: result.payUrl } : { ok: false, error: result.error });
     }
 
     if (request.method === "POST" && url.pathname === "/leads") {

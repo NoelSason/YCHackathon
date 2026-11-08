@@ -23,6 +23,8 @@ export function stripeClient(secretKey: string, allowLive: boolean): Stripe {
 
 export interface PaymentLinkInput {
   product: Product;
+  /** Extra details that travel to the webhook, such as the app to playtest. */
+  extraMetadata?: Record<string, string>;
   name: string;
   amountMinor: number;
   currency?: string;
@@ -34,7 +36,7 @@ export interface PaymentLinkInput {
 /** Creates a one-off price and a payment link. The lead id travels in metadata to the webhook. */
 export async function createPaymentLink(stripe: Stripe, input: PaymentLinkInput): Promise<{ url: string; id: string }> {
   if (!Number.isInteger(input.amountMinor) || input.amountMinor <= 0) throw new Error("amountMinor must be a positive integer.");
-  const metadata = { product: input.product, lead_id: input.leadId ?? "" };
+  const metadata = { ...(input.extraMetadata ?? {}), product: input.product, lead_id: input.leadId ?? "" };
   const price = await stripe.prices.create({
     currency: input.currency ?? "usd",
     unit_amount: input.amountMinor,
@@ -51,7 +53,7 @@ export async function createPaymentLink(stripe: Stripe, input: PaymentLinkInput)
 export type WebhookOutcome =
   | { kind: "ignored"; type: string }
   | { kind: "duplicate"; eventId: string }
-  | { kind: "paid"; payment: PaymentRecord };
+  | { kind: "paid"; payment: PaymentRecord; metadata: Record<string, string> };
 
 /**
  * Verifies and handles one Stripe webhook. On `checkout.session.completed` with a paid session, it
@@ -96,5 +98,5 @@ export async function handleStripeWebhook(args: {
     costUsd: null,
     human: false,
   });
-  return { kind: "paid", payment };
+  return { kind: "paid", payment, metadata: { ...(session.metadata ?? {}) } };
 }

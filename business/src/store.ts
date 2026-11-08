@@ -294,7 +294,7 @@ export class PlatformStore implements Store {
       amountMinor: Math.round(Number(row.amount_usd) * 100),
       currency: "usd",
       livemode: row.mode === "live",
-      product: (["pilot_pack", "hint_pack"].includes(String(row.product)) ? row.product : "other") as PaymentRecord["product"],
+      product: (["pilot_pack", "hint_pack", "playtest"].includes(String(row.product)) ? row.product : "other") as PaymentRecord["product"],
       createdAt: iso(row.ts),
     }));
   }

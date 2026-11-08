@@ -74,7 +74,7 @@ export interface PaymentRecord {
   amountMinor: number;
   currency: string;
   livemode: boolean;
-  product: "pilot_pack" | "hint_pack" | "other";
+  product: "pilot_pack" | "hint_pack" | "playtest" | "other";
   createdAt: string;
 }
 

@@ -36,6 +36,8 @@ const EnvSchema = z.object({
 
   // Prices are team decisions, so there are no defaults. Unset means "reply for details" and no link.
   PILOT_PRICE_USD: z.coerce.number().positive().optional(),
+  /** Price of one phone playtest. Unset = playtests are free (no payment link). */
+  PLAYTEST_PRICE_USD: z.coerce.number().positive().optional(),
   PILOT_LEVELS: z.coerce.number().int().positive().default(20),
   HINT_PACK_PRICE_USD: z.coerce.number().positive().optional(),
 

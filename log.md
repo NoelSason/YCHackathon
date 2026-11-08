@@ -80,6 +80,24 @@ is attached. **Noel:** send Abhinav `BUSINESS_MCP_URL` and `BUSINESS_MCP_TOKEN` 
 repo-root `.env` is only on your laptop. Then `npm run vault && npm run setup` attaches your
 tools to the agents.
 
+### 2026-11-07 16:30 PT · Noel (Claude Code) · branch `main`
+
+**What:** **A revenue product and a real website.**
+- **Phone playtest offer (`/playtest` on the business server):** a team enters its app link and gets the app played
+  on our real cloud iPhone, with a report emailed in about 10 minutes. With `PLAYTEST_PRICE_USD` and a Stripe key set,
+  the team pays through a Stripe link and the paid webhook starts the playtest. Without them, it's free during the
+  hackathon. Orders queue, because there's one phone.
+- **Website redesigned and live at https://levelai.vercel.app**: a puzzle-game look, an original animated level being
+  tuned on a difficulty meter, and new privacy and terms pages. This is the business URL for Stripe.
+**Files:** `business/src/leads/playtest-offer.ts`, `business/src/leads/playtest-page.ts`, `business/src/app.ts`,
+`business/src/billing/stripe.ts`, `site/`.
+**State:** 59 business tests and the typecheck pass. The playtest offer is tested with a fake phone, and the real phone
+path was verified earlier this afternoon. The site was checked live: home, privacy, and terms all return 200, with
+screenshots.
+**Next / heads-up:** Noel: set `PLAYTEST_PRICE_USD`, add the Stripe key, and set `BILLING_ALLOW_LIVE=1` to charge real money.
+
+---
+
 ### 2026-11-07 16:10 PT · Abhinav (Claude) · branch `main`
 
 **What:** Fixed `approval-test` events page size (Naïve caps `limit` at 100). Second probe
