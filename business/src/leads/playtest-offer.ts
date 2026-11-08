@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { ToolContext } from "../mcp/tools.js";
 import { createPaymentLink } from "../billing/stripe.js";
 import { runPlan, type PlaytestOutcome } from "../mobile/playtest.js";
+import { installFromAppStore } from "../mobile/install.js";
+import { appIdFromStoreUrl } from "./intake.js";
 import { idempotencyKey } from "../outreach/send.js";
 import type { Lead } from "../types.js";
 import { finish, step } from "./progress.js";
@@ -142,18 +144,30 @@ export async function runPlaytestOrder(ctx: ToolContext, lead: Lead, appUrl: str
   const deviceId = ctx.config.MOBILERUN_DEVICE_ID;
   if (!ctx.mobilerun || !deviceId) error = "phone not configured";
   else {
-    await log(`playtesting ${lead.company}'s app on the iPhone`, appUrl, null);
-    step(lead.id, "Playing your app on the iPhone");
     try {
+      // An App Store link means a real iOS app: install it from the App Store first, then open it.
+      const storeId = appIdFromStoreUrl(appUrl);
+      let app: { platform: "ios"; package: string; label?: string } = { platform: "ios", package: "safari" };
+      let open = appUrl;
+      if (storeId?.startsWith("ios:")) {
+        step(lead.id, "Installing your app from the App Store");
+        await log(`installing ${lead.company}'s app from the App Store`, appUrl, null);
+        const installed = await installFromAppStore({ client: ctx.mobilerun, deviceId, appStoreId: storeId.slice(4) });
+        await log(`installed ${installed.label} on the iPhone`, appUrl, installed.packageName);
+        app = { platform: "ios", package: installed.packageName, label: installed.label };
+        open = `the "${installed.label}" app icon on the home screen`;
+      }
+      await log(`playtesting ${lead.company}'s app on the iPhone`, appUrl, null);
+      step(lead.id, "Playing your app on the iPhone");
       outcome = await runPlan({
         client: ctx.mobilerun,
         deviceId,
         model: ctx.config.MOBILERUN_MODEL,
         plan: {
           planId: `order-${lead.id.slice(0, 8)}`,
-          app: { platform: "ios", package: "safari" },
-          goal: `Try this app like a first-time user${focus ? `, paying attention to: ${focus}` : ""}. Explore its main screens and report what works and what breaks.`,
-          steps: [{ level: "app", open: appUrl, attempts: 1 }],
+          app,
+          goal: `Try this app like a first-time user${focus ? `, paying attention to: ${focus}` : ""}. Explore its main screens (and play a level if it's a game), and report what works and what breaks.`,
+          steps: [{ level: "app", open, attempts: 1 }],
           limits: { maxMinutes: 8 },
         },
       });

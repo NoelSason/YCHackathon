@@ -20,6 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:16 PT · Max (Codex) · branch `max-game-prism-pipes`
+
+**What:** Resolved the PR's `log.md` merge conflict by preserving main's new entries and the Crate Grove entries in chronological order. Corrected the incoming console entry's time to match its commit timestamp.
+**Why:** Both main and the PR added entries at the top of the log, which made PR #3 unmergeable.
+**Files:** `log.md`.
+**State:** Conflict resolution is staged locally; the PR mergeability check will rerun after this merge commit is pushed.
+**Next / heads-up:** Keep future PR log entries in descending Pacific time and check current main before updating the log.
+
 ### 2026-11-07 17:13 PT · Max (Codex) · branch `max-game-prism-pipes`
 
 **What:** Fixed Crate Grove's renderer so a crate leaving its authored map cell leaves floor behind, while goals remain visible under a crate or player.
@@ -28,11 +36,18 @@ This is the team's build log. It isn't the company's agent activity log, which t
 **State:** Crate Grove typecheck and build passed. A movement smoke check confirmed the player and crate source cells clear and the goal under the crate remains rendered.
 **Next / heads-up:** Reload the local game at `http://localhost:5176/` to try the fix. Hosting and Naïve skill publication are still pending.
 
-### 2026-11-07 17:05 PT · Max (Codex) · branch `max-game-prism-pipes`
+### 2026-11-07 17:13 PT · Noel (Claude Code) · branch `main`
+- **What:** Console scrolls now: the page scrolls when the window is shorter than the layout, and the activity feed scrolls on its own. Includes the demo agent's in-progress console work that was already live.
+- **Why:** On a laptop the bottom row (Studios funnel, step-ins) was cut off and nothing scrolled.
+- **Files:** `demo/public/index.html`, `demo/public/outreach.html`, `demo/src/*`
+- **State:** works; checked the served page at localhost:4545 and demo typecheck passes.
+- **Next / heads-up:** Demo agent is still adding click-through drawers (agent filter, stat details, funnel stages, phone modal).
+
+### 2026-11-07 17:08 PT · Max (Codex) · branch `max-game-prism-pipes`
 
 **What:** Created Crate Grove, an original crate-pushing puzzle with a responsive local browser game, shared engine, seeded bots, exact solver, level adapter, and Designer skill. Registered it with the platform and added the MCP schema lookup so the Designer can use an adapter's authoritative schema.
 **Why:** Continue expanding the studio's original game catalog while keeping browser, solver, and platform validation on one set of rules.
-**Files:** `games/crategrove/`, `platform/mcp/`, `platform/naive/src/roster.ts`, `platform/CONTRACTS.md`, `games/skill-routing.json`, game catalog and project docs. Generated `dist/` files are ignored and not shipped in Git.
+**Files:** `games/crategrove/`, `platform/mcp/`, `platform/naive/src/roster.ts`, `platform/CONTRACTS.md`, `games/skill-routing.json`, game catalog and project docs.
 **State:** Crate Grove build and strict typecheck passed; MCP and Naïve typechecks passed; routing JSON parsed; `git diff --check` passed. Hosting and a live Designer run were not configured here.
 **Next / heads-up:** Pinara/Abhinav: publish `games/crategrove/SKILL.md` as `game-crategrove@1` and attach it to Designer/Tuner. Max: set `PLATFORM_URL` when building for hosted saved-level URLs and events. The master plan still describes the earlier game roster; update it with team agreement.
 
@@ -95,6 +110,21 @@ human-bot win rates that respond smoothly to one knob each.
   team should confirm.
 - **Pinara:** restart the solver worker (Ctrl-C, `caffeinate -i npm run worker`), so it loads the
   new registry with match3, platformer, watersort, and racer.
+
+### 2026-11-07 17:05 PT · Noel (Claude Code) · branch `main`
+
+**What:** **App Store playtests: built, but installs fail on our cloud iPhone.** A playtest order with an App Store link
+(`apps.apple.com/…/id123`) now installs the app on the phone through Mobilerun (`devices.apps.install` with the
+numeric App Store id), finds it by diffing the app list, and plays it by its home-screen label. It fails fast if the
+install fails. **Live test on Nov 7, 4:57 PM:** installing Ketchapp's "2048" (840919914) failed immediately (install log:
+`status: failed`, no reason given). The likely cause is that the cloud iPhone isn't signed in to an App Store account
+(unverified). Until that's solved, App Store orders get an honest "couldn't install" report, and web links work as before.
+**Files:** `business/src/mobile/install.ts`, `business/src/mobile/plan.ts`, `business/src/leads/playtest-offer.ts`.
+**State:** 71 tests pass. The failure path was verified live.
+**Next / heads-up:** **Noel:** ask Mobilerun how to enable App Store installs on the cloud iPhone (is an Apple ID
+required?). Android playtests need an APK uploaded to the Mobilerun app library.
+
+---
 
 ### 2026-11-07 17:00 PT · Noel (Claude Code) · branch `main`
 

@@ -39,6 +39,8 @@ export interface StageStats {
   lastStepInAt: string | null;
   /** Start of the current unattended stretch: the last step-in, or the first event if none. */
   unattendedSince: string | null;
+  /** Agent actions logged after the unattended stretch began (all of them when there are no step-ins). */
+  actionsSinceStepIn: number;
   perAgent: AgentStat[];
 }
 
@@ -126,6 +128,15 @@ export function normalizeRow(raw: Row, source: string, opts: { forceHuman?: bool
   };
 }
 
+/**
+ * Setup checks the team ran while wiring things up (the "probe" agent, "approval_test" rows). They
+ * aren't the company's work, so the stage leaves them out. Human step-ins are never treated as noise.
+ */
+export function isSetupNoise(e: StageEvent): boolean {
+  if (e.human) return false;
+  return e.agent === "probe" || /^approval[_ ]test/i.test(e.action);
+}
+
 export const byTime = (a: StageEvent, b: StageEvent): number => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0);
 
 export function computeStats(events: readonly StageEvent[]): StageStats {
@@ -158,6 +169,9 @@ export function computeStats(events: readonly StageEvent[]): StageStats {
     perAgent.set(e.agent, s);
   }
 
+  const since = lastStepInAt;
+  const actionsSinceStepIn = since ? events.filter((e) => !e.human && e.at > since).length : agentActions;
+
   return {
     agentActions,
     decisions,
@@ -167,6 +181,7 @@ export function computeStats(events: readonly StageEvent[]): StageStats {
     lastAt,
     lastStepInAt,
     unattendedSince: lastStepInAt ?? firstAt,
+    actionsSinceStepIn,
     perAgent: [...perAgent.values()].sort((a, b) => b.count - a.count),
   };
 }
