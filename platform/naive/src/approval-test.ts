@@ -28,7 +28,9 @@ probe = probe ? ((await naive.agents.update(probe.id, body)) as { id: string; na
 
 const session = await naive.sessions.create({
   agent_id: probe.id,
-  message: "Call platform.list_games, then call platform.log_action with agent 'probe', action 'approval_test', reason 'checking whether allow-listed MCP tools run unattended'. Then reply 'done'.",
+  // Two dependent turns on purpose: the second call needs the first call's result, so the model
+  // cannot batch them. This is what the CEO does on every run.
+  message: "Step 1: call platform.list_games and wait for the result. Step 2: call platform.log_action with agent 'probe', action 'approval_test', reason set to the exact number of games returned in step 1 followed by ' games listed'. Then reply 'done'.",
   budget_micro_usd: 200_000,
 });
 console.log("session", session.id);

@@ -20,6 +20,26 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 18:40 PT · Abhinav (Claude) · branch `main`
+
+**What:** **The people-data rule is not about field names.** CEO run
+`ses_dgf2ak056kn4yqnr3gr0mme0jh` (after the metrics split): batch 1 of four reads
+(`get_company_metrics`, `list_games`, `get_recent_decisions`, `board_read`) all completed with
+no people fields in any output; batch 2 (`get_player_stats` ×5, `get_spend`, `log_action`) was
+all held with `read_people: true`. So reading ANY output from an MCP server sets the flag for the
+chat, and every later MCP call in that chat asks. The earlier probe passed only because its two
+calls ran in one parallel batch. `approval-test` is now two dependent turns and reproduces this.
+**Why:** Every multi-step agent on our servers (CEO, Tuner, Finance, Research, Sales) stalls on
+its second turn. This blocks the unattended run.
+**Files:** `platform/naive/src/approval-test.ts`.
+**State:** Company switched on; the CEO and designer crons stall after their first turn.
+**Next / heads-up:** **Decision needed from the team by 8 PM.** (A) Abhinav asks Naïve staff for a
+per-server or per-agent exemption; (B) a policy auto-approver for our own servers only, every
+approval logged as `platform.auto_approve` and disclosed in the demo (written, not wired, not
+committed; pending team decision); (C) a human approves each held batch with scope "session",
+logged as step-ins; (D) restructure agents to one read batch + board-driven writes. **Pinara:**
+the Tuner's solve → poll → accept loop hits this too.
+
 ### 2026-11-07 18:30 PT · Abhinav (Claude) · branch `main`
 
 **What:** Platform redeployed at 18:26 with the `get_company_metrics` split and Pinara's
