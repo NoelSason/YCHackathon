@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 5:24 PM PT · Noel · Claude Code (demo subagent + main) · main
+- **What:** Console redesign in the site's look, now interactive: click an agent to filter the feed, click a row for full text, click a number for the rows behind it, click a studio stage for that stage's studios, click the phone to enlarge it with the latest playtest steps. It scrolls on short screens, with each panel scrolling on its own. Presenter keys F/O/Q/P/D/?/Esc. Moments fire only from real log rows. `./demo.sh --rehearsal` plays an invented story under a permanent REHEARSAL DATA banner. Live mode hides team test studios and setup rows (probe, approval_test, and now the CEO's smoke-test decisions). Outreach loop rotation now starts from the clock, so a restart moves to a new chart.
+- **Why:** Noel: make the console useful and show what's happening; the Decisions count was 3 smoke-test rows.
+- **Files:** `demo/` (index.html, outreach.html, src/moments.ts, src/events.ts, src/feeds.ts, src/outreach.ts, src/server.ts, README.md, test/moments.test.ts), `business/src/outreach/autopilot.ts`
+- **State:** works; demo typecheck and 14 tests pass, :4545 and levelai-console.vercel.app serve it behind the password, Decisions now reads 0 (honest).
+- **Next / heads-up:** The live phone has been sitting on Apple Account sign-in screens that show two iCloud addresses. Clear it before the demo, because it goes straight to the projector.
+
 ### 2026-11-07 5:22 PM PT · Noel · Claude Code (level-delivery subagent + main) · main
 - **What:** Web player for agent-made levels at https://levelai.vercel.app/play (`?level=<id>`, `?pack=<id>`, or newest pack), built on Max's match-3 engine (unchanged, MIT credit kept). Public read-only level API (`/levels/:id`, `/packs/:id`, `/levels-latest`; accepted/published match3 only, notes and creator private). Player events post to the platform's `/events`. Welcome email links the newest pack when one exists, otherwise keeps the reply wording; it now also sends its HTML version (it had been going out as plain text only).
 - **Why:** The emails promise free levels; there was nowhere to play them.

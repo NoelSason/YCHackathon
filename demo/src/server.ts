@@ -5,7 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import QRCode from "qrcode";
 import { timingSafeEqual } from "node:crypto";
-import { loadOutreach, sampleOutreach } from "./outreach.js";
+import { loadOutreach, loadStageStudios, PIPELINE_STAGES, sampleOutreach, sampleStageStudios } from "./outreach.js";
 import { momentFor } from "./moments.ts";
 import { computeStats, type StageEvent } from "./events.ts";
 import { DEFAULT_ACTIVITY, DEFAULT_STEPINS, LiveFeed, RehearsalFeed, ReplayFeed, parseTables, type Feed, type HealthItem, type Pipeline } from "./feeds.ts";
@@ -187,6 +187,40 @@ const server = createServer(async (req, res) => {
         const board = feed.mode === "sample" ? sampleOutreach() : await loadOutreach(env.DATABASE_URL);
         res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
         res.end(JSON.stringify({ ...board, mode: feed.mode }));
+        return;
+      }
+      case "/api/rows": {
+        // The rows behind a stat card on the console, newest first.
+        const type = url.searchParams.get("type") ?? "actions";
+        const pick: Record<string, (e: StageEvent) => boolean> = {
+          actions: (e) => !e.human,
+          decisions: (e) => e.kind === "decision",
+          stepins: (e) => e.human,
+          spend: (e) => (e.costUsd ?? 0) > 0,
+        };
+        const test = pick[type];
+        if (!test) {
+          res.writeHead(400);
+          res.end("Unknown type");
+          return;
+        }
+        const list = events.filter(test);
+        const totalUsd = Math.round(list.reduce((sum, e) => sum + (e.costUsd ?? 0), 0) * 100) / 100;
+        res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+        res.end(JSON.stringify({ type, count: list.length, totalUsd, rows: annotate(list.slice(-300)).reverse() }));
+        return;
+      }
+      case "/api/studios": {
+        // The studios in one pipeline stage, for the stage's drawer. Internal test orders are left out.
+        const stage = url.searchParams.get("stage") ?? "";
+        if (!(PIPELINE_STAGES as readonly string[]).includes(stage)) {
+          res.writeHead(400);
+          res.end("Unknown stage");
+          return;
+        }
+        const studios = feed.mode === "sample" ? sampleStageStudios(stage) : await loadStageStudios(env.DATABASE_URL, stage);
+        res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+        res.end(JSON.stringify({ stage, studios }));
         return;
       }
       case "/api/state":

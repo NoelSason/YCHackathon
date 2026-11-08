@@ -51,13 +51,38 @@
     color: var(--ink);
     font: 500 1rem/1.35 var(--body);
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden; overflow-y: auto;
+    overflow-x: hidden;
   }
+  /* Rows are placed explicitly, so a hidden banner never shifts the stage into the wrong row. */
   .app {
-    height: 100vh; min-height: 46rem; display: grid; gap: var(--gap);
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    min-height: 100vh; display: grid; gap: var(--gap);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
     padding: 0.85rem 1.3rem 1.25rem;
   }
+  .app > header { grid-row: 1; }
+  .app > .banner { grid-row: 2; }
+  .app > .stage { grid-row: 3; }
+  .app > footer { grid-row: 4; }
+  /* A big window (the projector): everything on one screen. */
+  @media (min-height: 850px) and (min-width: 1101px) and (min-aspect-ratio: 5/4) {
+    .app { height: 100vh; grid-template-rows: auto auto minmax(0, 1fr) auto; }
+  }
+  /* A shorter window (a laptop): the page scrolls, and the team and feed keep a usable height. */
+  @media (max-height: 849px) and (min-width: 1101px) and (min-aspect-ratio: 5/4) {
+    .bottom { height: max(30rem, 64vh); }
+  }
+  .scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--ink-3) transparent; }
+  .scroll::-webkit-scrollbar { width: 0.55rem; }
+  .scroll::-webkit-scrollbar-thumb { background: var(--ink-3); border-radius: 999px; }
+  .scroll::-webkit-scrollbar-track { background: transparent; }
+  .steps.scroll { scrollbar-color: #c9cee0 transparent; }
+  .steps.scroll::-webkit-scrollbar-thumb { background: #c9cee0; }
+
+  /* Anything clickable lifts a little on hover and presses down on click, like the website's buttons. */
+  .clickable { cursor: pointer; transition: transform .12s ease, box-shadow .12s ease, border-color .2s, background-color .2s; }
+  .clickable:hover { transform: translateY(-2px); }
+  .clickable:active { transform: translateY(2px); }
   :focus-visible { outline: 3px solid var(--cobalt); outline-offset: 3px; border-radius: 6px; }
 
   /* ---------- header ---------- */
@@ -155,6 +180,11 @@
   .stat .k { font: 700 0.95rem/1.15 var(--body); color: var(--on-ink-2); }
   .stat .v { grid-column: 1 / -1; font: 800 3rem/1 var(--display); letter-spacing: -0.04em; margin-top: 0.35rem; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
   .stat.human .v { color: #ffb0a8; }
+  .stat.clickable:hover { box-shadow: 0 0.5rem 0 var(--ink-deep); background: var(--ink-2); }
+  .stat.clickable:active { box-shadow: 0 0.1rem 0 var(--ink-deep); }
+  .stage-n.clickable { border-radius: 0.6rem; padding: 0.25rem 0.35rem; margin: -0.25rem -0.35rem; }
+  .stage-n.clickable:hover { background: rgba(255, 255, 255, 0.07); transform: none; }
+  .phone-card.clickable:hover { box-shadow: 0 0 0 3px var(--sun), 0 0.4rem 0 var(--ink-deep); transform: none; }
   .bump { animation: bump 0.7s ease-out; }
   @keyframes bump { 30% { transform: translateY(-0.25rem) scale(1.06); color: var(--sun); } }
 
@@ -168,7 +198,7 @@
 
   /* ---------- team ---------- */
   .team { display: flex; flex-direction: column; }
-  .agents { list-style: none; margin: 0; padding: 0 0.75rem 0.8rem; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, minmax(0, 1fr)); grid-auto-rows: 0; gap: 0.55rem; flex: 1; min-height: 0; overflow: hidden; }
+  .agents { list-style: none; margin: 0; padding: 0 0.75rem 0.8rem; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(4.4rem, auto); align-content: start; gap: 0.55rem; flex: 1; min-height: 0; }
   .agent {
     position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 0.2rem 0.55rem; align-items: center; align-content: center;
     background: var(--ink-2); border-radius: 0.9rem; padding: 0.6rem 0.65rem; min-height: 0; overflow: hidden;
@@ -183,6 +213,9 @@
   .agent.working .tile { animation: bob 1.4s ease-in-out infinite; }
   .agent.working .ago { color: var(--c); }
   .agent.working.light .ago { color: var(--c); }
+  .agent { cursor: pointer; }
+  .agent:hover { background: color-mix(in srgb, var(--c) 12%, var(--ink-2)); }
+  .agent.selected { border-color: #fff; background: color-mix(in srgb, var(--c) 26%, var(--ink-2)); }
   .agent.pop { animation: cardpop 0.75s cubic-bezier(.3, 1.5, .5, 1); }
   @keyframes bob { 50% { transform: translateY(-0.18rem) rotate(-6deg); } }
   @keyframes cardpop { 0% { transform: scale(0.94); box-shadow: 0 0 0 0.4rem color-mix(in srgb, var(--c) 60%, transparent); } 100% { transform: none; box-shadow: 0 0 0 0 transparent; } }
@@ -190,10 +223,17 @@
 
   /* ---------- feed ---------- */
   .feed-card { display: flex; flex-direction: column; }
-  .feed {
-    list-style: none; margin: 0; padding: 0 var(--pad) 0.4rem; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent;
-    -webkit-mask-image: linear-gradient(#000 82%, transparent); mask-image: linear-gradient(#000 82%, transparent);
-  }
+  .feed { list-style: none; margin: 0; padding: 0 calc(var(--pad) - 0.4rem) 0.6rem var(--pad); flex: 1; min-height: 0; }
+  .feed .item { cursor: pointer; }
+  .feed .item:hover { background-color: rgba(255, 255, 255, 0.05); }
+  .item .more { display: none; margin-top: 0.4rem; gap: 0.3rem 1.2rem; flex-wrap: wrap; font: 600 0.88rem/1.3 var(--body); color: var(--on-ink-3); }
+  .item.open .more { display: flex; }
+  .item.open .why, .item.open .res { -webkit-line-clamp: unset; display: block; }
+  .chip { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.3rem 0.4rem 0.3rem 0.55rem; border-radius: 999px; background: var(--c, var(--ink-3)); color: #fff; font: 800 0.8rem/1 var(--body); border: 0; cursor: pointer; box-shadow: inset 0 -2px 0 var(--cd, rgba(0,0,0,.25)); }
+  .chip.dark { color: var(--ink); }
+  .chip .x { display: inline-grid; place-items: center; width: 1.1rem; height: 1.1rem; border-radius: 50%; background: rgba(0, 0, 0, 0.22); font-size: 0.75rem; }
+  .chip.all { background: var(--ink-3); padding-right: 0.6rem; }
+  .card-h .filters { margin-left: auto; display: flex; gap: 0.4rem; align-items: center; }
   .item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.8rem; padding: 0.55rem 0.6rem; border-radius: 0.9rem; }
   .item + .item { margin-top: 0.15rem; }
   .item .tile { margin-top: 0.1rem; }
@@ -264,7 +304,7 @@
   .steps-card h3 { margin: 0; display: flex; align-items: center; gap: 0.55rem; font: 700 1rem/1.1 var(--display); letter-spacing: -0.015em; }
   .steps-card h3 .tile { width: 1.15rem; height: 1.15rem; border-radius: 0.3rem; }
   .steps-card h3 small { margin-left: auto; font: 600 0.82rem/1 var(--body); color: var(--ink-soft); letter-spacing: 0; }
-  .steps { display: grid; gap: 0.3rem; min-width: 0; }
+  .steps { display: grid; gap: 0.3rem; min-width: 0; max-height: 3.9rem; align-content: start; padding-right: 0.3rem; }
   .step { display: flex; gap: 0.55rem; align-items: baseline; min-width: 0; font-size: 0.95rem; font-weight: 600; }
   .step time { flex: none; font-weight: 800; color: var(--tomato-d); font-variant-numeric: tabular-nums; }
   .step .s-who { flex: none; font-weight: 800; }
@@ -330,6 +370,35 @@
   #help dd { margin: 0; }
   #help p { margin: 1.2rem 0 0; color: var(--ink-soft); font-weight: 600; }
 
+  /* Drawer: the rows behind a number. */
+  #drawer-bg { position: fixed; inset: 0; z-index: 54; background: rgba(12, 14, 34, 0.45); opacity: 0; pointer-events: none; transition: opacity .25s; }
+  #drawer-bg.on { opacity: 1; pointer-events: auto; }
+  #drawer {
+    position: fixed; z-index: 55; top: 0; right: 0; bottom: 0; width: min(38rem, 100vw);
+    background: var(--ink); color: #fff; box-shadow: -0.4rem 0 0 var(--ink-deep), -2rem 0 4rem rgba(12, 14, 34, 0.35);
+    transform: translateX(105%); visibility: hidden; transition: transform .3s cubic-bezier(.2, 1, .3, 1), visibility 0s .3s; display: flex; flex-direction: column;
+  }
+  #drawer.on { transform: none; visibility: visible; transition: transform .3s cubic-bezier(.2, 1, .3, 1); }
+  .dr-h { display: flex; align-items: flex-start; gap: 0.8rem; padding: 1.2rem 1.3rem 0.8rem; }
+  .dr-h h2 { margin: 0; font: 800 1.5rem/1.15 var(--display); letter-spacing: -0.03em; }
+  .dr-h p { margin: 0.35rem 0 0; font: 600 0.95rem/1.35 var(--body); color: var(--on-ink-2); }
+  .dr-x { margin-left: auto; flex: none; width: 2.4rem; height: 2.4rem; border-radius: 0.7rem; border: 2px solid var(--ink-3); background: var(--ink-2); color: #fff; font: 800 1.1rem/1 var(--display); cursor: pointer; }
+  .dr-x:hover { background: var(--ink-3); }
+  .dr-body { flex: 1; min-height: 0; padding: 0 0.9rem 1.2rem 1.3rem; }
+  .dr-body .feed { padding: 0; }
+  .dr-empty { color: var(--on-ink-3); font: 600 1.05rem/1.4 var(--body); padding: 1rem 0; }
+  .studio { background: var(--ink-2); border-radius: 1rem; padding: 0.8rem 0.95rem; display: grid; gap: 0.35rem; }
+  .studio + .studio { margin-top: 0.6rem; }
+  .studio b { font: 800 1.1rem/1.2 var(--display); letter-spacing: -0.02em; }
+  .studio .g { font: 700 0.92rem/1.2 var(--body); color: var(--sun); }
+  .studio .r { font: 600 0.95rem/1.35 var(--body); color: var(--on-ink-2); }
+  .studio .t { font: 600 0.85rem/1.3 var(--body); color: var(--on-ink-3); }
+  .spend-by { display: grid; grid-template-columns: auto 1fr auto; gap: 0.45rem 0.7rem; align-items: center; margin-bottom: 1rem; font: 700 1rem/1.2 var(--body); }
+  .spend-by .tile { width: 1.3rem; height: 1.3rem; border-radius: 0.35rem; }
+  #pb-steps { list-style: none; margin: 1.6rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+  #pb-steps li { display: grid; grid-template-columns: auto 1fr; gap: 0.8rem; font: 600 1.15rem/1.3 var(--body); color: var(--on-ink-2); }
+  #pb-steps time { font-weight: 800; color: var(--sun); font-variant-numeric: tabular-nums; }
+
   /* Setup details (D). Operator-only. */
   #health { position: fixed; right: 1.2rem; bottom: 1.2rem; width: min(40rem, calc(100vw - 2rem)); background: #fff; color: var(--ink); border: 3px solid var(--ink); border-radius: 1.2rem; box-shadow: 0 0.4rem 0 var(--ink); padding: 1rem 1.2rem; display: none; z-index: 60; }
   #health.show { display: block; }
@@ -351,6 +420,7 @@
     .board-wrap { justify-items: start; }
     .qr-card { justify-content: center; }
     .feed { max-height: 70vh; }
+    .agents { max-height: 60vh; }
     .phone-wrap { height: 70vh; }
     .pipe-card { grid-template-columns: 1fr; }
     .pipe { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr)); }
@@ -394,10 +464,10 @@
         </section>
 
         <section class="stats" aria-label="Totals from the log">
-          <div class="stat"><span class="tile" data-s="circle" style="--c:var(--cobalt);--cd:var(--cobalt-d)"></span><span class="k">Agent actions</span><div class="v" id="actions">0</div></div>
-          <div class="stat"><span class="tile" data-s="star" style="--c:var(--grape);--cd:var(--grape-d)"></span><span class="k">Decisions</span><div class="v" id="decisions">0</div></div>
-          <div class="stat human"><span class="tile" data-s="block"></span><span class="k">Human step-ins</span><div class="v" id="stepins">0</div></div>
-          <div class="stat"><span class="tile" data-s="square" style="--c:var(--mint);--cd:var(--mint-d)"></span><span class="k">Spent</span><div class="v" id="spend">$0</div></div>
+          <div class="stat clickable" role="button" tabindex="0" data-rows="actions" title="See every agent action"><span class="tile" data-s="circle" style="--c:var(--cobalt);--cd:var(--cobalt-d)"></span><span class="k">Agent actions</span><div class="v" id="actions">0</div></div>
+          <div class="stat clickable" role="button" tabindex="0" data-rows="decisions" title="See every decision"><span class="tile" data-s="star" style="--c:var(--grape);--cd:var(--grape-d)"></span><span class="k">Decisions</span><div class="v" id="decisions">0</div></div>
+          <div class="stat human clickable" role="button" tabindex="0" data-rows="stepins" title="See every human step-in"><span class="tile" data-s="block"></span><span class="k">Human step-ins</span><div class="v" id="stepins">0</div></div>
+          <div class="stat clickable" role="button" tabindex="0" data-rows="spend" title="See what was spent"><span class="tile" data-s="square" style="--c:var(--mint);--cd:var(--mint-d)"></span><span class="k">Spent</span><div class="v" id="spend">$0</div></div>
         </section>
 
         <section class="qr-card" id="qr-card" hidden>
@@ -417,16 +487,16 @@
       <div class="bottom">
         <section class="card team" aria-label="The team">
           <div class="card-h">The team <span class="aside" id="team-n"></span></div>
-          <ul class="agents" id="agents"></ul>
+          <ul class="agents scroll" id="agents"></ul>
         </section>
         <section class="card feed-card" aria-label="What the agents are doing">
-          <div class="card-h">What the agents are doing <span class="aside" id="feed-n"></span></div>
-          <ul class="feed" id="feed"><li class="empty">Waiting for the first agent action.</li></ul>
+          <div class="card-h">What the agents are doing <span class="aside" id="feed-n"></span><span class="filters" id="filters" hidden></span></div>
+          <ul class="feed scroll" id="feed"><li class="empty">Waiting for the first agent action.</li></ul>
         </section>
       </div>
     </div>
 
-    <section class="card phone-card" id="phone-card" aria-label="Phone playtest">
+    <section class="card phone-card clickable" id="phone-card" aria-label="Phone playtest" role="button" tabindex="0" title="Enlarge the phone">
       <div class="card-h"><span class="livetag" id="phone-live">Live</span> Real iPhone</div>
       <div class="testing" id="testing" hidden><span class="k" id="nt-k">Now testing</span><span class="nt-name" id="nt-app"></span><small id="nt-who"></small></div>
       <div class="phone-wrap"><div class="phone" id="phone"><div class="off">Phone not connected</div></div></div>
@@ -440,7 +510,7 @@
     </section>
     <section class="steps-card" aria-label="Where a person stepped in">
       <h3><span class="tile" data-s="block"></span>Where a person stepped in <small id="steps-n"></small></h3>
-      <div class="steps" id="steps"><span class="none">None logged</span></div>
+      <div class="steps scroll" id="steps"><span class="none">None logged</span></div>
     </section>
   </footer>
 </div>
@@ -470,6 +540,7 @@
       <div class="pb-kick"><span class="livetag" id="pb-live">Live</span><span id="pb-k">A real iPhone</span></div>
       <h2 id="pb-title">Playtests</h2>
       <p id="pb-sub">Every level and every app is played on a real phone before it ships.</p>
+      <ol id="pb-steps"></ol>
     </div>
   </div>
 </div>
@@ -487,10 +558,17 @@
       <dt><kbd>D</kbd></dt><dd>Setup details (only for you)</dd>
       <dt><kbd>?</kbd></dt><dd>Show or hide these keys</dd>
       <dt><kbd>Esc</kbd></dt><dd>Close whatever is open</dd>
+      <dt>Click</dt><dd>An agent filters the feed. A number, a studio stage, or the phone opens its details.</dd>
     </dl>
     <p id="help-note">Everything on this screen comes from the company's activity log. Nothing is typed in.</p>
   </div>
 </div>
+
+<div id="drawer-bg"></div>
+<aside id="drawer" role="dialog" aria-modal="true" aria-labelledby="dr-title">
+  <div class="dr-h"><div><h2 id="dr-title"></h2><p id="dr-sub"></p></div><button class="dr-x" id="dr-x" type="button" aria-label="Close">✕</button></div>
+  <div class="dr-body scroll" id="dr-body"></div>
+</aside>
 
 <div id="health"><h4>Setup details (press D to hide)</h4><div id="health-list"></div><p>Only you see this. It isn't part of the demo.</p></div>
 
@@ -553,7 +631,8 @@ function show(t) {
   if (t == null) return "";
   let s = tidyUrls(t);
   if (!/\s/.test(s) && /[_.]/.test(s) && !/^\S+\.\S+\/?/.test(s.replace(/[_]/g, ""))) s = s.replace(/[_.]+/g, " ");
-  return /^[\w-]+\.[a-z]{2,}/i.test(s) ? s : s.charAt(0).toUpperCase() + s.slice(1);
+  // Leave domains and (masked) email addresses as written.
+  return /^[\w-]+\.[a-z]{2,}/i.test(s) || /^\S*[@…]/.test(s) ? s : s.charAt(0).toUpperCase() + s.slice(1);
 }
 // Plumbing results (message and lead ids) say nothing to the room.
 const plumbing = (r) => !r || /^message\s*</i.test(r) || /^message\s+\S+$/i.test(r) || /^lead\s+[0-9a-f-]{8,}$/i.test(r) || /^no lead attached$/i.test(r);
@@ -566,7 +645,9 @@ let clockTicks = true;
 let frozenClock = null;
 const stepIns = [];
 const recent = [];          // last 36 events, for the board
-const MAX_FEED = 30;
+const allEvents = [];       // every event this page has received, oldest first (for the agent filter)
+const MAX_FEED = 200;
+let filterAgent = null;     // set by clicking an agent card
 
 const pt = (iso, opts) => new Date(iso).toLocaleString("en-US", { timeZone: "America/Los_Angeles", ...opts });
 const hms = (iso) => pt(iso, { hour: "numeric", minute: "2-digit", second: "2-digit" });
@@ -631,8 +712,8 @@ const cards = new Map();
 function renderAgents(perAgent) {
   const now = stageNow();
   const list = $("agents");
-  // Most recent first, so the agent that just acted sits top-left. Eight fit; the header counts them all.
-  perAgent = [...perAgent].sort((a, b) => (a.lastAt < b.lastAt ? 1 : a.lastAt > b.lastAt ? -1 : 0)).slice(0, 8);
+  // Most recent first, so the agent that just acted sits top-left. The list scrolls when there are many.
+  perAgent = [...perAgent].sort((a, b) => (a.lastAt < b.lastAt ? 1 : a.lastAt > b.lastAt ? -1 : 0));
   const shownKeys = perAgent.map((a) => a.agent);
   if (!shownKeys.length) { list.innerHTML = '<li class="none">No agent has acted yet.</li>'; cards.clear(); return; }
   list.querySelector(".none")?.remove();
@@ -645,17 +726,22 @@ function renderAgents(perAgent) {
       el.className = "agent";
       el.style.cssText = vars(m);
       el.innerHTML = `${tile(m)}<span class="name">${esc(m.name)}</span><span class="count"></span><span class="last"></span>`;
+      el.tabIndex = 0;
+      el.setAttribute("role", "button");
+      const key = a.agent;
+      el.addEventListener("click", () => setFilter(key));
       cards.set(a.agent, el);
     }
     if (list.children[i] !== el) list.insertBefore(el, list.children[i] || null);
     const age = a.lastAt ? now - new Date(a.lastAt).getTime() : Infinity;
     el.classList.toggle("working", age < 45_000);
+    el.classList.toggle("selected", filterAgent === a.agent);
     el.querySelector(".count").textContent = a.count.toLocaleString();
     // "Just now" while the agent is working; otherwise its role, or its latest action.
     el.querySelector(".last").innerHTML = age < 45_000
       ? `<span class="ago">Just now</span> ${esc(show(a.lastAction))}`
       : `${esc(show(a.lastAction) || m.role)} <span class="ago">${esc(ago(age))}</span>`;
-    el.title = m.role;
+    el.title = `${m.role}${m.role ? ". " : ""}Click to show only ${m.name} in the feed.`;
   });
   $("team-n").textContent = `${state?.stats?.perAgent?.length ?? perAgent.length} agents, latest first`;
 }
@@ -666,7 +752,7 @@ function popAgent(agent) {
 }
 
 // ---- Feed ------------------------------------------------------------------------------------
-function itemHtml(e, isNew) {
+function itemHtml(e, isNew, open = false) {
   const m = info(e.human ? "human" : e.agent);
   const who = e.human ? (e.agent === "human" ? "A person" : e.agent) : m.name;
   let tag = "";
@@ -681,9 +767,13 @@ function itemHtml(e, isNew) {
     if (e.why && !plumbing(e.why)) body += `<div class="why">${esc(show(e.why))}</div>`;
     if (e.result && !plumbing(e.result)) body += `<div class="res">${esc(show(e.result))}</div>`;
   }
-  const cls = [e.kind, isNew ? "new" : "", e.moment && e.moment.tier === "big" && e.kind === "action" ? "moment" : ""].join(" ");
-  return `<li class="item ${cls}" style="${vars(m)}">${tile(m)}<div>
-    <div class="meta"><span class="who">${esc(who)}</span>${tag}<time>${hms(e.at)}</time></div>${body}</div></li>`;
+  const when = pt(e.at, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" }) + " PT";
+  const more = [`<span>${esc(when)}</span>`];
+  if (e.costUsd) more.push(`<span>Cost $${e.costUsd < 0.1 ? e.costUsd.toFixed(3) : e.costUsd.toFixed(2)}</span>`);
+  if (!e.human && !e.costUsd) more.push("<span>No cost logged</span>");
+  const cls = [e.kind, isNew ? "new" : "", open ? "open" : "", e.moment && e.moment.tier === "big" && e.kind === "action" ? "moment" : ""].join(" ");
+  return `<li class="item ${cls}" style="${vars(m)}" title="Click for details">${tile(m)}<div>
+    <div class="meta"><span class="who">${esc(who)}</span>${tag}<time>${hms(e.at)}</time></div>${body}<div class="more">${more.join("")}</div></div></li>`;
 }
 
 // What the phone is testing: the newest "playtesting …" row with no finish after it.
@@ -713,11 +803,16 @@ let booted = false;
 function addEvents(list, isNew) {
   trackPlaytests(list);
   if (!list.length) return;
+  allEvents.push(...list);
+  if (allEvents.length > 5000) allEvents.splice(0, allEvents.length - 5000);
   const feed = $("feed");
-  if (feed.querySelector(".empty")) feed.innerHTML = "";
-  const html = list.slice(-MAX_FEED).reverse().map((e) => itemHtml(e, isNew)).join("");
-  feed.insertAdjacentHTML("afterbegin", html);
-  while (feed.children.length > MAX_FEED) feed.lastElementChild.remove();
+  const shownNow = list.filter(matchesFilter);
+  if (shownNow.length) {
+    if (feed.querySelector(".empty")) feed.innerHTML = "";
+    feed.insertAdjacentHTML("afterbegin", shownNow.slice(-MAX_FEED).reverse().map((e) => itemHtml(e, isNew)).join(""));
+    while (feed.children.length > MAX_FEED) feed.lastElementChild.remove();
+  }
+  renderPlaytestSteps();
   recent.push(...list);
   if (recent.length > 36) recent.splice(0, recent.length - 36);
   renderBoard(isNew);
@@ -730,11 +825,34 @@ function addEvents(list, isNew) {
   }
 }
 
+// ---- Feed filter: click an agent to see only its rows ------------------------------------------
+const matchesFilter = (e) => !filterAgent || (!e.human && e.agent === filterAgent);
+function renderFeed() {
+  const list = allEvents.filter(matchesFilter).slice(-MAX_FEED).reverse();
+  const m = filterAgent ? info(filterAgent) : null;
+  $("feed").innerHTML = list.length
+    ? list.map((e) => itemHtml(e, false)).join("")
+    : `<li class="empty">${m ? `${esc(m.name)} has no rows in the recent log. Click the Agent actions number for the full history.` : "Waiting for the first agent action."}</li>`;
+  $("feed").scrollTop = 0;
+  const f = $("filters");
+  f.hidden = !m;
+  $("feed-n").hidden = !!m;
+  f.innerHTML = m ? `<button type="button" class="chip${m.light ? " dark" : ""}" style="${vars(m)}" data-clear>Only ${esc(m.name)} <span class="x" aria-hidden="true">✕</span></button><button type="button" class="chip all" data-clear>All agents</button>` : "";
+}
+function setFilter(agent) {
+  filterAgent = filterAgent === agent ? null : agent;
+  renderFeed();
+  renderAgents(state.stats.perAgent);
+}
+$("filters").addEventListener("click", (e) => { if (e.target.closest("[data-clear]")) { filterAgent = null; renderFeed(); renderAgents(state.stats.perAgent); } });
+// Click a row to see its full text, exact time, and cost.
+for (const id of ["feed", "dr-body"]) $(id).addEventListener("click", (e) => { const li = e.target.closest(".item"); if (li) li.classList.toggle("open"); });
+
 function renderSteps() {
   const n = state?.stats?.stepIns ?? stepIns.length;
   $("steps-n").textContent = n ? `${n} in the log` : "";
   if (!stepIns.length) { $("steps").innerHTML = '<span class="none">None logged</span>'; return; }
-  $("steps").innerHTML = stepIns.slice(-3).reverse().map((e) =>
+  $("steps").innerHTML = stepIns.slice().reverse().map((e) =>
     `<div class="step" title="${esc(e.why || "")}"><time>${esc(hm(e.at))}</time><span class="s-who">${esc(e.agent === "human" ? "A person" : e.agent)}</span><span class="s-what">${esc(show(e.action))}${e.why ? ` (${esc(show(e.why))})` : ""}</span></div>`).join("");
 }
 
@@ -746,7 +864,7 @@ function renderPipeline(p) {
   const parts = STAGES.map(([k, l, tone]) => {
     const n = p.stages[k] ?? 0;
     const [c, cd] = TONES[tone];
-    return `<div class="stage-n${n ? "" : " zero"}" style="--c:${c};--cd:${cd}"><div class="c">${n}</div><div class="bar"><i style="--w:${(n / max) * 100}%"></i></div><div class="l">${l}</div></div>`;
+    return `<div class="stage-n clickable${n ? "" : " zero"}" style="--c:${c};--cd:${cd}" data-stage="${k}" role="button" tabindex="0" title="See the studios marked ${l}"><div class="c">${n}</div><div class="bar"><i style="--w:${(n / max) * 100}%"></i></div><div class="l">${l}</div></div>`;
   });
   const pay = p.payments;
   parts.push(`<div class="stage-n money"><div class="c">$${(pay.liveAmountMinor / 100).toFixed(0)}</div><div class="bar"></div><div class="l">Earned</div></div>`);
@@ -871,6 +989,78 @@ function startPhone() {
   load();
 }
 
+// ---- Drawer: the rows behind a number, or the studios in a stage ---------------------------------
+let drawerReturn = null;
+const drawerOpen = () => $("drawer").classList.contains("on");
+function openDrawer(title, sub) {
+  $("dr-title").textContent = title;
+  $("dr-sub").textContent = sub;
+  $("dr-body").innerHTML = '<div class="dr-empty">Loading…</div>';
+  $("dr-body").scrollTop = 0;
+  if (!drawerOpen()) drawerReturn = document.activeElement;
+  $("drawer").classList.add("on"); $("drawer-bg").classList.add("on");
+  $("dr-x").focus();
+}
+function closeDrawer() {
+  $("drawer").classList.remove("on"); $("drawer-bg").classList.remove("on");
+  drawerReturn?.focus?.(); drawerReturn = null;
+}
+$("dr-x").addEventListener("click", closeDrawer);
+$("drawer-bg").addEventListener("click", closeDrawer);
+
+const ROWS = {
+  actions: ["Agent actions", "Every action an agent logged, newest first. Click a row for details."],
+  decisions: ["Decisions", "What each agent saw, what it chose, why, and what it expected."],
+  stepins: ["Human step-ins", "Every time a person stepped in, and why."],
+  spend: ["Spent", "Every logged cost, newest first."],
+};
+async function openRows(type) {
+  const [title, sub] = ROWS[type];
+  openDrawer(title, sub);
+  try {
+    const r = await (await fetch(`/api/rows?type=${encodeURIComponent(type)}`, { cache: "no-store" })).json();
+    let html = "";
+    if (type === "spend" && r.rows.length) {
+      const by = new Map();
+      for (const e of r.rows) by.set(e.agent, (by.get(e.agent) ?? 0) + e.costUsd);
+      html += `<div class="spend-by">${[...by].sort((a, b) => b[1] - a[1]).map(([a, usd]) => `${tile(info(a))}<span>${esc(info(a).name)}</span><span>$${usd.toFixed(2)}</span>`).join("")}</div>`;
+    }
+    html += r.rows.length
+      ? `<ul class="feed">${r.rows.map((e) => itemHtml(e, false, true)).join("")}</ul>`
+      : `<div class="dr-empty">${type === "spend" ? "No costs logged yet." : "Nothing logged yet."}</div>`;
+    $("dr-body").innerHTML = html;
+    const shown = r.rows.length < r.count ? `, showing the newest ${r.rows.length}` : "";
+    $("dr-sub").textContent = type === "spend" ? `$${r.totalUsd.toFixed(2)} across ${r.count} row${r.count === 1 ? "" : "s"}${shown}.` : `${r.count.toLocaleString()} in the log${shown}. ${sub}`;
+  } catch { $("dr-body").innerHTML = '<div class="dr-empty">Couldn\'t load these rows. Try again in a moment.</div>'; }
+}
+async function openStage(stage) {
+  const label = (STAGES.find(([k]) => k === stage) || [stage, stage])[1];
+  openDrawer(`Studios: ${label}`, "Studios in this stage right now.");
+  try {
+    const r = await (await fetch(`/api/studios?stage=${encodeURIComponent(stage)}`, { cache: "no-store" })).json();
+    const when = (iso) => `${pt(iso, { weekday: "short", hour: "numeric", minute: "2-digit" })} PT`;
+    $("dr-body").innerHTML = (r.studios.length
+      ? r.studios.map((x) => `<div class="studio"><b>${esc(x.company)}</b>${x.game ? `<span class="g">${esc(x.game)}</span>` : ""}
+          ${x.reason ? `<span class="r">${esc(tidyUrls(x.reason))}</span>` : ""}
+          <span class="t">${x.source === "inbound_qr" ? "Signed up at our table" : "Found by the Research agent"}. ${x.lastEmailAt ? `Last email sent ${esc(when(x.lastEmailAt))}.` : "No email sent yet."}${x.lastReplyAt ? ` Replied ${esc(when(x.lastReplyAt))}.` : ""}</span></div>`).join("")
+      : '<div class="dr-empty">No studios in this stage right now.</div>')
+      + '<p style="margin:1.2rem 0 0"><button type="button" class="chip all" id="dr-outreach">Open the outreach board <kbd>O</kbd></button></p>';
+    $("dr-sub").textContent = `${r.studios.length} ${r.studios.length === 1 ? "studio" : "studios"} in this stage right now.`;
+    $("dr-outreach").addEventListener("click", () => { closeDrawer(); toggle("outreach-view", true); });
+  } catch { $("dr-body").innerHTML = '<div class="dr-empty">Couldn\'t load the studios. Try again in a moment.</div>'; }
+}
+document.querySelectorAll("[data-rows]").forEach((el) => el.addEventListener("click", () => openRows(el.dataset.rows)));
+$("pipe").addEventListener("click", (e) => { const el = e.target.closest("[data-stage]"); if (el) openStage(el.dataset.stage); });
+
+// The latest playtest steps, shown beside the enlarged phone.
+const PLAYTEST_KINDS = new Set(["playtest_ordered", "playtest_started", "playtest_done", "report_sent"]);
+function renderPlaytestSteps() {
+  const steps = allEvents.filter((e) => e.moment && PLAYTEST_KINDS.has(e.moment.kind)).slice(-6).reverse();
+  $("pb-steps").innerHTML = steps.map((e) => `<li><time>${esc(hm(e.at))}</time><span>${esc(show(e.moment.title))}${e.moment.detail ? `: ${esc(show(e.moment.detail))}` : ""}</span></li>`).join("");
+}
+$("phone-card").addEventListener("click", () => toggle("phone-big", true));
+$("phone-big").addEventListener("click", () => toggle("phone-big", false));
+
 // ---- Views and keys --------------------------------------------------------------------------
 const overlays = ["qr-big", "phone-big", "outreach-view", "help"];
 function toggle(id, force) {
@@ -890,6 +1080,8 @@ function toggle(id, force) {
 function closeAll() { for (const o of overlays) $(o).classList.remove("show"); }
 function handleKey(key) {
   const k = key.length === 1 ? key.toLowerCase() : key;
+  // While a drawer is open, keys belong to it: only Esc does anything (closes it).
+  if (drawerOpen()) { if (k === "Escape") closeDrawer(); return; }
   if (k === "f") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
   else if (k === "d") $("health").classList.toggle("show");
   else if (k === "o") toggle("outreach-view");
@@ -898,7 +1090,14 @@ function handleKey(key) {
   else if (k === "?" || k === "/" || k === "h") toggle("help");
   else if (k === "Escape") closeAll();
 }
-document.addEventListener("keydown", (e) => { if (!e.metaKey && !e.ctrlKey && !e.altKey) handleKey(e.key); });
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // Enter or Space on a focused card works like a click.
+  if ((e.key === "Enter" || e.key === " ") && e.target instanceof Element && e.target.getAttribute("role") === "button") {
+    e.preventDefault(); e.target.click(); return;
+  }
+  handleKey(e.key);
+});
 window.addEventListener("message", (e) => { if (e.origin === location.origin && e.data && typeof e.data.key === "string") handleKey(e.data.key); });
 $("open-outreach").addEventListener("click", () => toggle("outreach-view", true));
 
@@ -978,6 +1177,12 @@ async function boot() {
   if (view === "phone") toggle("phone-big", true);
   if (view === "outreach") toggle("outreach-view", true);
   if (view === "details") $("health").classList.add("show");
+  // More screenshot helpers. They open UI states only; they never add or change data.
+  if (params.get("agent")) setFilter(params.get("agent"));
+  if (params.has("expand")) $("feed").querySelector(".item")?.classList.add("open");
+  if (params.get("drawer") && ROWS[params.get("drawer")]) openRows(params.get("drawer"));
+  if (params.get("stage")) openStage(params.get("stage"));
+  if (params.get("scroll") === "bottom") setTimeout(() => window.scrollTo(0, document.documentElement.scrollHeight), 300);
   const want = params.get("show");
   if (want && state.mode === "sample") {
     const e = [...state.events].reverse().find((x) => x.moment && x.moment.kind === want);

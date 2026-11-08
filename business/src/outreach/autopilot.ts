@@ -21,7 +21,9 @@ const CHARTS: Array<{ chart: string; category: string; label: string }> = [
   { chart: "topselling_paid", category: "GAME_PUZZLE", label: "top paid puzzle" },
 ];
 const recentlyRead = new Map<string, number>();
-let cycleCount = 0;
+// Start the rotation from the clock, so a server restart moves on to a new chart instead of
+// re-reading the first one.
+let cycleCount = Math.floor(Date.now() / (20 * 60_000));
 
 export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: number; perRun?: number; minScore?: number } = {}) {
   const log = (agent: string, action: string, why: string | null, result: string | null) =>

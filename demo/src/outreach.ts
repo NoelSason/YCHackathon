@@ -96,3 +96,55 @@ export function sampleOutreach(now = REHEARSAL_START): OutreachBoard {
   ];
   return { live: true, totals: { studios: 6, researched: 5, signups: 1, emailed: 5, replied: 2, won: 1 }, rows };
 }
+
+/** One studio in a pipeline stage, for the stage's drawer on the console. */
+export interface StageStudio {
+  company: string;
+  source: string;
+  stage: string;
+  reason: string | null;
+  game: string | null;
+  lastEmailAt: string | null;
+  lastReplyAt: string | null;
+}
+
+export const PIPELINE_STAGES = ["found", "sample_made", "emailed", "replied", "pilot_offered", "pilot_paid", "delivered"] as const;
+
+/** The game named in a studio's reason, as the business server writes it ("…reviews of X say…", "…free levels for X."). */
+export function gameFrom(reason: string | null): string | null {
+  if (!reason) return null;
+  const m = reason.match(/reviews of (.+?) (?:say|says|ask|asks)\b/i) ?? reason.match(/free levels for (.+?)\.?$/i) ?? reason.match(/playtest of (\S+?)[\s.(]/i);
+  return m?.[1]?.trim() ?? null;
+}
+
+export async function loadStageStudios(databaseUrl: string | undefined, stage: string): Promise<StageStudio[]> {
+  if (!databaseUrl) return [];
+  const sql = neon(databaseUrl);
+  const rows = (await sql.query(
+    `select s.name, coalesce(s.source, '') as source, s.stage, s.reason,
+            (select max(ts) from emails e where e.studio_id = s.studio_id and e.direction = 'out') as last_out,
+            (select max(ts) from emails e where e.studio_id = s.studio_id and e.direction = 'in') as last_in
+       from studios s
+      where s.stage = $1 and s.name not ilike '%smoke test%' and coalesce(s.source, '') <> 'internal_test'
+      order by s.updated_at desc
+      limit 100`,
+    [stage],
+  )) as Array<Record<string, unknown>>;
+  const iso = (v: unknown): string | null => (v ? new Date(String(v)).toISOString() : null);
+  return rows.map((r) => ({
+    company: String(r.name),
+    source: String(r.source),
+    stage: String(r.stage),
+    reason: r.reason ? String(r.reason) : null,
+    game: gameFrom(r.reason ? String(r.reason) : null),
+    lastEmailAt: iso(r.last_out),
+    lastReplyAt: iso(r.last_in),
+  }));
+}
+
+/** The rehearsal board's studios in one stage (same invented rows as sampleOutreach). */
+export function sampleStageStudios(stage: string): StageStudio[] {
+  return sampleOutreach().rows
+    .filter((r) => r.stage === stage)
+    .map((r) => ({ company: r.company, source: r.source, stage: r.stage, reason: r.reason, game: gameFrom(r.reason), lastEmailAt: r.sentAt, lastReplyAt: r.replyAt }));
+}

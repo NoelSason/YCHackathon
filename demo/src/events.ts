@@ -129,12 +129,13 @@ export function normalizeRow(raw: Row, source: string, opts: { forceHuman?: bool
 }
 
 /**
- * Setup checks the team ran while wiring things up (the "probe" agent, "approval_test" rows). They
+ * Setup checks the team ran while wiring things up (the "probe" agent, "approval_test" rows, smoke-test decisions). They
  * aren't the company's work, so the stage leaves them out. Human step-ins are never treated as noise.
  */
 export function isSetupNoise(e: StageEvent): boolean {
   if (e.human) return false;
-  return e.agent === "probe" || /^approval[_ ]test/i.test(e.action);
+  // Plus the platform's smoke-test decisions (chose "a", why "smoke") from wiring up the CEO.
+  return e.agent === "probe" || /^approval[_ ]test/i.test(e.action) || (e.kind === "decision" && /^smoke\b/i.test(e.why ?? ""));
 }
 
 export const byTime = (a: StageEvent, b: StageEvent): number => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0);
