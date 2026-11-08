@@ -22,6 +22,24 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ### 2026-11-07 16:10 PT · Abhinav (Claude) · branch `main`
 
+**What:** **Approval-rule test: PASSED.** With the platform bearer in Naïve's vault
+(`vlt_enhfan4mcnhqwfrp221sc0ebjy`, keyed to the MCP URL), probe session
+`ses_8yjzg4jxb16n8p2ex57jwdxp7a` called `platform.log_action` unattended: the session ended
+`end_turn`, no approval card, and the `approval_test` row is in `activity_log`. Allow-listed MCP
+tools (`tools.configs["platform.<tool>"] = allow`) run without a human.
+**Why:** Package 6 / agent-plan step 1. Decides whether the 2–8 AM run needs clicks.
+**Files:** none (verification). `platform/naive/team.json` has the agent and deployment ids.
+**State:** Works. Vault needs an **admin-scoped** API key; agents/sessions scopes aren't enough
+(cost two keys to learn). The earlier two NOT REACHED results were the missing credential.
+**Next / heads-up:** **Everyone:** this covers MCP tools only. Still untested: the "chat that has
+read people's data asks on every send" rule. **Noel:** that's your Sales Reader / Sender split;
+run the second half (send the probe one inbound email, then a tool call) when the business server
+is attached. **Noel:** send Abhinav `BUSINESS_MCP_URL` and `BUSINESS_MCP_TOKEN` by DM; the
+repo-root `.env` is only on your laptop. Then `npm run vault && npm run setup` attaches your
+tools to the agents.
+
+### 2026-11-07 16:10 PT · Abhinav (Claude) · branch `main`
+
 **What:** Fixed `approval-test` events page size (Naïve caps `limit` at 100). Second probe
 (`ses_2cxbawayev51zaga2qjbzkxw6z`): NOT REACHED again. `npm run setup` re-applied all eight agents.
 **Why:** The vault credential still isn't stored: the new API key also lacks the `admin` scope.
