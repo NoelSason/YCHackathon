@@ -30,7 +30,7 @@ ordered execution packet; it does not substitute for the Naïve agent runtime or
   JSON packet for the host agent. Run it from the repository root, for example:
   `python games/skill_router.py --game match3 --task create`.
 - A programmatic interface lists operation names in config. The host agent must confirm those
-  tools are present before calling them. A `planned_not_connected` interface is a hard stop for
+  tools are present before calling them. An interface marked unavailable is a hard stop for
   validation, solving, or saving; the agent may still produce an explicitly unverified design.
 - Editor interfaces never fall back to guessed file formats. The Geometry Dash route requires an
   attached Mobilerun MCP Agent and limits verification to local save and visual/loading checks.
@@ -39,8 +39,8 @@ ordered execution packet; it does not substitute for the Naïve agent runtime or
 
 ## Routes included
 
-- `match3`: programmatic adapter route for `validate_level`, `solve_level`, and `save_level`; the
-  interface is marked planned because this checkout contains no game adapter or MCP server.
+- `match3`: registered programmatic adapter route. Designer fetches the authoritative schema and
+  validates/saves through MCP; the separate solver harness measures seeded bot results.
 - `platformer-editor`: user-provided editor workflow; no programmatic solver is declared.
 - `geometry-dash-editor`: official editor workflow via Mobilerun MCP; visual checks do not prove
   frame-exact solvability.

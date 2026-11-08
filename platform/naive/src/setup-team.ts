@@ -27,7 +27,7 @@ async function findByName(name: string): Promise<Created | undefined> {
 }
 
 async function upsert(a: RosterAgent, extra: Record<string, unknown> = {}): Promise<Created> {
-  const body = { name: a.name, model: MODEL, system: a.system, tools: toolsFor(a), mcp_servers: serversFor(a), budget: budgetFor(a), window: "immediate" as const, ...extra };
+  const body = { name: a.name, model: MODEL, system: a.system, tools: toolsFor(a), mcp_servers: serversFor(a), budget: budgetFor(a), window: "immediate" as const, ...(a.skills ? { skills: a.skills } : {}), ...extra };
   const existing = await findByName(a.name);
   if (existing) {
     const r = await naive.agents.update(existing.id, body);

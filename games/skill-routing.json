@@ -34,9 +34,9 @@
   "interfaces": {
     "match3_adapter": {
       "mode": "programmatic",
-      "availability": "planned_not_connected",
-      "operations": ["validate_level", "solve_level", "save_level"],
-      "verification": "Schema and rules validation, then seeded bot simulation. Do not claim completion until the adapter is connected and returns results."
+      "availability": "adapter_registered_mcp_available",
+      "operations": ["list_games", "get_game_schema", "validate_level", "save_level", "solve_level"],
+      "verification": "Confirm list_games reports adapter_loaded:true, fetch the schema from get_game_schema, validate and save through MCP, then use the solver harness for seeded bot simulation. A saved draft is not accepted until the Tuner reports measured results."
     },
     "platformer_adapter": {
       "mode": "programmatic",

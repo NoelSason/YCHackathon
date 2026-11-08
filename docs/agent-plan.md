@@ -166,9 +166,12 @@ paths:
 
 The interpreter resolves config into a packet; the Naïve session still calls its attached tools.
 Programmatic operations must be checked against available MCP tools at runtime. The match-3
-adapter is currently marked not connected in config, so Designer/Tuner may not claim validation,
-simulation, or save completion until those tools exist. Mobilerun editor checks are visual/load
-checks, not proof of frame-exact solvability. Publishing remains a separate platform action.
+adapter is registered in the platform MCP server. Designer confirms `adapter_loaded:true`, fetches
+the authoritative schema with `get_game_schema`, validates, then saves a draft. The solver harness
+and Tuner provide measured results; saving alone does not prove solvability or acceptance. The
+roster pins `game-match3@1` for Designer and Tuner; publish that skill revision before running the
+Naïve team setup. Mobilerun editor checks are visual/load checks, not proof of frame-exact
+solvability. Publishing remains a separate platform action.
 
 ## Structured outputs
 

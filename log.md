@@ -20,6 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:45 PT · Max (Codex) · branch `max-game-adapters-fruit-patch`
+
+**What:** Connected the Designer/Tuner roster to the pinned match-3 skill and added MCP schema discovery from the registered adapter. Updated routing and tool contracts so the Designer checks adapter availability, fetches the authoritative schema, validates, then saves a draft.
+**Why:** The game-making agent needs to use the same adapter rules as the browser game and solver instead of relying on copied or guessed level constraints.
+**Files:** `platform/mcp/src/tools.ts`, `platform/naive/src/roster.ts`, `platform/naive/src/setup-team.ts`, `platform/CONTRACTS.md`, `games/skill-routing.json`, `docs/agent-plan.md`, `docs/skill-routing-plan.md`.
+**State:** MCP typecheck passed; routing JSON parsed; `git diff --check` passed. Naïve setup was not run because its dependencies and API credentials are unavailable here.
+**Next / heads-up:** Publish `games/match3/SKILL.md` as `game-match3@1` before running Naïve setup; the roster pins that version. Then run the setup with the deployed platform MCP URL and validate an end-to-end Designer session.
+
 ### 2026-11-07 16:40 PT · Abhinav (Claude) · branch `main`
 
 **What:** `npm run ceo-now` in `platform/naive`: starts one CEO session with the cron's input and
