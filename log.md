@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:44 PM PT · Noel · Claude Code · main
+- **What:** Fixed the pricing cards: a row with a live-updated number ("20 new levels…") broke into one word per line, because the number's span became its own grid cell. Each row's text is now wrapped in one element.
+- **Why:** Noel's screenshot of the broken level-pack card.
+- **Files:** `site/pricing.html`
+- **State:** works; deployed, the live page serves the fix.
+- **Next / heads-up:** none.
+
 ### 2026-11-07 7:35 PM PT · Noel · Claude Code · main
 - **What:** Auto-tuner: MAX_ROUNDS 6 → 12. It also accepts a level when the target lies inside the measurement's 95% interval and the measurement is within 8 pts (`onTarget`; the strict ±5 still accepts as before). Restarted the solver worker on Noel's laptop.
 - **Why:** Every tuned level was rejected (12 match-3, 4 water sort, 0 accepted), so nothing ever reached /play. They were converging and running out of rounds (e.g. 0% → 14% → 28% vs a 35% target; the last one's interval was 20–39%).
