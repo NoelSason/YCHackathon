@@ -20,6 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 03:55 PT · Pinara (Codex) · branch `pinara/finish-quality`
+
+**What:** Prepared all 31 versioned racer repairs in production: the opening 100 catalog positions now have current 200-game on-target evidence (69 originals plus 31 children). Added the actual override manifest. Applied scoped Naïve Designer/Tuner v13 and five explicit schedules, and reloaded only Pinara's worker/two watchers from committed `5b4468a`. Added a guarded recovery for legacy unpublished acceptances and made Pinara's demo check require authored roots plus current 200-game evidence, excluding compiler stock. Saved quality deployment IDs for the existing kill switch.
+**Why:** Production data maintenance must preserve old public content, and a green demo check must represent the actual Naïve quality path. An older teammate worker was observed accepting a verification match-3 level with 100 games and racer with unversioned evidence; those cannot count as current proof.
+**Files:** `site/games/catalog-overrides.json`, Pinara's readiness check, scoped Naïve rollout/config, solver recovery/tests.
+**State:** Repair finished with 100 verified positions, 31 child versions; no new pack published before client deployment. All five buffers healthy at 0 completed manual-prefix levels, no stock deleted/generated. Browser mechanics regressions and real saved match-3 pointer play/progression passed with events blocked. New recovery/readiness/Designer tests 3/3, solver/checks/Naïve typechecks passed. Five real Naïve sessions consumed $0.228678 total; four saved authored roots, Lot Escape failed against the old backend. Platformer reached current acceptance (45.5% vs 50%, 200). Remaining verification repairs/retry will be logged after running committed source.
+**Next / heads-up:** Abhinav deploy Lot Escape/current MCP guards and repin CEO; Noel pull/restart his older worker and deploy the browser bundles/manifest before guarded racer publication. `platform/naive/team.json` now lists all five quality crons so the existing kill-switch command can pause them. Shared checks typecheck now permits imports of the same acceptance policy; no new runtime framework. Live site/phone/human-calibration gates remain explicit in the handoff. Chatbot and main-checkout edits excluded.
+
 ### 2026-11-08 03:48 PT · Pinara (Codex) · branch `pinara/finish-quality`
 
 **What:** Fixed five-game attempt telemetry and manual-only eval/buffer queries; added resumable versioned racer repairs, browser catalog overrides, and five explicit Naïve Designer schedules with scoped rollout/proof commands. Updated quality documentation. Executed the previous commit's audited target repair and 100-level racer remeasurement.

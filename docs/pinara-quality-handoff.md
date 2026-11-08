@@ -30,8 +30,22 @@ Executed from committed source `c8defba`, with separate human-intervention recor
 - Replayed all **100** original production racer levels using the corrected shared rules,
   **200 games each**: **69** on target, **31** need a new version. Original levels/runs preserved.
 
-The following rollout/repair commands are idempotent or resumable. Their actual outcomes will
-be recorded below after execution; code or a dry run alone is not production proof.
+- All **31** off-target racer positions now have accepted child revisions in production Neon, each
+  with 200 independent verification games. Together with the 69 originals, **100/100** opening
+  catalog positions satisfy current policy. The committed manifest selects these revisions.
+  The new pack remains unpublished until the corrected client is deployed.
+- Pinara's worker and both buffer watchers run committed `5b4468a`; all five buffers are healthy
+  without new generation. No surplus stock was removed. Other people's processes were untouched.
+- Designer and Tuner reached Naïve **v13**, with five game-specific Designer schedules. Existing
+  caps/tools preserved. The five initial verification sessions consumed **$0.228678**, not $2.50.
+  Four authored roots were saved. Lot Escape's save failed because its live backend adapter is
+  missing. An older remote worker accepted match-3/racer without current evidence; a guarded
+  repair rechecks those leaves. Platformer's current result is **45.5% vs 50%, 200 games**.
+- Pinara's readiness check now excludes compiler stock and incomplete/old rules evidence; it
+  reports missing real authored proof honestly.
+
+The rollout/repair commands below are idempotent or resumable. A source-code change, dry run or
+cleanly ended session is not production proof.
 
 ## Commands for the hosting owners
 

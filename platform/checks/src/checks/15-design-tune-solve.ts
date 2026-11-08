@@ -1,47 +1,22 @@
-import type { Check } from "../types.js";
-
-// docs/master-plan.md, "Demo readiness": "A new level for each live game reaches its target and is
-// saved." Per game, not overall: every real game must have an accepted level within 5 pts of its
-// target in the last 3 hours. Also reports when the solver harness last finished a run.
-const check: Check = {
-  name: "design_tune_solve", owner: "Pinara", path: "Design → tune → solve",
-  async run({ db, expectRunning }) {
-    const games = await db.query(`
-      select g.game_id,
-             count(l.*) filter (where l.status in ('accepted','published') and l.updated_at > now() - interval '3 hours'
-                                  and l.measured_win_rate is not null
-                                  and abs(l.measured_win_rate - l.target_win_rate) <= 0.05) as on_target_3h,
-             max(l.updated_at) filter (where l.status in ('accepted','published')) as last_accepted,
-             count(l.*) as ever
-        from games g left join levels l on l.game_id = g.game_id
-       where g.game_id <> 'stub'
-       group by g.game_id order by g.game_id`);
-    const harness = await db.query(`
-      select claimed_by, finished_at from solver_runs
-       where status in ('done','failed') and finished_at is not null
-       order by finished_at desc limit 1`);
-    const h = harness.rows[0] as { claimed_by: string | null; finished_at: Date } | undefined;
-    const harnessNote = h
-      ? `harness last finished a run ${Math.round((Date.now() - new Date(h.finished_at).getTime()) / 60000)} min ago (${h.claimed_by ?? "unknown worker"})`
-      : "harness has never finished a run";
-
-    // A game nobody has ever made a level for (platformer: no browser game, no tuner knob, not in
-    // the Designer's rotation) isn't live yet, so it's named but not required. A game that has had
-    // levels and stops getting accepted ones still fails.
-    const all = games.rows as Array<{ game_id: string; on_target_3h: string; last_accepted: Date | null; ever: string }>;
-    const notLive = all.filter((r) => Number(r.ever) === 0).map((r) => r.game_id);
-    const rows = all.filter((r) => Number(r.ever) > 0);
-    if (!rows.length) {
-      const detail = `no real games in the games table (only stub); ${harnessNote}`;
-      return expectRunning ? { ok: false, detail: `${detail}: redeploy the platform so it seeds a row per adapter` } : { ok: true, detail: `${detail} (not required before switch-on)` };
-    }
-    const per = rows.map((r) => `${r.game_id} ${r.on_target_3h}`);
-    const missing = rows.filter((r) => Number(r.on_target_3h) === 0).map((r) => r.game_id);
-    const detail = `levels accepted on target in 3h: ${per.join(", ")}; ${harnessNote}${notLive.length ? `; no levels ever made, so not counted: ${notLive.join(", ")}` : ""}`;
-    if (!expectRunning) return { ok: true, detail: `${detail} (not required before switch-on)` };
-    return missing.length
-      ? { ok: false, detail: `${detail}. No on-target level yet for: ${missing.join(", ")}` }
-      : { ok: true, detail };
-  },
-};
-export default check;
+import type { Check } from '../types.js';
+import { verifiedLevel } from '../../../../solver/src/acceptance.js';
+// Pinara's demo path: actual authored drafts, not the fast compiler or stale solver evidence.
+const check:Check={
+ name:'design_tune_solve',owner:'Pinara',path:'Design → tune → solve',
+ async run({db,expectRunning}){
+  const q=async(sql:string,p:unknown[]=[]) => (await db.query(sql,p)).rows;
+  const games=await q("select g.game_id,count(l.*)::int ever from games g left join levels l using(game_id) where g.game_id<>'stub' group by g.game_id order by g.game_id");
+  const candidates=await q(`with recursive ancestry as (
+   select level_id as leaf,level_id,parent_level_id,game_id,created_by from levels
+    where status in ('accepted','published') and updated_at>now()-interval '3 hours' and created_by in ('designer','tuner')
+   union all select a.leaf,p.level_id,p.parent_level_id,p.game_id,p.created_by from levels p join ancestry a on p.level_id=a.parent_level_id
+  ) select distinct a.leaf::text id,a.game_id from ancestry a where a.parent_level_id is null and a.created_by='designer'
+   and exists(select 1 from activity_log l where l.ref_id=a.level_id::text and l.agent='designer' and l.action='save_level')`);
+  const counts=new Map<string,number>(),invalid=new Map<string,number>();
+  for(const row of candidates)try{await verifiedLevel(q,String(row.id),String(row.game_id));counts.set(String(row.game_id),(counts.get(String(row.game_id))??0)+1);}catch{invalid.set(String(row.game_id),(invalid.get(String(row.game_id))??0)+1);}
+  const live=games.filter(g=>Number(g.ever)>0),missing=live.filter(g=>!counts.get(String(g.game_id))).map(g=>String(g.game_id));
+  const detail=`Designer-authored acceptances with current on-target 200-game evidence in 3h: ${live.map(g=>`${g.game_id} ${counts.get(String(g.game_id))??0} (stale/incomplete excluded ${invalid.get(String(g.game_id))??0})`).join(', ')||'none'}. Compiler stock is excluded.`;
+  if(!expectRunning)return{ok:true,detail:`${detail} Not required before switch-on.`};
+  return {ok:live.length>0&&missing.length===0,detail:missing.length?`${detail} Missing: ${missing.join(', ')}. Deploy missing adapters/update old workers; generate and verify real authored levels.`:detail};
+ }
+};export default check;

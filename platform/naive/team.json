@@ -12,8 +12,8 @@
     "ceo": "agt_tyrbqjyp9v1k3xrdnp1t13rcag"
   },
   "versions": {
-    "designer": 10,
-    "tuner": 10,
+    "designer": 13,
+    "tuner": 13,
     "playtest": 10,
     "research": 10,
     "sales_reader": 10,
@@ -22,11 +22,15 @@
     "marketing": 7
   },
   "deployments": {
-    "designer": "dep_pf9e3h9p6br7je19c7nttxwjkg",
+    "designer": "dep_bj4yvtyv3t3p2r405p2dd6pmp8",
     "research": "dep_71hgm7qph0x4yd232efkn31ne9",
     "finance": "dep_2d3kj15nrv066s30d0wze6v58v",
     "marketing": "dep_yz1an1cq9zks2qe8mkvgeqz2f7",
-    "ceo": "dep_8hq07mr0wrxz240r96fhggmxt1"
+    "ceo": "dep_8hq07mr0wrxz240r96fhggmxt1",
+    "designer_racer": "dep_55zw8y871hf5a6sxsnkd7bw6b2",
+    "designer_watersort": "dep_vswz1ypqbdh3qhx3a364npehpx",
+    "designer_lotescape": "dep_vq00nqvr1aqgbr54y9cq7gjwh9",
+    "designer_platformer": "dep_8yc2s5fd6e299gyf5k2pnjaw50"
   },
   "mcp": "https://br-broad-violet-bem8cpy5-platform.compute.c-9.us-east-2.aws.neon.tech/mcp"
 }

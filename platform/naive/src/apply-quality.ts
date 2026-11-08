@@ -8,7 +8,8 @@ import {DESIGNER_GAMES,DESIGNER_SCHEDULES}from'./designer-prompt.js';
 const args=process.argv.slice(2),write=args.includes('--write'),verify=args.includes('--verify');
 const option=(name:string,fallback:string)=>{const i=args.indexOf(name);return i<0?fallback:args[i+1]??fallback;};
 const output=option('--out','quality-rollout.json'),label=option('--label','pinara-quality-2026-11-08');
-const team=JSON.parse(await readFile(new URL('../team.json',import.meta.url),'utf8')) as {agents:Record<string,string>};
+const teamPath=new URL('../team.json',import.meta.url);
+const team=JSON.parse(await readFile(teamPath,'utf8')) as {agents:Record<string,string>;versions?:Record<string,number>;deployments?:Record<string,string>};
 const results:{label:string;agents:Array<{name:string;id:string;before:number;after:number;changed:boolean}>;deployments:Array<{id:string;version:number;key?:string;enabled?:boolean}>;sessions:Array<{game:string;id:string;version:number}>}={label,agents:[],deployments:[],sessions:[]};
 const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
 try{
@@ -34,9 +35,18 @@ try{
  }
  // Only legacy schedules for this same Designer are retired; all other agents are untouched.
  if(write)for(const d of deployments)if(d.enabled&&!DESIGNER_SCHEDULES.some(s=>d.input_template.startsWith(`[LevelAI quality schedule:${s.game}]`)))await naive.deployments.pause(d.id);
+ if(write){
+  team.versions??={};team.deployments??={};
+  for(const a of results.agents)team.versions[a.name]=a.after;
+  for(const d of results.deployments)if(d.key)team.deployments[d.key]=d.id;
+  // The shared kill-switch reads this map; every new quality cron must be represented.
+  await writeFile(teamPath,JSON.stringify(team,null,2)+"\n");
+ }
  if(verify){
   if(!write)throw Error('--verify requires --write; sessions are real work');
-  for(const game of DESIGNER_GAMES){
+  const games=option('--verify-games',DESIGNER_GAMES.join(',')).split(',');
+  if(!games.length||new Set(games).size!==games.length||games.some(g=>!DESIGNER_GAMES.includes(g as typeof DESIGNER_GAMES[number])))throw Error('invalid verification games');
+  for(const game of games){
    const s=await naive.sessions.create({agent_id:designer.id,agent_version:designer.after,
     message:`Human-requested quality verification ${label}. Design ONE ${game} level for target_win_rate 0.50. Keep that target unchanged. Include ${label}:${game} in notes. Use the existing adapter, no game/app/source code. Save exactly once and report the returned id.`,
     budget_micro_usd:500_000,metadata:{quality_proof:label,game}}, {idempotencyKey:`${label}:${game}`});
