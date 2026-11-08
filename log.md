@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:46 PM PT · Noel · Claude Code · main
+- **What:** Rewrote `docs/demo-script.md` to match what's built: the 2-minute video storyboard (due 11 AM Sunday), the 3-minute live demo, honest answers to likely judge questions, the overnight checklist, and the on-stage break plan. It uses only real studios and numbers from the log; no invented names, levels, or step-ins.
+- **Why:** The video requirement is new, and the old script predated live billing, the phone loop, and pack delivery.
+- **Files:** `docs/demo-script.md`
+- **State:** done.
+- **Next / heads-up:** **Everyone:** don't touch the system after midnight unless it's broken.
+
 ### 2026-11-07 7:44 PM PT · Noel · Claude Code · main
 - **What:** Fixed the pricing cards: a row with a live-updated number ("20 new levels…") broke into one word per line, because the number's span became its own grid cell. Each row's text is now wrapped in one element.
 - **Why:** Noel's screenshot of the broken level-pack card.
