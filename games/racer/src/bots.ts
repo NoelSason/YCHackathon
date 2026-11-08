@@ -49,14 +49,31 @@ function choices(level: Level, s: CarState): Action[] {
 }
 
 /**
+ * One number per (state, depth), with no collisions inside the level limits (engine LIMITS: lanes
+ * up to 5, cooldown up to 3, boost up to BOOST_TICKS = 4, stun up to 10, depth up to 9, row up to
+ * 400 plus a boost). A number key is several times cheaper than the string it replaces.
+ */
+function stateKey(st: CarState, depth: number): number {
+  let k = st.row;
+  k = k * 8 + st.lane;
+  k = k * 4 + st.cooldown;
+  k = k * 8 + st.boost;
+  k = k * 16 + st.stun;
+  k = k * 2 + st.shield;
+  k = k * 8 + (st.rear + 1);
+  return k * 16 + depth;
+}
+
+/**
  * Best first action over the next `horizon` ticks, by dynamic programming over the car states
  * the driver can reach (memoized, so it stays cheap). `view` is the track as this driver sees it.
+ * `memo` lives for a whole run: a state's value depends only on the state, the depth, and `view`,
+ * which is fixed for the run, so keeping it across ticks gives the same plans with far less work.
  */
-function plan(level: Level, view: Grid, s: CarState, horizon: number): Action {
-  const memo = new Map<string, number>();
+function plan(level: Level, view: Grid, s: CarState, horizon: number, memo: Map<number, number>): Action {
   const value = (st: CarState, depth: number): number => {
     if (depth === 0 || finished(level, st)) return 0;
-    const k = `${st.row},${st.lane},${st.cooldown},${st.boost},${st.stun},${st.shield},${st.rear},${depth}`;
+    const k = stateKey(st, depth);
     const hit = memo.get(k);
     if (hit !== undefined) return hit;
     let top = -Infinity;
@@ -105,6 +122,7 @@ export function drive(level: Level, bot: string, seed: number): DriveResult {
   let crashes = 0;
   let coins = 0;
   let pending: Action = 0; // a steer the driver meant to make last tick but reacted late on
+  const memo = new Map<number, number>(); // planner values for this run's view (see plan)
   while (!finished(level, s) && s.tick < level.time_limit) {
     let a: Action;
     if (bot === "random") {
@@ -114,7 +132,7 @@ export function drive(level: Level, bot: string, seed: number): DriveResult {
       pending = 0;
     } else {
       pending = 0;
-      a = plan(level, view, s, driver.horizon);
+      a = plan(level, view, s, driver.horizon, memo);
       if (a !== 0 && rnd() < driver.lateChance) {
         pending = a;
         a = 0;

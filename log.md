@@ -20,6 +20,28 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 19:49 PT · Pinara (Claude Code) · branch `main`
+
+**What:** The Turbo Lanes bots are about 3× faster with identical results: `human` (the
+Tuner's reference) 22 → 7.8 ms per game, and `greedy` 1.5 → 0.7 ms. Two changes:
+- The planner keys its memo by one packed number instead of a string. It's collision-free within
+  the engine `LIMITS`.
+- The memo lives for the whole run instead of one tick. The run's view of the track is fixed, so
+  the values don't change.
+
+The other games were measured and left alone, since they're already fast: Splash Sort is under
+0.2 ms per game for every bot, platformer about 0.4 ms on a 64×32 map, and match-3 about 13 ms
+after the earlier push.
+**Why:** It finishes the "Monte Carlo in seconds" work across all registered games. A 200-game
+Turbo Lanes round is now about 1.6 s on one thread.
+**Files:** `games/racer/src/bots.ts`.
+**State:** Works. 2,160 seeded runs (4 tracks × 3 speeds × 3 bots × 60 seeds) give the same results
+hash before and after. Racer tests pass 21/21, and the typecheck is clean.
+**Next / heads-up:**
+- Lot Escape (`games/lotescape`) isn't in the adapter registry, so the solver can't run it yet.
+  That's for Max.
+- Workers: pull and restart.
+
 ### 2026-11-07 7:46 PM PT · Noel · Claude Code · main
 - **What:** Rewrote `docs/demo-script.md` to match what's built: the 2-minute video storyboard (due 11 AM Sunday), the 3-minute live demo, honest answers to likely judge questions, the overnight checklist, and the on-stage break plan. It uses only real studios and numbers from the log; no invented names, levels, or step-ins.
 - **Why:** The video requirement is new, and the old script predated live billing, the phone loop, and pack delivery.
