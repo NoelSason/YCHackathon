@@ -187,14 +187,20 @@
 <p>Every game our agents make levels for, with how many levels are available for each.</p>
 <div class="docs-table" tabindex="0" role="region" aria-label="Field table"><table><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code class="inline-code">game_id</code></td><td>string</td><td>Use it as <code class="inline-code">game</code> in other requests.</td></tr><tr><td><code class="inline-code">name</code></td><td>string</td><td>The game's name.</td></tr><tr><td><code class="inline-code">genre</code></td><td>string or null</td><td>For example <code class="inline-code">match-3</code>. Null if we haven't labeled it.</td></tr><tr><td><code class="inline-code">levels_available</code></td><td>integer</td><td>Levels that passed testing (accepted or published).</td></tr></tbody></table></div>
 <div class="code">
-<div class="code-bar"><span id="c4-label">Response 200 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c4" aria-describedby="c4-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<div class="code-bar"><span id="c4-label">Response 200 (live, Nov 7, 2026, 10:30 PM PT)</span><button class="copy-btn" type="button" data-copy="c4" aria-describedby="c4-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
 <pre tabindex="0" aria-labelledby="c4-label"><code id="c4">{
   <span class="tok-k">"games"</span><span class="tok-p">:</span> [
+    {
+      <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"lotescape"</span>,
+      <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Lot Escape"</span>,
+      <span class="tok-k">"genre"</span><span class="tok-p">:</span> <span class="tok-s">"sliding-block puzzle"</span>,
+      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 0
+    },
     {
       <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"match3"</span>,
       <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Gem Garden"</span>,
       <span class="tok-k">"genre"</span><span class="tok-p">:</span> <span class="tok-s">"match-3"</span>,
-      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 0
+      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 112
     },
     {
       <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"platformer"</span>,
@@ -206,13 +212,13 @@
       <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"racer"</span>,
       <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Turbo Lanes"</span>,
       <span class="tok-k">"genre"</span><span class="tok-p">:</span> <span class="tok-s">"lane racer"</span>,
-      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 0
+      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 101
     },
     {
       <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"watersort"</span>,
       <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Splash Sort"</span>,
       <span class="tok-k">"genre"</span><span class="tok-p">:</span> <span class="tok-s">"sort puzzle"</span>,
-      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 0
+      <span class="tok-k">"levels_available"</span><span class="tok-p">:</span> 567
     }
   ]
 }</code></pre>
@@ -224,27 +230,60 @@
 <p>To stay in sync, store the <code class="inline-code">updated_at</code> of the last level you received and pass it as <code class="inline-code">since</code> on your next call. If you get <code class="inline-code">limit</code> levels back, call again with the new last <code class="inline-code">updated_at</code> until the list comes back shorter.</p>
 <div class="code">
 <div class="code-bar"><span id="c5-label">Request</span><button class="copy-btn" type="button" data-copy="c5" aria-describedby="c5-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
-<pre class="wrap-lines" tabindex="0" aria-labelledby="c5-label"><code id="c5">curl "https://levelai.vercel.app/api/levels?game=match3&amp;limit=5"</code></pre>
+<pre class="wrap-lines" tabindex="0" aria-labelledby="c5-label"><code id="c5">curl "https://levelai.vercel.app/api/levels?game=match3&amp;limit=1"</code></pre>
 </div>
 <div class="code">
-<div class="code-bar"><span id="c6-label">Response 200 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c6" aria-describedby="c6-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
+<div class="code-bar"><span id="c6-label">Response 200 (live, Nov 7, 2026, 10:30 PM PT)</span><button class="copy-btn" type="button" data-copy="c6" aria-describedby="c6-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
 <pre tabindex="0" aria-labelledby="c6-label"><code id="c6">{
   <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"match3"</span>,
-  <span class="tok-k">"levels"</span><span class="tok-p">:</span> []
+  <span class="tok-k">"levels"</span><span class="tok-p">:</span> [
+    {
+      <span class="tok-k">"level_id"</span><span class="tok-p">:</span> <span class="tok-s">"ca98e3c6-2f59-4856-a528-ffe59ff9d42a"</span>,
+      <span class="tok-k">"game_id"</span><span class="tok-p">:</span> <span class="tok-s">"match3"</span>,
+      <span class="tok-k">"level"</span><span class="tok-p">:</span> {
+        <span class="tok-k">"goal"</span><span class="tok-p">:</span> {
+          <span class="tok-k">"colour"</span><span class="tok-p">:</span> <span class="tok-s">"green"</span>,
+          <span class="tok-k">"target"</span><span class="tok-p">:</span> 90
+        },
+        <span class="tok-k">"name"</span><span class="tok-p">:</span> <span class="tok-s">"Dewlight Crossing"</span>,
+        <span class="tok-k">"seed"</span><span class="tok-p">:</span> 3187062491,
+        <span class="tok-k">"seals"</span><span class="tok-p">:</span> [
+          {
+            <span class="tok-k">"cell"</span><span class="tok-p">:</span> 16,
+            <span class="tok-k">"layers"</span><span class="tok-p">:</span> 1
+          },
+          {
+            <span class="tok-k">"cell"</span><span class="tok-p">:</span> 24,
+            <span class="tok-k">"layers"</span><span class="tok-p">:</span> 1
+          },
+          {
+            <span class="tok-k">"cell"</span><span class="tok-p">:</span> 38,
+            <span class="tok-k">"layers"</span><span class="tok-p">:</span> 1
+          },
+          {
+            <span class="tok-k">"cell"</span><span class="tok-p">:</span> 46,
+            <span class="tok-k">"layers"</span><span class="tok-p">:</span> 1
+          }
+        ],
+        <span class="tok-k">"width"</span><span class="tok-p">:</span> 7,
+        <span class="tok-k">"height"</span><span class="tok-p">:</span> 9,
+        <span class="tok-k">"move_limit"</span><span class="tok-p">:</span> 21,
+        <span class="tok-k">"colour_count"</span><span class="tok-p">:</span> 5
+      },
+      <span class="tok-k">"target_win_rate"</span><span class="tok-p">:</span> 0.4,
+      <span class="tok-k">"measured_win_rate"</span><span class="tok-p">:</span> 0.44,
+      <span class="tok-k">"status"</span><span class="tok-p">:</span> <span class="tok-s">"accepted"</span>,
+      <span class="tok-k">"created_at"</span><span class="tok-p">:</span> <span class="tok-s">"2026-11-08T06:12:19.144Z"</span>,
+      <span class="tok-k">"updated_at"</span><span class="tok-p">:</span> <span class="tok-s">"2026-11-08T06:12:23.458Z"</span>
+    }
+  ]
 }</code></pre>
 </div>
 <div class="code">
 <div class="code-bar"><span id="c7-label">Request: every game</span><button class="copy-btn" type="button" data-copy="c7" aria-describedby="c7-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
 <pre class="wrap-lines" tabindex="0" aria-labelledby="c7-label"><code id="c7">curl https://levelai.vercel.app/api/levels</code></pre>
 </div>
-<div class="code">
-<div class="code-bar"><span id="c8-label">Response 200 (live, Nov 7, 2026, 6:20 PM PT)</span><button class="copy-btn" type="button" data-copy="c8" aria-describedby="c8-label"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span class="copy-label">Copy</span></button></div>
-<pre tabindex="0" aria-labelledby="c8-label"><code id="c8">{
-  <span class="tok-k">"game_id"</span><span class="tok-p">:</span> null,
-  <span class="tok-k">"levels"</span><span class="tok-p">:</span> []
-}</code></pre>
-</div>
-<p>When levels exist, each item in <code class="inline-code">levels</code> is a <a class="text-link" href="#level-object">level object</a>.</p>
+<p>The answer has the same shape, with <code class="inline-code">game_id</code> set to <code class="inline-code">null</code>. Each item in <code class="inline-code">levels</code> is a <a class="text-link" href="#level-object">level object</a>.</p>
 <h3 id="get-level">Get a level</h3>
 <p class="docs-endpoint"><span class="docs-method get">GET</span><code>/api/levels/{level_id}</code><span class="docs-auth">Auth: None</span></p>
 <p>One level by its ID. Returns 404 for a level that doesn't exist or hasn't passed testing.</p>

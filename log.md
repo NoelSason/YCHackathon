@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 10:31 PM PT · Noel · Claude Code (Sentinel 9 site-qa) · main
+- **What:** Site QA pass: all 14 public pages and every internal link return 200; no sideways scroll at 390px; no vendor names in customer copy; logo on every site page; the join page's "Email us your game" link opens "Audit: " to levelai@agentmail.to; home stats match /public-stats (16 studios, 16 playtests, 8 emails, 27,187 reviews). Fixed `/levels` 404 (rewrite added in live.sh's template, deployed) and replaced the developer docs' stale "0 levels" samples with real 10:30 PM responses.
+- **Why:** Judges may click any page; the docs must show real data.
+- **Files:** `business/live.sh`, `site/developers.html`, `docs/developers.md`
+- **State:** works; verified live.
+- **Next / heads-up:** `/api/games` once returned gzip to a plain curl from the site cache; a `Vary: Accept-Encoding` header would fix it. **Pinara/Max:** game pages lack the Level AI logo and have sub-12px text (Turbo Lanes).
+
 ### 2026-11-07 10:27 PM PT · Noel · Claude Code (Sentinel 8 generator) · main
 - **What:** Ran the bring-your-own-generator demo steps verbatim. The live test passed in 1.7 s (25 of 50 wins at difficulty 0.5). The 5-level pack came back 3 of 5: the sample generator varies widely at one setting (44–73% at 0.55), and 6 tries missed the 51% target. Fixed: 10 tries per level (a simulation of 25 packs went from 1 short to none); a log row no longer reads "0.58 → 0.58"; the email states the on-target rule (within 5 points, or 8 when the 95% interval includes the target) and says why a short pack stopped.
 - **Why:** The generator segment must finish on stage, and the email must explain why 83% and 89% count as on target for 85%.

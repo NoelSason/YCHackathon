@@ -67,16 +67,22 @@ Every game our agents make levels for, with how many levels are available for ea
 | `genre` | string or null | For example `match-3`. Null if we haven't labeled it. |
 | `levels_available` | integer | Levels that passed testing (accepted or published). |
 
-Response 200 (live, Nov 7, 2026, 6:20 PM PT):
+Response 200 (live, Nov 7, 2026, 10:30 PM PT):
 
 ```json
 {
   "games": [
     {
+      "game_id": "lotescape",
+      "name": "Lot Escape",
+      "genre": "sliding-block puzzle",
+      "levels_available": 0
+    },
+    {
       "game_id": "match3",
       "name": "Gem Garden",
       "genre": "match-3",
-      "levels_available": 0
+      "levels_available": 112
     },
     {
       "game_id": "platformer",
@@ -88,13 +94,13 @@ Response 200 (live, Nov 7, 2026, 6:20 PM PT):
       "game_id": "racer",
       "name": "Turbo Lanes",
       "genre": "lane racer",
-      "levels_available": 0
+      "levels_available": 101
     },
     {
       "game_id": "watersort",
       "name": "Splash Sort",
       "genre": "sort puzzle",
-      "levels_available": 0
+      "levels_available": 567
     }
   ]
 }
@@ -117,15 +123,55 @@ To stay in sync, store the `updated_at` of the last level you received and pass 
 Request:
 
 ```bash
-curl "https://levelai.vercel.app/api/levels?game=match3&limit=5"
+curl "https://levelai.vercel.app/api/levels?game=match3&limit=1"
 ```
 
-Response 200 (live, Nov 7, 2026, 6:20 PM PT):
+Response 200 (live, Nov 7, 2026, 10:30 PM PT):
 
 ```json
 {
   "game_id": "match3",
-  "levels": []
+  "levels": [
+    {
+      "level_id": "ca98e3c6-2f59-4856-a528-ffe59ff9d42a",
+      "game_id": "match3",
+      "level": {
+        "goal": {
+          "colour": "green",
+          "target": 90
+        },
+        "name": "Dewlight Crossing",
+        "seed": 3187062491,
+        "seals": [
+          {
+            "cell": 16,
+            "layers": 1
+          },
+          {
+            "cell": 24,
+            "layers": 1
+          },
+          {
+            "cell": 38,
+            "layers": 1
+          },
+          {
+            "cell": 46,
+            "layers": 1
+          }
+        ],
+        "width": 7,
+        "height": 9,
+        "move_limit": 21,
+        "colour_count": 5
+      },
+      "target_win_rate": 0.4,
+      "measured_win_rate": 0.44,
+      "status": "accepted",
+      "created_at": "2026-11-08T06:12:19.144Z",
+      "updated_at": "2026-11-08T06:12:23.458Z"
+    }
+  ]
 }
 ```
 
@@ -135,16 +181,7 @@ Request: every game:
 curl https://levelai.vercel.app/api/levels
 ```
 
-Response 200 (live, Nov 7, 2026, 6:20 PM PT):
-
-```json
-{
-  "game_id": null,
-  "levels": []
-}
-```
-
-When levels exist, each item in `levels` is a [level object](#level-object).
+The answer has the same shape, with `game_id` set to `null`. Each item in `levels` is a [level object](#level-object).
 
 ### Get a level
 
