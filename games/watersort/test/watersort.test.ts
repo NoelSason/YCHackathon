@@ -10,6 +10,12 @@ import { generateLevel, generateSolvableLevel, SAMPLES } from "../src/levels.js"
 import { solveLevel } from "../src/solver.js";
 import { runLevel } from "../../../solver/src/run.js";
 
+/** CPU time since `since`, in ms. Wall time fails under load (a solver worker can fill every core). */
+const cpuMs = (since: NodeJS.CpuUsage): number => {
+  const d = process.cpuUsage(since);
+  return (d.user + d.system) / 1000;
+};
+
 const firstSplash = SAMPLES[0]!;
 
 test("samples are valid and solvable within their move limits", () => {
@@ -171,7 +177,8 @@ test("adapter follows platform/CONTRACTS.md §1 and runs in the solver harness",
 });
 
 test("200 runs of every bot on the hardest sample take under 3 seconds", () => {
-  const t0 = Date.now();
+  const c0 = process.cpuUsage();
   runLevel(adapter, SAMPLES[3] as Level, adapter.bots, 200, 7);
-  assert.ok(Date.now() - t0 < 3000, `took ${Date.now() - t0} ms`);
+  const ms = cpuMs(c0);
+  assert.ok(ms < 3000, `took ${Math.round(ms)} ms of CPU`);
 });

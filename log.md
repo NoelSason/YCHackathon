@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:14 PM PT · Pinara · Claude Code · main
+- **What:** The speed tests in Splash Sort and Turbo Lanes measure CPU time (`process.cpuUsage`) instead of wall time. The limits are the same (3 s and 4 s).
+- **Why:** Turbo Lanes' test failed 4 of 5 runs while a solver worker was using the laptop's cores (load average about 30 on 8 cores): 6.0 s wall time, but only 2.1 s of CPU. A test that fails on a busy machine says nothing about the game.
+- **Files:** `games/racer/test/racer.test.ts`, `games/watersort/test/watersort.test.ts`.
+- **State:** works; under the same load, Turbo Lanes 21/21 four runs in a row, Splash Sort 14/14 twice, both typecheck. Measured CPU: Turbo Lanes 2.1 s (limit 4 s), Splash Sort 0.6 s (limit 3 s).
+- **Next / heads-up:** none. Game code is unchanged.
+
 ### 2026-11-07 7:05 PM PT · Pinara · Claude Code · main
 - **What:** Splash Sort and Turbo Lanes level links now open the game. `level_url` returns `${GAMES_BASE_URL}/games/watersort/?level=<id>` and `/games/racer/?level=<id>`, where the site serves the games (`site/build-games.sh`). The old `/watersort/` and `/racer/` paths return 404 on levelai.vercel.app. READMEs and tests updated.
 - **Why:** `save_level` and `publish_pack` return these links (CONTRACTS.md §1: "public URL that opens that level in the browser game"), and they were dead.

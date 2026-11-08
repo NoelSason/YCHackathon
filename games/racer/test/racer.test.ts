@@ -10,6 +10,12 @@ import { generateTrack, SAMPLES } from "../src/levels.js";
 import { solveLevel } from "../src/solver.js";
 import { runLevel } from "../../../solver/src/run.js";
 
+/** CPU time since `since`, in ms. Wall time fails under load (a solver worker can fill every core). */
+const cpuMs = (since: NodeJS.CpuUsage): number => {
+  const d = process.cpuUsage(since);
+  return (d.user + d.system) / 1000;
+};
+
 const base: Level = { lanes: 3, length: 20, speed: 8, time_limit: 40, crash_penalty: 3, lane_change_cooldown: 0, objects: [] };
 
 test("samples are valid and beatable within their time limits", () => {
@@ -121,9 +127,10 @@ test("adapter follows platform/CONTRACTS.md §1 and runs in the solver harness",
   assert.equal(s.solvable, true);
   assert.equal(adapter.solve({ ...SAMPLES[0]!, time_limit: s.min_moves - 1 }).solvable, false);
 
-  const t0 = Date.now();
+  const c0 = process.cpuUsage();
   const out = runLevel(adapter, SAMPLES[3] as Level, adapter.bots, 200, 3);
-  assert.ok(Date.now() - t0 < 4000, `200 runs of 3 bots took ${Date.now() - t0} ms`);
+  const ms = cpuMs(c0);
+  assert.ok(ms < 4000, `200 runs of 3 bots took ${Math.round(ms)} ms of CPU`);
   for (const bot of adapter.bots) assert.equal(out.results[bot]!.runs, 200);
   assert.equal(out.solvable, true);
 });
