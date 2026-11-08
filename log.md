@@ -20,7 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
-### 2026-11-07 5:20 PM PT · Noel · Claude Code · main
+### 2026-11-07 5:19 PM PT · Noel · Claude Code · main
+- **What:** (1) Outreach loop fixed: it had run dry (two puzzle charts, every game already read) and its last run died silently on an empty store-chart response. It now rotates through 7 puzzle-adjacent charts (puzzle, casual, board, word; free, grossing, paid), retries an empty chart once, logs failures to the activity log, and runs every 20 min (was 45). Same guards: ≥3 matching reviews, daily cap, opt-outs. (2) iOS installs: Mobilerun installs by bundle id, not numeric App Store id (numeric → 404), and only for apps in its own catalog (Duolingo, Spotify installed; Royal Match, Block Blast, NYT → APP_NOT_FOUND instantly). Installer now resolves the bundle id via Apple's public lookup and installs inline so the reason comes back. (3) `business/keepalive.sh` restarts the business server if it goes down, tunnel untouched. (4) `live_phone_view` check sends the console password.
+- **Why:** No agent action had been logged since 4:54 PM; App Store playtests never installed.
+- **Files:** `business/src/outreach/autopilot.ts`, `business/src/research/{monid,targets}.ts`, `business/src/config.ts`, `business/src/mobile/install.ts`, `business/keepalive.sh`, `platform/checks/src/checks/14-live-phone-view.ts`
+- **State:** works; 82 business tests pass, typecheck clean, server restarted and healthy.
+- **Next / heads-up:** **Abhinav:** the `deployments` check reads `platform/naive/team.json`, but my `NAIVE_API_KEY` sees zero agents and zero deployments, so the team lives in your Naïve workspace. The last CEO decision is 3:25 PM and the Designer's last level is 3:25 PM, so confirm the crons are actually firing on your side. **Pinara:** 3 levels have sat in `solving` since ~3:25 PM. **Mobilerun:** the Apple Account sign-in on the cloud iPhone fails ("Could not communicate with the server"). Don't sign a personal Apple ID into it.
+
+### 2026-11-07 5:08 PM PT · Noel · Claude Code · main
 - **What:** Console scrolls now: the page scrolls when the window is shorter than the layout, and the activity feed scrolls on its own. Includes the demo agent's in-progress console work that was already live.
 - **Why:** On a laptop the bottom row (Studios funnel, step-ins) was cut off and nothing scrolled.
 - **Files:** `demo/public/index.html`, `demo/public/outreach.html`, `demo/src/*`

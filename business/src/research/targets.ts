@@ -56,6 +56,8 @@ export interface FindTargetsOptions {
   maxGames?: number;
   minSignals?: number;
   chart?: string;
+  /** Google Play games category, e.g. GAME_PUZZLE (default), GAME_CASUAL, GAME_BOARD, GAME_WORD. */
+  category?: string;
   /** App ids to skip (already contacted, or read recently). */
   skip?: Set<string>;
 }
@@ -63,7 +65,7 @@ export interface FindTargetsOptions {
 export async function findTargets(monid: MonidRunner, opts: FindTargetsOptions = {}): Promise<Target[]> {
   const maxGames = opts.maxGames ?? 10;
   const minSignals = opts.minSignals ?? 2;
-  const games = (await fetchTopPuzzleGames(monid, opts.chart)).filter(
+  const games = (await fetchTopPuzzleGames(monid, opts.chart, opts.category)).filter(
     (g) => !BIG_STUDIOS.some((re) => re.test(g.developer)) && !opts.skip?.has(g.appId),
   );
   const targets: Target[] = [];

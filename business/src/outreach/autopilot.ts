@@ -9,7 +9,17 @@ import { findGenericContact } from "../research/contacts.js";
  * guarded tools the Sales agent uses (daily cap, opt-outs, honest numbers, legal footer), at most
  * `perRun` emails a run. Each step is logged, so the dashboard shows it working.
  */
-const CHARTS = ["topselling_free", "topgrossing"];
+// Rotate through puzzle-adjacent charts so the loop keeps finding studios it hasn't read yet.
+// (Two puzzle charts alone ran dry by 4:50 PM Nov 7: "found 0 new studios" every cycle.)
+const CHARTS: Array<{ chart: string; category: string; label: string }> = [
+  { chart: "topselling_free", category: "GAME_PUZZLE", label: "top free puzzle" },
+  { chart: "topgrossing", category: "GAME_PUZZLE", label: "top-grossing puzzle" },
+  { chart: "topselling_free", category: "GAME_CASUAL", label: "top free casual" },
+  { chart: "topselling_free", category: "GAME_BOARD", label: "top free board" },
+  { chart: "topselling_free", category: "GAME_WORD", label: "top free word" },
+  { chart: "topgrossing", category: "GAME_CASUAL", label: "top-grossing casual" },
+  { chart: "topselling_paid", category: "GAME_PUZZLE", label: "top paid puzzle" },
+];
 const recentlyRead = new Map<string, number>();
 let cycleCount = 0;
 
@@ -24,8 +34,14 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
   const cutoff = Date.now() - 6 * 3600_000;
   for (const [id, at] of recentlyRead) if (at < cutoff) recentlyRead.delete(id);
   const skip = new Set([...known, ...recentlyRead.keys()]);
-  await log("research", `scanning the ${chart === "topgrossing" ? "top-grossing" : "top free"} puzzle games for unhappy players`, "outreach loop", null);
-  const targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 12, minSignals: 2, chart, skip });
+  await log("research", `scanning the ${chart.label} games for unhappy players`, "outreach loop", null);
+  let targets;
+  try {
+    targets = await findTargets(ctx.monid, { maxGames: opts.maxGames ?? 12, minSignals: 2, chart: chart.chart, category: chart.category, skip });
+  } catch (err) {
+    await log("research", `couldn't read the ${chart.label} chart`, err instanceof Error ? err.message.slice(0, 160) : "unknown error", "will try the next chart next cycle");
+    return { sent: 0, reason: "store chart unavailable" };
+  }
   for (const t of targets) recentlyRead.set(t.appId, Date.now());
   // Cold outreach needs real evidence: at least 3 reviews showing the same problem.
   const fresh = targets.filter((t) => t.primarySignal !== null && t.signalCounts[t.primarySignal] >= 3 && t.score >= (opts.minScore ?? 1.2));

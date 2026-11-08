@@ -61,11 +61,19 @@ export function parseGames(raw: unknown): StoreGame[] {
     }));
 }
 
-export async function fetchTopPuzzleGames(monid: MonidRunner, chart = "topselling_free"): Promise<StoreGame[]> {
-  const raw = await monid.run({
+/**
+ * One Google Play chart. Seen Nov 7, 4:54 PM: litescrape sometimes completes with `output: null`,
+ * which the CLI reports as a failure, so one retry after a short pause.
+ */
+export async function fetchTopPuzzleGames(monid: MonidRunner, chart = "topselling_free", category = "GAME_PUZZLE"): Promise<StoreGame[]> {
+  const call = () => monid.run({
     provider: "litescrape",
     endpoint: "/google-play/games",
-    query: { games_category: "GAME_PUZZLE", chart, gl: "us", hl: "en" },
+    query: { games_category: category, chart, gl: "us", hl: "en" },
+  });
+  const raw = await call().catch(async () => {
+    await new Promise((r) => setTimeout(r, 5000));
+    return call();
   });
   return parseGames(raw);
 }
