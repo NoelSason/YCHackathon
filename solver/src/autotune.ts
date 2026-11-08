@@ -40,14 +40,25 @@ export const KNOBS: Record<string, Knob> = {
   racer: { path: ["time_limit"], dir: 1, lo: 1, hi: 1000, solverFloor: true },
   // Measured: goal.target moves the greedy win rate about 3-5 points per gem; move_limit 10-15.
   match3: { path: ["goal", "target"], dir: -1, lo: 1, hi: 1000, solverFloor: false },
+  // Lot Escape and Mosslight Trails: the step budget; the exact solver's fewest moves is the floor.
+  // Mosslight's move_limit is optional; a design without one starts at the easy end (no limit).
+  lotescape: { path: ["move_limit"], dir: 1, lo: 1, hi: 300, solverFloor: true },
+  platformer: { path: ["move_limit"], dir: 1, lo: 1, hi: 500, solverFloor: true },
 };
 
-const RUNS: Record<string, number> = { match3: 100 }; // match-3's greedy bot is slow (~1.7 s a game)
+// Bot games per measurement. Every game uses the standard 200 since the match-3 greedy bot got
+// about 30x faster (about 13 ms a game); it used to be capped at 100.
+const RUNS: Record<string, number> = {};
 
 export const referenceBot = (a: Adapter): string => REFERENCE_BOTS.find((b) => a.bots.includes(b)) ?? a.bots[0]!;
 
 const getKnob = (level: Record<string, unknown>, path: string[]): number =>
   Number(path.reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], level));
+/** The knob's value for the activity log; an optional knob that isn't set reads "none (no limit)". */
+const knobText = (level: Record<string, unknown>, path: string[]): string => {
+  const v = getKnob(level, path);
+  return Number.isFinite(v) ? String(v) : "none (no limit)";
+};
 
 function setKnob(level: Record<string, unknown>, path: string[], v: number): Record<string, unknown> {
   const out = structuredClone(level);
@@ -192,7 +203,9 @@ export async function tuneNextDesign(
   // Work in "ease" coordinates e = dir * value, so a higher e always means an easier level.
   let lo = knob.dir === 1 ? knob.lo : -knob.hi;
   let hi = knob.dir === 1 ? knob.hi : -knob.lo;
-  let e = Math.min(hi, Math.max(lo, knob.dir * getKnob(level, knob.path)));
+  // A missing knob (Mosslight's optional move_limit) means no limit: the easiest end of the range.
+  const k0 = getKnob(level, knob.path);
+  let e = Number.isFinite(k0) ? Math.min(hi, Math.max(lo, knob.dir * k0)) : hi;
   const seen: Array<{ e: number; rate: number }> = [];
 
   for (let round = 1; round <= MAX_ROUNDS; round++) {
@@ -204,7 +217,7 @@ export async function tuneNextDesign(
     }
     if (knob.solverFloor && typeof m.out.min_moves === "number" && knob.dir === 1) lo = Math.max(lo, m.out.min_moves);
     seen.push({ e, rate: m.r.win_rate });
-    const why = `${bot} ${m.r.wins}/${m.r.runs} = ${Math.round(m.r.win_rate * 100)}% (95% ${Math.round(m.r.ci95_low * 100)}-${Math.round(m.r.ci95_high * 100)}%), ${knob.path.join(".")} = ${getKnob(level, knob.path)}, target ${Math.round(d.target * 100)}%, round ${round}${d.resumed ? " (resumed after the tune stopped mid-way)" : ""}`;
+    const why = `${bot} ${m.r.wins}/${m.r.runs} = ${Math.round(m.r.win_rate * 100)}% (95% ${Math.round(m.r.ci95_low * 100)}-${Math.round(m.r.ci95_high * 100)}%), ${knob.path.join(".")} = ${knobText(level, knob.path)}, target ${Math.round(d.target * 100)}%, round ${round}${d.resumed ? " (resumed after the tune stopped mid-way)" : ""}`;
     if (onTarget(m.r, d.target) && m.out.solvable !== false) {
       await q(`update levels set status = 'accepted', measured_win_rate = $2, updated_at = now() where level_id = $1`, [levelId, m.r.win_rate]);
       await log(q, "tuner", "accept_level", `auto-tuner (program): ${why}`, `measured ${m.r.win_rate}`, "level", levelId);
@@ -229,7 +242,7 @@ export async function tuneNextDesign(
          values ($1, $2, $3, 'solving', $4, 'tuner', $5) returning level_id),
        retired as (update levels set status = 'rejected', updated_at = now() where level_id = $4 returning level_id)
        select child.level_id::text as level_id from child, retired`,
-      [d.game_id, JSON.stringify(nextLevel), d.target, levelId, `auto-tune round ${round + 1}: ${knob.path.join(".")} ${getKnob(level, knob.path)} → ${knob.dir * e}`],
+      [d.game_id, JSON.stringify(nextLevel), d.target, levelId, `auto-tune round ${round + 1}: ${knob.path.join(".")} ${knobText(level, knob.path)} → ${knob.dir * e}`],
     );
     await log(q, "tuner", "save_level", `auto-tuner (program): ${why}; trying ${knob.path.join(".")} = ${knob.dir * e}`, "retuned version saved", "level", String(child!.level_id));
     levelId = String(child!.level_id);

@@ -20,6 +20,41 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 00:50 PT · Pinara (Claude Code) · branch `main`
+
+**What:** **The automatic Tuner handles Lot Escape and Mosslight Trails like the first three games,
+and its tests are no longer flaky.**
+- **New tuner knobs.** `KNOBS` gets `lotescape` and `platformer`, both on `move_limit` with the
+  exact minimum as the floor. Before, the tuner skipped any game without a knob, so a Designer
+  draft for either game would have stayed a draft forever.
+- **Optional `move_limit`.** A Mosslight draft without one starts at the easy end (no limit).
+  Before, the value read as NaN, every bound went wrong, and the level was rejected with "solver
+  error". The activity log and version notes now say "none (no limit)" instead of "NaN".
+- **Match-3 measurements.** These use the standard 200 games. They were capped at 100 because the
+  greedy bot was slow; it's now about 30× faster.
+- **Test fix.** The tuner tests' shared check now uses the tuner's own rule (`onTarget`: 5
+  points, or 8 inside the 95% interval) instead of a hard-coded 5 points. Seeds come from each
+  run's random id, so a different test failed on each run, including on plain `main` (checked).
+- **Knob-less example.** The tests use `stub` instead of `platformer`.
+
+**Why:** Pinara: the new games must work like the other three, the agent pipeline included.
+**Files:** `solver/src/autotune.ts`, `solver/test/autotune.test.ts`,
+`solver/test/autotune-games.test.ts` (new).
+**State:** Works:
+- On clean `main` plus this change: solver 49/49. The tuner tests passed 3 runs in a row at load
+  average 8 (13/13 each).
+- New tests: a Lot Escape draft is tuned and accepted on target, never below the fewest moves; a
+  Mosslight draft without `move_limit` gets a tuned step budget, and no NaN or solver error is
+  logged.
+- **Staged only these lines:** Pinara's folder still holds the uncommitted difficulty-curve
+  edits to `autotune.ts`, its test, `solver/README.md`, and `roster.ts` from an ended session.
+  They typecheck with this change, and they're not committed here.
+
+**Next / heads-up:** Workers pick this up on restart. Pinara's restarted at 00:10 and needs one more
+restart for these lines; Noel's needs a pull and restart. The Designer prompt still makes only
+match3, watersort, and racer levels (`roster.ts`, Abhinav runs setup), so this matters for design
+cards and future prompts.
+
 ### 2026-11-08 00:34 PT · Pinara (Claude Code) · branch `main`
 
 **What:** Lot Escape production recipes are deterministic at every depth. The generator now stops

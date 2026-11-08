@@ -8,7 +8,7 @@ import type { Adapter } from "../../platform/mcp/src/adapters.js";
 import { getAdapter } from "../../platform/mcp/src/adapters.js";
 import { SAMPLES as WATERSORT } from "../../games/watersort/src/levels.js";
 import { SAMPLES as RACER } from "../../games/racer/src/levels.js";
-import { claimDesign, MAX_ROUNDS, RESUME_AFTER_MINUTES, TOLERANCE, tuneNextDesign } from "../src/autotune.js";
+import { claimDesign, MAX_ROUNDS, onTarget, RESUME_AFTER_MINUTES, tuneNextDesign } from "../src/autotune.js";
 import type { Query } from "../src/queue.js";
 
 const schema = await readFile(new URL("../../platform/db/schema.sql", import.meta.url), "utf8");
@@ -78,7 +78,14 @@ async function checkOutcome(rootId: string, target: number, out: Awaited<ReturnT
   assert.ok(out.kind === "accepted" || out.kind === "rejected");
   assert.equal(out.kind === "accepted" ? "accepted" : "rejected", last.status);
   for (const v of versions.slice(0, -1)) assert.equal(v.status, "rejected", "superseded versions are retired");
-  if (out.kind === "accepted") assert.ok(Math.abs(Number(last.measured_win_rate) - target) <= TOLERANCE + 1e-9);
+  if (out.kind === "accepted") {
+    // The tuner's own acceptance rule (onTarget): within 5 points, or within 8 with the target inside
+    // the 95% interval. Seeds come from each run's random id, so a 5-point-only check was flaky.
+    const [run] = await q(`select results from solver_runs where level_id = $1 and status = 'done' order by finished_at desc limit 1`, [last.level_id]);
+    const r = Object.values(run!.results as Record<string, { win_rate: number; ci95_low: number; ci95_high: number }>)[0]!;
+    assert.ok(onTarget(r, target), `accepted off target: ${r.win_rate} (95% ${r.ci95_low}-${r.ci95_high}) vs ${target}`);
+    assert.equal(Number(last.measured_win_rate), r.win_rate);
+  }
   const runs = await q(`select status from solver_runs`);
   assert.equal(runs.length, versions.length, "one measurement per version");
   assert.ok(runs.every((r) => r.status === "done"));
@@ -113,13 +120,14 @@ test("match-3 tunes goal.target downward-easier: a too-easy level gets a bigger 
 });
 
 test("only fresh Designer roots for tunable games are claimed, and each only once", async () => {
-  await design("platformer", { name: "p" }, 0.5);            // no knob for this game
+  await q(`insert into games(game_id, name) values ('stub', 'Stub game') on conflict do nothing`);
+  await design("stub", { width: 6, height: 6, moves: 20 }, 0.5); // no knob for this game
   await design("watersort", WATERSORT[2]!, 0.5, "tuner");    // not a Designer root
   const mine = await design("watersort", WATERSORT[2]!, 0.5);
-  const a = await claimDesign(q, ["watersort", "platformer", "racer"]);
+  const a = await claimDesign(q, ["watersort", "stub", "racer"]);
   assert.equal(a?.level_id, mine);
   assert.equal(a?.resumed, false);
-  assert.equal(await claimDesign(q, ["watersort", "platformer", "racer"]), null);
+  assert.equal(await claimDesign(q, ["watersort", "stub", "racer"]), null);
   const [row] = await q(`select status from levels where level_id = $1`, [mine]);
   assert.equal(row!.status, "solving");
 });
@@ -142,8 +150,9 @@ test("a tune that stopped mid-way is resumed later; a live or recent one is neve
   await q(`insert into solver_runs(level_id, bots, status, started_at) values ($1, '["human"]', 'running', now())`, [measuring]);
   const parent = await leftMidTune("watersort", L, 0.5, old + 1);             // has a newer version...
   const child = await leftMidTune("watersort", L, 0.5, old, "tuner", parent); // ...which is the one to resume
-  await leftMidTune("platformer", { name: "p" }, 0.5, old);                   // no knob for this game
-  const games = ["watersort", "platformer"];
+  await q(`insert into games(game_id, name) values ('stub', 'Stub game') on conflict do nothing`);
+  await leftMidTune("stub", { width: 6, height: 6, moves: 20 }, 0.5, old);   // no knob for this game
+  const games = ["watersort", "stub"];
   const a = await claimDesign(q, games);
   assert.deepEqual([a?.level_id, a?.resumed], [stopped, true]);
   const b = await claimDesign(q, games);
