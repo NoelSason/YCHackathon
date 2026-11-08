@@ -246,15 +246,27 @@ async function playAndReport(
         if (payment) await sendWatchEmail(ctx, lead, run.order, test, label);
       }
       // An App Store link means a real iOS app: install it from the App Store first, then open it.
+      // It may land on the App Store phone instead of the main one; the playtest runs wherever it is.
       const storeId = appIdFromStoreUrl(appUrl);
       let app: { platform: "ios"; package: string; label?: string } = { platform: "ios", package: "safari" };
       let open = appUrl;
+      let playOn = deviceId;
       if (storeId?.startsWith("ios:")) {
         step(lead.id, "Installing your app from the App Store");
         await log(`installing ${lead.company}'s app from the App Store`, appUrl, label.trim() || null);
+        const client = ctx.mobilerun;
         try {
-          const installed = await installFromAppStore({ client: ctx.mobilerun, deviceId, appStoreId: storeId.slice(4) });
-          await log(`installed ${installed.label} on the iPhone`, appUrl, installed.packageName);
+          const installed = await installFromAppStore({
+            client, deviceId, appStoreId: storeId.slice(4),
+            appStoreDeviceId: ctx.config.MOBILERUN_APPSTORE_DEVICE_ID ?? null,
+            model: ctx.config.MOBILERUN_MODEL,
+            // The live watch view follows the install to the App Store phone.
+            onAppStorePhone: (id) => { if (watch) phoneStart(watch, client, id); },
+          });
+          playOn = installed.deviceId;
+          if (watch) phoneStart(watch, client, playOn);
+          // The action wording is matched by the watch page (leads/watch.ts), so the phone detail goes in the result.
+          await log(`installed ${installed.label} on the iPhone`, appUrl, `${installed.packageName}${installed.via === "app_store" ? " (downloaded in the App Store app on the App Store iPhone)" : ""}`);
           app = { platform: "ios", package: installed.packageName, label: installed.label };
           if (watch) await ctx.store.updateWatchOrder(watch.id, { gameName: installed.label.slice(0, 80) }).catch(() => null);
           open = `the "${installed.label}" app icon on the home screen`;
@@ -268,7 +280,7 @@ async function playAndReport(
       step(lead.id, "Playing your app on the iPhone");
       outcome = await runPlan({
         client: ctx.mobilerun,
-        deviceId,
+        deviceId: playOn,
         model: ctx.config.MOBILERUN_MODEL,
         plan: {
           planId: `order-${lead.id.slice(0, 8)}`,

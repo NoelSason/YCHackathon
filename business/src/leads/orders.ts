@@ -1,0 +1,224 @@
+import { activeStripeKey } from "../config.js";
+import { z } from "zod";
+import type { ToolContext } from "../mcp/tools.js";
+import { createCheckout, ensurePrice, isLiveKey } from "../billing/stripe.js";
+import { idempotencyKey } from "../outreach/send.js";
+import type { Lead, PaymentRecord } from "../types.js";
+import * as E from "../email/html.js";
+
+/**
+ * Level orders from the pricing page: the level pack (one-time) and the level subscription
+ * (monthly). The buyer fills in our form first, so the webhook knows which game and difficulty
+ * the levels are for; then they pay on a hosted checkout page. After payment, the customer gets
+ * an honest confirmation and the team gets a "delivery owed" line with a due date. Nothing here
+ * says levels exist before a person or agent delivers them.
+ */
+export const PLANS = ["level_pack", "subscription"] as const;
+export type Plan = (typeof PLANS)[number];
+export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
+
+/** Hours from payment to delivery that we promise on the site and in the email. */
+export const DELIVERY_HOURS = 48;
+
+export const OrderSchema = z.object({
+  plan: z.enum(PLANS),
+  name: z.string().trim().min(1).max(120),
+  email: z.email().max(200),
+  company: z.string().trim().min(1).max(160),
+  gameUrl: z.url().max(450).refine((u) => /^https?:\/\//i.test(u), "Use a web link (https://…)."),
+  difficulty: z.enum(DIFFICULTIES),
+  consent: z.literal(true),
+});
+export type Order = z.infer<typeof OrderSchema>;
+
+/** Our product names, as payments and the webhook know them. */
+export const PRODUCT_FOR_PLAN = { level_pack: "pilot_pack", subscription: "subscription" } as const satisfies Record<Plan, PaymentRecord["product"]>;
+
+const usd = (n: number): string => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
+
+export function planDetails(ctx: ToolContext, plan: Plan): { name: string; priceUsd: number; label: string } {
+  const c = ctx.config;
+  return plan === "level_pack"
+    ? { name: `Level pack: ${c.PILOT_LEVELS} levels for your game`, priceUsd: c.PILOT_PRICE_USD, label: `${usd(c.PILOT_PRICE_USD)}` }
+    : { name: `Level subscription: ${c.SUBSCRIPTION_LEVELS} new levels a month`, priceUsd: c.SUBSCRIPTION_PRICE_USD, label: `${usd(c.SUBSCRIPTION_PRICE_USD)}/month` };
+}
+
+export async function createOrder(ctx: ToolContext, input: unknown): Promise<
+  { ok: true; lead: Lead; payUrl: string; sessionId: string } | { ok: false; error: string }
+> {
+  const parsed = OrderSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Please fill in your name, email, company, your game's link (https://…), and a difficulty, and tick the box." };
+  }
+  if (!ctx.stripe) return { ok: false, error: "Checkout is closed right now. Email levelai@agentmail.to and we'll set up your order." };
+  const o = parsed.data;
+  const plan = planDetails(ctx, o.plan);
+  const lead = await ctx.store.upsertLead({
+    company: o.company, appId: null, contactName: o.name, email: o.email, source: "inbound_form", stage: "found",
+    reason: `Ordered a ${o.plan === "level_pack" ? "level pack" : "level subscription"} for ${o.gameUrl} (${o.difficulty}).`,
+    sampleUrl: null, crmContactId: null,
+  });
+  const site = ctx.config.SITE_URL.replace(/\/+$/, "");
+  const test = isLiveKey(activeStripeKey(ctx.config)) ? "" : "&test=1";
+  const short = o.plan === "level_pack" ? "pack" : "subscription";
+  const amountMinor = Math.round(plan.priceUsd * 100);
+  const priceId = await ensurePrice(ctx.stripe, {
+    lookupKey: o.plan === "level_pack" ? `levelai_level_pack_${amountMinor}` : `levelai_subscription_monthly_${amountMinor}`,
+    productName: plan.name,
+    amountMinor,
+    ...(o.plan === "subscription" ? { interval: "month" as const } : {}),
+  });
+  const checkout = await createCheckout(ctx.stripe, {
+    mode: o.plan === "subscription" ? "subscription" : "payment",
+    priceId,
+    metadata: { product: PRODUCT_FOR_PLAN[o.plan], lead_id: lead.id, game_url: o.gameUrl, difficulty: o.difficulty },
+    customerEmail: o.email,
+    leadId: lead.id,
+    successUrl: `${site}/pricing?paid=${short}${test}`,
+    cancelUrl: `${site}/pricing?plan=${short}&cancelled=1#order`,
+  });
+  await ctx.store.setStage(lead.id, "pilot_offered");
+  await ctx.store.logActivity({
+    at: new Date().toISOString(), agent: "sales", action: `${o.plan === "level_pack" ? "level pack" : "level subscription"} ordered by ${o.company}`,
+    why: `${o.gameUrl} (${o.difficulty})`, result: `checkout opened at ${plan.label}${test ? " (test mode)" : ""}`, costUsd: null, human: false,
+  });
+  return { ok: true, lead, payUrl: checkout.url, sessionId: checkout.id };
+}
+
+/** "Sat, Nov 9, 7:30 PM PT": the delivery deadline, in the team's time zone. */
+export function formatDue(at: Date): string {
+  return `${at.toLocaleString("en-US", { timeZone: "America/Los_Angeles", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} PT`;
+}
+
+export function composeOrderEmail(args: {
+  plan: Plan;
+  name: string | null;
+  company: string;
+  gameUrl: string | null;
+  difficulty: string | null;
+  levels: number;
+  playtests: number;
+  priceLabel: string;
+  due: string;
+  test: boolean;
+  companyName: string;
+  postalAddress: string;
+  replyTo: string;
+  siteUrl: string;
+}): { subject: string; body: string; html: string } {
+  const first = args.name ? args.name.split(" ")[0]! : args.company;
+  const pack = args.plan === "level_pack";
+  const what = pack ? `your level pack (${args.priceLabel})` : `your level subscription (${args.priceLabel})`;
+  const game = args.gameUrl ?? "your game";
+  const target = args.difficulty ? `${args.difficulty} difficulty` : "the difficulty you want";
+  const steps = pack
+    ? [
+        `We design ${args.levels} new levels for ${game} in its style.`,
+        `Bot players play each level many times, and we tune it until it lands on ${target}.`,
+        `We email you the levels by ${args.due}.`,
+      ]
+    : [
+        `We start on this month's ${args.levels} levels for ${game}, each tested by bot players and tuned to ${target}. The first ones reach you by ${args.due}.`,
+        `Your plan includes ${args.playtests} iPhone playtests a month. Order them at ${args.siteUrl}/playtest with this email address.`,
+        `Get your developer key at ${args.siteUrl}/developers to pull your levels into your tools or connect your coding agent.`,
+        "You can cancel anytime. Reply to this email and we'll stop the next charge.",
+      ];
+  const missing = !args.gameUrl || !args.difficulty
+    ? `We don't have ${!args.gameUrl ? "a link to your game" : "your target difficulty"} yet. Reply with it so we can start.`
+    : null;
+  const testNote = args.test ? "This was a test order, so no money was charged." : null;
+  const footerReason = pack ? "You're getting it because you ordered a level pack." : "You're getting it because you subscribed to levels.";
+  const body = [
+    `Hi ${first},`,
+    "",
+    `Thanks for ordering ${what}. Here's what happens next:`,
+    "",
+    ...steps.map((s, i) => `${i + 1}. ${s}`),
+    "",
+    ...(missing ? [missing, ""] : []),
+    `Questions, or something to change? Reply to this email or write to ${args.replyTo}.`,
+    "",
+    ...(testNote ? [testNote, ""] : []),
+    args.companyName,
+    "",
+    "—",
+    `${args.companyName} is a small studio where AI agents design and test levels, and this email was written by one of them. ${footerReason}`,
+    args.postalAddress,
+  ].join("\n");
+  const html = E.layout({
+    preheader: pack ? `Your ${args.levels} levels arrive by ${args.due}.` : `Your first levels arrive by ${args.due}.`,
+    companyName: args.companyName,
+    postalAddress: args.postalAddress,
+    footerReason,
+    body: [
+      E.eyebrow(args.test ? "Order confirmed · test order" : "Order confirmed", E.C.green),
+      E.heading(pack ? `Your level pack is in the works, ${first}` : `Your subscription has started, ${first}`),
+      E.text(`Thanks for ordering ${what}. Here's what happens next.`, { color: E.C.muted }),
+      E.panel(E.rows([
+        E.checkRow("Game", args.gameUrl ?? "Reply with a link", args.gameUrl ? "info" : "fail"),
+        E.checkRow("Difficulty", args.difficulty ? args.difficulty[0]!.toUpperCase() + args.difficulty.slice(1) : "Reply with a target", args.difficulty ? "info" : "fail"),
+        E.checkRow(pack ? "Levels" : "Levels each month", String(args.levels), "info"),
+        E.checkRow(pack ? "Delivered by" : "First levels by", args.due, "info"),
+        ...(pack ? [] : [E.checkRow("iPhone playtests each month", String(args.playtests), "info")]),
+      ].join(""))),
+      ...steps.map((s, i) => E.text(`${i + 1}. ${s}`)),
+      ...(missing ? [E.text(missing, { weight: 800 })] : []),
+      E.text(`Questions, or something to change? Reply to this email or write to ${args.replyTo}.`, { color: E.C.muted }),
+      ...(testNote ? [E.text(testNote, { color: E.C.muted })] : []),
+      ...(pack ? [] : [E.button("Get your developer key", `${args.siteUrl}/developers`)]),
+    ].join(""),
+  });
+  const subject = pack ? `Your level pack order: ${args.company}` : `Your level subscription: ${args.company}`;
+  return { subject: args.test ? `[Test order] ${subject}` : subject, body, html };
+}
+
+/**
+ * After a paid level pack or a new subscription: logs what the team owes and by when, then emails
+ * the customer a confirmation (once per payment). Delivery itself is left for the team.
+ */
+export async function afterOrderPaid(
+  ctx: ToolContext,
+  payment: PaymentRecord,
+  metadata: Record<string, string>,
+  customerEmail: string | null,
+): Promise<void> {
+  const label = payment.livemode ? "" : " (test mode)";
+  const log = (action: string, why: string | null, result: string | null) =>
+    ctx.store.logActivity({ at: new Date().toISOString(), agent: "billing", action, why, result, costUsd: null, human: false });
+  const plan: Plan = payment.product === "subscription" ? "subscription" : "level_pack";
+  const lead = payment.leadId ? await ctx.store.getLead(payment.leadId) : null;
+  const company = lead?.company ?? customerEmail ?? "an unknown buyer";
+  const due = formatDue(new Date(Date.parse(payment.createdAt) + DELIVERY_HOURS * 3600_000));
+  const gameUrl = metadata.game_url || null;
+  const difficulty = metadata.difficulty || null;
+  const details = [gameUrl ?? "no game link", difficulty ?? "no difficulty"].join(", ");
+  if (plan === "level_pack") {
+    await log(`delivery owed: level pack for ${company} (due ${due})`, `${ctx.config.PILOT_LEVELS} levels; ${details}`, `left for the team${label}`);
+  } else {
+    await log(`delivery owed: level subscription for ${company} (first levels due ${due})`, `${ctx.config.SUBSCRIPTION_LEVELS} levels a month and ${ctx.config.SUBSCRIPTION_PLAYTESTS} playtests; ${details}`, `left for the team${label}`);
+  }
+
+  const to = lead?.email ?? customerEmail;
+  if (!to || !ctx.mail) {
+    await log(`order confirmation not sent: ${company}`, !to ? "no email address on the order" : "no mail sender on this server", `left for a person${label}`);
+    return;
+  }
+  if (await ctx.store.isSuppressed(to)) {
+    await log(`order confirmation not sent: ${company}`, "the customer opted out of email", `nothing sent${label}`);
+    return;
+  }
+  const { subject, body, html } = composeOrderEmail({
+    plan, name: lead?.contactName ?? null, company: lead?.company ?? "your studio", gameUrl, difficulty,
+    levels: plan === "level_pack" ? ctx.config.PILOT_LEVELS : ctx.config.SUBSCRIPTION_LEVELS,
+    playtests: ctx.config.SUBSCRIPTION_PLAYTESTS, priceLabel: planDetails(ctx, plan).label, due, test: !payment.livemode,
+    companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
+    replyTo: ctx.config.AGENTMAIL_INBOX_ID ?? "levelai@agentmail.to", siteUrl: ctx.config.SITE_URL.replace(/\/+$/, ""),
+  });
+  try {
+    const { messageId } = await ctx.mail.send({ to, subject, text: body, html, idempotencyKey: idempotencyKey("order-confirmation", payment.id) });
+    if (lead) await ctx.store.addOutreach({ leadId: lead.id, to, subject, body, status: "sent", blockedReason: null, providerMessageId: messageId });
+    await log(`emailed the order confirmation to ${company}`, plan === "level_pack" ? "level pack" : "level subscription", `message ${messageId}${label}`);
+  } catch (err) {
+    await log(`couldn't email ${company} their order confirmation`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", `not sent${label}`);
+  }
+}

@@ -64,6 +64,7 @@ cat > "$ROOT/site/vercel.json" <<JSON
     { "source": "/match3", "destination": "/play" },
     { "source": "/match3/", "destination": "/play" },
     { "source": "/playtest-orders", "destination": "$URL/playtest-orders" },
+    { "source": "/orders", "destination": "$URL/orders" },
     { "source": "/watch-status", "destination": "$URL/watch-status" },
     { "source": "/watch-frame", "destination": "$URL/watch-frame" },
     { "source": "/developer-keys", "destination": "$URL/developer-keys" },

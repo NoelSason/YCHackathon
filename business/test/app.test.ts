@@ -31,8 +31,9 @@ describe("server routes (fetch handler)", () => {
   });
 
   it("treats blank env values as unset", () => {
-    const config = loadConfig({ PILOT_PRICE_USD: "", OUTREACH_SEND: "", PORT: "" });
-    expect(config.PILOT_PRICE_USD).toBeUndefined();
+    const config = loadConfig({ HINT_PACK_PRICE_USD: "", PILOT_PRICE_USD: "", OUTREACH_SEND: "", PORT: "" });
+    expect(config.HINT_PACK_PRICE_USD).toBeUndefined();
+    expect(config.PILOT_PRICE_USD).toBe(49);
     expect(config.OUTREACH_SEND).toBe("0");
     expect(config.PORT).toBe(8787);
   });

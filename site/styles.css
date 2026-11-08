@@ -1036,3 +1036,62 @@ p { margin: 0; }
 .game-credit a { color: var(--cobalt-d); font-weight: 600; text-underline-offset: 3px; }
 .games-note { margin-top: 40px; font-size: 17px; color: var(--ink-soft); }
 @media (prefers-reduced-motion: reduce) { .game-card:hover .game-shot img { transform: none; } }
+
+/* ---------- pricing ---------- */
+.plans { margin-top: 40px; display: grid; gap: 20px; }
+@media (min-width: 900px) { .plans { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: stretch; } }
+.plan {
+  border: 2px solid var(--ink); border-radius: 22px; background: var(--white);
+  padding: 26px; display: flex; flex-direction: column; gap: 14px; min-width: 0;
+}
+@media (min-width: 720px) { .plan { padding: 30px; } }
+.plan.featured { background: var(--sun); box-shadow: 0 8px 0 var(--ink); }
+.plan-tag {
+  align-self: flex-start; padding: 6px 11px; border-radius: 999px;
+  background: var(--ink); color: var(--white); font: 700 13px/1 var(--body); letter-spacing: 0.02em;
+}
+.plan h3 { font: 800 clamp(21px, 2.4vw, 24px)/1.15 var(--display); letter-spacing: -0.025em; margin: 0; }
+.plan-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.plan-price b { font: 800 clamp(40px, 5vw, 52px)/1 var(--display); letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
+.plan-price span { font-weight: 700; color: var(--ink-soft); }
+.plan.featured .plan-price span { color: var(--ink); }
+.plan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.plan-list li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; font-size: 16px; color: var(--ink-soft); }
+.plan.featured .plan-list li { color: var(--ink); }
+.plan-list li::before {
+  content: ""; width: 20px; height: 20px; margin-top: 2px; border-radius: 6px; border: 2px solid var(--ink);
+  background: var(--mint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4L18 8' fill='none' stroke='%231a1d3a' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat;
+}
+.plan .btn { margin-top: auto; align-self: stretch; }
+.plan-list + .btn { margin-top: auto; }
+.plan > .plan-list { margin-bottom: 10px; }
+.plan-extra {
+  margin-top: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px;
+  padding: 16px 20px; border: 2px solid var(--ink); border-radius: 16px; background: var(--white);
+}
+.plan-extra p { color: var(--ink-soft); max-width: 40em; }
+.plan-extra strong { color: var(--ink); margin-right: 6px; }
+.pricing { border-bottom: 2px solid var(--ink); }
+
+/* order form: pick a plan and a difficulty */
+.choices { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.choices.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.choices legend { padding: 0; margin-bottom: 6px; font-weight: 700; font-size: 15.5px; }
+.choice { position: relative; display: grid; cursor: pointer; }
+.choice input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.choice span {
+  display: grid; gap: 2px; min-height: 52px; align-content: center; padding: 10px 14px;
+  border: 2px solid var(--ink); border-radius: 12px; background: var(--white);
+  box-shadow: inset 0 3px 0 var(--paper-2);
+  transition: background-color 0.15s ease, box-shadow 0.08s ease, transform 0.08s ease;
+}
+.choice strong { font-weight: 700; font-size: 16px; line-height: 1.25; }
+.choice em { font-style: normal; font-size: 14.5px; color: var(--ink-soft); }
+.choice input:checked + span { background: var(--sun); box-shadow: 0 4px 0 var(--ink); transform: translateY(-2px); }
+.choice input:checked + span em { color: var(--ink); }
+.choice input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+.choices.three .choice span { justify-items: center; text-align: center; }
+.order-done { display: grid; gap: 14px; }
+.order-done .btn { justify-self: start; }
+.note { border: 2px solid var(--ink); background: var(--white); border-radius: 12px; padding: 12px 14px; font-weight: 600; font-size: 15.5px; }
+.note[hidden] { display: none; }

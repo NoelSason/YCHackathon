@@ -6,6 +6,7 @@ import type {
   Lead,
   OutreachRecord,
   PaymentRecord,
+  SubscriptionRecord,
   PipelineStage,
   WatchOrder,
 } from "./types.js";
@@ -39,6 +40,15 @@ export interface Store {
   recordPayment(input: Omit<PaymentRecord, "id" | "createdAt">): Promise<PaymentRecord | null>;
   listPayments(): Promise<PaymentRecord[]>;
   addDelivery(input: Omit<DeliveryRecord, "id" | "createdAt">): Promise<DeliveryRecord>;
+
+  /** Records a new subscription. Returns null when it's already on file (webhooks retry). */
+  addSubscription(input: Omit<SubscriptionRecord, "status" | "startedAt" | "cancelledAt">): Promise<SubscriptionRecord | null>;
+  getSubscription(id: string): Promise<SubscriptionRecord | null>;
+  /**
+   * Marks a subscription cancelled (adding it if it isn't on file). Returns null when it was
+   * already cancelled, so a retried cancel event changes nothing.
+   */
+  cancelSubscription(input: { id: string; leadId: string | null; livemode: boolean }): Promise<SubscriptionRecord | null>;
 
   logActivity(entry: ActivityEntry): Promise<void>;
   listActivity(limit?: number): Promise<ActivityEntry[]>;
@@ -189,6 +199,30 @@ export class MemoryStore implements Store {
     return record;
   }
 
+  private subscriptions = new Map<string, SubscriptionRecord>();
+
+  async addSubscription(input: Omit<SubscriptionRecord, "status" | "startedAt" | "cancelledAt">): Promise<SubscriptionRecord | null> {
+    if (this.subscriptions.has(input.id)) return null;
+    const record: SubscriptionRecord = { ...input, status: "active", startedAt: now(), cancelledAt: null };
+    this.subscriptions.set(input.id, record);
+    return { ...record };
+  }
+
+  async getSubscription(id: string): Promise<SubscriptionRecord | null> {
+    const r = this.subscriptions.get(id);
+    return r ? { ...r } : null;
+  }
+
+  async cancelSubscription(input: { id: string; leadId: string | null; livemode: boolean }): Promise<SubscriptionRecord | null> {
+    const existing = this.subscriptions.get(input.id);
+    if (existing?.status === "cancelled") return null;
+    const record: SubscriptionRecord = existing
+      ? { ...existing, status: "cancelled", cancelledAt: now() }
+      : { ...input, gameUrl: null, difficulty: null, status: "cancelled", startedAt: now(), cancelledAt: now() };
+    this.subscriptions.set(input.id, record);
+    return { ...record };
+  }
+
   async logActivity(entry: ActivityEntry): Promise<void> {
     this.activity.push(entry);
   }
@@ -284,6 +318,19 @@ function rowToWatchOrder(r: Row): WatchOrder {
     summary,
     paymentId: r.payment_id === null || r.payment_id === undefined ? null : String(r.payment_id),
     focus: r.focus === null || r.focus === undefined ? null : String(r.focus),
+  };
+}
+
+function rowToSubscription(r: Row): SubscriptionRecord {
+  return {
+    id: String(r.stripe_subscription_id),
+    leadId: str(r.studio_id),
+    status: r.status === "cancelled" ? "cancelled" : "active",
+    livemode: r.mode === "live",
+    gameUrl: str(r.game_url),
+    difficulty: str(r.difficulty),
+    startedAt: iso(r.started_at),
+    cancelledAt: r.cancelled_at === null || r.cancelled_at === undefined ? null : iso(r.cancelled_at),
   };
 }
 
@@ -414,7 +461,7 @@ export class PlatformStore implements Store {
       amountMinor: Math.round(Number(row.amount_usd) * 100),
       currency: "usd",
       livemode: row.mode === "live",
-      product: (["pilot_pack", "hint_pack", "playtest"].includes(String(row.product)) ? row.product : "other") as PaymentRecord["product"],
+      product: (["pilot_pack", "hint_pack", "playtest", "subscription"].includes(String(row.product)) ? row.product : "other") as PaymentRecord["product"],
       createdAt: iso(row.ts),
     }));
   }
@@ -426,6 +473,33 @@ export class PlatformStore implements Store {
     );
     if (input.status === "delivered") await this.q(`update payments set status = 'delivered' where id::text = $1`, [input.paymentId]);
     return { ...input, id: String(r[0]!.id), createdAt: iso(r[0]!.created_at) };
+  }
+
+  async addSubscription(input: Omit<SubscriptionRecord, "status" | "startedAt" | "cancelledAt">): Promise<SubscriptionRecord | null> {
+    const r = await this.q(
+      `insert into biz_subscriptions (stripe_subscription_id, studio_id, mode, game_url, difficulty)
+       values ($1, $2, $3, $4, $5) on conflict (stripe_subscription_id) do nothing returning *`,
+      [input.id, input.leadId, input.livemode ? "live" : "test", input.gameUrl, input.difficulty],
+    );
+    return r[0] ? rowToSubscription(r[0]) : null;
+  }
+
+  async getSubscription(id: string): Promise<SubscriptionRecord | null> {
+    const r = await this.q(`select * from biz_subscriptions where stripe_subscription_id = $1`, [id]);
+    return r[0] ? rowToSubscription(r[0]) : null;
+  }
+
+  async cancelSubscription(input: { id: string; leadId: string | null; livemode: boolean }): Promise<SubscriptionRecord | null> {
+    // One statement: add it as cancelled, or flip an active row. An already-cancelled row returns nothing.
+    const r = await this.q(
+      `insert into biz_subscriptions (stripe_subscription_id, studio_id, mode, status, cancelled_at)
+       values ($1, $2, $3, 'cancelled', now())
+       on conflict (stripe_subscription_id) do update set status = 'cancelled', cancelled_at = now()
+         where biz_subscriptions.status <> 'cancelled'
+       returning *`,
+      [input.id, input.leadId, input.livemode ? "live" : "test"],
+    );
+    return r[0] ? rowToSubscription(r[0]) : null;
   }
 
   async logActivity(e: ActivityEntry): Promise<void> {

@@ -35,6 +35,8 @@ const EnvSchema = z.object({
   // Mobilerun Cloud
   MOBILERUN_API_KEY: z.string().optional(),
   MOBILERUN_DEVICE_ID: z.string().optional(),
+  /** A second cloud iPhone signed in to the App Store. App Store links that Mobilerun can't install are downloaded and played there. */
+  MOBILERUN_APPSTORE_DEVICE_ID: z.string().optional(),
   MOBILERUN_MODEL: z.string().default("mobilerun/mobile-agent-fast"),
   /** Keep the phone playtesting between paid orders (src/mobile/loop.ts). */
   PLAYTEST_LOOP: z.enum(["0", "1"]).default("0"),
@@ -48,10 +50,19 @@ const EnvSchema = z.object({
   // Stripe
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  /** Live mode: used instead of STRIPE_SECRET_KEY when BILLING_ALLOW_LIVE=1. The live endpoint has its own signing secret. */
+  STRIPE_SECRET_KEY_LIVE: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET_LIVE: z.string().optional(),
   BILLING_ALLOW_LIVE: z.enum(["0", "1"]).default("0"),
 
-  // Prices are team decisions, so there are no defaults. Unset means "reply for details" and no link.
-  PILOT_PRICE_USD: z.coerce.number().positive().optional(),
+  // Prices are team decisions. Noel approved the level pack ($49, one-time) and the level
+  // subscription ($199 a month) on Nov 7; set the variable to change either.
+  /** The level pack: PILOT_LEVELS levels for one game, delivered within 48 hours. */
+  PILOT_PRICE_USD: z.coerce.number().positive().default(49),
+  /** The monthly level subscription. */
+  SUBSCRIPTION_PRICE_USD: z.coerce.number().positive().default(199),
+  SUBSCRIPTION_LEVELS: z.coerce.number().int().positive().default(40),
+  SUBSCRIPTION_PLAYTESTS: z.coerce.number().int().positive().default(4),
   /** Price of one phone playtest. Unset = playtests are free (no payment link). */
   PLAYTEST_PRICE_USD: z.coerce.number().positive().optional(),
   PILOT_LEVELS: z.coerce.number().int().positive().default(20),
@@ -98,6 +109,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 }
 
 /** Which integrations are configured. Booleans only, so it's safe to log. */
+/** The Stripe key in use: the live key once BILLING_ALLOW_LIVE=1 and one is set, the test key otherwise. */
+export function activeStripeKey(config: Pick<Config, "STRIPE_SECRET_KEY" | "STRIPE_SECRET_KEY_LIVE" | "BILLING_ALLOW_LIVE">): string | undefined {
+  return config.BILLING_ALLOW_LIVE === "1" && config.STRIPE_SECRET_KEY_LIVE ? config.STRIPE_SECRET_KEY_LIVE : config.STRIPE_SECRET_KEY;
+}
+
 export function integrationStatus(config: Config): Record<string, boolean> {
   return {
     database: Boolean(config.DATABASE_URL),
@@ -105,7 +121,8 @@ export function integrationStatus(config: Config): Record<string, boolean> {
     monid: Boolean(config.MONID_API_KEY),
     mobilerun: Boolean(config.MOBILERUN_API_KEY),
     agentmail: Boolean(config.AGENTMAIL_API_KEY && config.AGENTMAIL_INBOX_ID),
-    stripe: Boolean(config.STRIPE_SECRET_KEY),
+    stripe: Boolean(activeStripeKey(config)),
+    stripeLive: activeStripeKey(config)?.startsWith("sk_live_") || activeStripeKey(config)?.startsWith("rk_live_") || false,
     openai: Boolean(config.OPENAI_API_KEY),
     outreachSendingEnabled: config.OUTREACH_SEND === "1",
     billingLiveAllowed: config.BILLING_ALLOW_LIVE === "1",

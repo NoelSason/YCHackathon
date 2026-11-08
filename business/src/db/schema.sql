@@ -80,3 +80,16 @@ create table if not exists biz_playtest_orders (
 -- Resume paid playtests after a restart (the run queue is in memory).
 alter table biz_playtest_orders add column if not exists payment_id uuid;
 alter table biz_playtest_orders add column if not exists focus text;
+
+-- Monthly level subscriptions, one row per Stripe subscription. Renewals are payments rows;
+-- this row only says whether the subscription is still running.
+create table if not exists biz_subscriptions (
+  stripe_subscription_id text primary key,
+  studio_id    uuid references studios (studio_id),
+  status       text not null default 'active' check (status in ('active', 'cancelled')),
+  mode         text not null default 'test' check (mode in ('test', 'live')),
+  game_url     text,
+  difficulty   text,
+  started_at   timestamptz not null default now(),
+  cancelled_at timestamptz
+);

@@ -111,7 +111,7 @@ async function pilotOffer(ctx: ToolContext, lead: Lead): Promise<{ levels: numbe
           name: `Pilot pack: ${levels} tuned levels`,
           amountMinor: Math.round(price * 100),
           leadId: lead.id,
-          successUrl: `${ctx.config.PUBLIC_BASE_URL}/thanks`,
+          successUrl: `${ctx.config.SITE_URL.replace(/\/+$/, "")}/pricing?paid=pack`,
         })
       ).url
     : null;
@@ -260,7 +260,7 @@ export async function toolPaymentLink(
   if (!price) throw new Error(`No price set for ${args.product}. Prices are a team decision.`);
   const name = args.product === "pilot_pack" ? `Pilot pack: ${ctx.config.PILOT_LEVELS} tuned levels` : "Hint pack";
   const link = await createPaymentLink(ctx.stripe, {
-    product: args.product, name, amountMinor: Math.round(price * 100), leadId: args.leadId, successUrl: `${ctx.config.PUBLIC_BASE_URL}/thanks`,
+    product: args.product, name, amountMinor: Math.round(price * 100), leadId: args.leadId, successUrl: `${ctx.config.SITE_URL.replace(/\/+$/, "")}/pricing?paid=${args.product === "pilot_pack" ? "pack" : "1"}`,
   });
   await ctx.store.logActivity({
     at: new Date().toISOString(), agent: "billing", action: `payment link created: ${args.product}`,

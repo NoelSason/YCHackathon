@@ -11,7 +11,8 @@ Naïve agents call. See `docs/master-plan.md` for where this fits.
 | Outreach | Writes the first email from that evidence, checks it, and sends it through AgentMail. `send_reply` answers a studio's reply in the same thread, with the footer added and every number checked. | `src/outreach/compose.ts`, `guard.ts`, `send.ts` |
 | Replies | Verifies AgentMail webhooks, handles opt-outs, moves the stage, and wakes the Sales Reader agent in a fresh Naïve session | `src/outreach/inbound.ts` |
 | CRM | Mirrors every lead into Naïve's CRM (`client.crm`) | `src/naive.ts` |
-| Billing | Stripe payment links at the team's set price, and the webhook that records a payment once and queues delivery | `src/billing/stripe.ts` |
+| Billing | Stripe payment links and Checkout at the team's set price, and the webhook that records a payment once and queues delivery | `src/billing/stripe.ts` |
+| Level orders | The pricing page's order form: a level pack ($49, one-time) or the level subscription ($199 a month) through Checkout, then a confirmation email and a "delivery owed" line with a due date. Renewals (`invoice.paid`) and cancellations (`customer.subscription.deleted`) are recorded once. | `src/leads/orders.ts` |
 | Finance | Revenue (real and test mode kept apart), spend by source, margin, cost per level. A source it can't read is reported as missing, never as zero. | `src/finance/snapshot.ts` |
 | Lead form | The QR code at our table: a signup becomes a lead | `src/leads/intake.ts` |
 | Phone playtests | Turns a plan into a Mobilerun Agent task with a structured result per level | `src/mobile/` |
@@ -206,7 +207,8 @@ deploy time.
    The response holds the secret, so save it to a file instead of printing it. The current key is
    scoped to the inbox and might not be allowed to create webhooks. If it isn't, use the console.
 2. **Register the Stripe webhook** when Stripe is on. In the Stripe dashboard (test mode), add an
-   endpoint at `https://<invocation_url>/webhooks/stripe` for `checkout.session.completed`. Copy
+   endpoint at `https://<invocation_url>/webhooks/stripe` for `checkout.session.completed`,
+   `invoice.paid`, and `customer.subscription.deleted`. Copy
    its signing secret into `../.env` as `STRIPE_WEBHOOK_SECRET`, and redeploy.
 3. **Put the business bearer in Naïve's vault, keyed to `BUSINESS_MCP_URL`.** Abhinav's
    `npm run vault` (in `platform/naive`, on the latest `main`) stores one bearer keyed to
@@ -247,13 +249,17 @@ time. A blank or missing value counts as unset, so the default applies.
 | `STRIPE_SECRET_KEY` | Payment links | Stripe dashboard, test-mode secret key (`sk_test_...`) |
 | `STRIPE_WEBHOOK_SECRET` | `/webhooks/stripe` | The signing secret from the Stripe endpoint (follow-up step 2) |
 | `BILLING_ALLOW_LIVE` | Optional (default `0`: live keys refused) | Team decision |
-| `PILOT_PRICE_USD`, `HINT_PACK_PRICE_USD` | Prices in emails and links (unset means "reply for details") | Team decision |
+| `PILOT_PRICE_USD` | Optional (default `49`): the level pack, one-time | Team decision (approved Nov 7) |
+| `SUBSCRIPTION_PRICE_USD`, `SUBSCRIPTION_LEVELS`, `SUBSCRIPTION_PLAYTESTS` | Optional (defaults `199` a month, `40`, `4`): the level subscription | Team decision (approved Nov 7) |
+| `PLAYTEST_PRICE_USD` | The iPhone playtest (unset means free) | Team decision (`5`) |
+| `HINT_PACK_PRICE_USD` | Hint packs (unset means "reply for details") | Team decision |
 | `PILOT_LEVELS` | Optional (default `20`) | Team decision |
 | `OUTREACH_SEND` | Optional (default `0`: drafts only) | Set `1` only when the team approves real sends |
 | `OUTREACH_DAILY_CAP` | Optional (default `20`) | Team decision |
 | `COMPANY_NAME` | Optional (default `Level AI`) | Already in `.env` |
 | `COMPANY_POSTAL_ADDRESS` | Required before any email is sent (US email law) | Already in `.env` |
 | `MOBILERUN_API_KEY`, `MOBILERUN_DEVICE_ID` | `run_playtest` | Mobilerun dashboard (already in `.env`) |
+| `MOBILERUN_APPSTORE_DEVICE_ID` | Optional. "Level AI App Store iPhone", signed in to the App Store by a person. App Store links that Mobilerun's API can't install (404) are downloaded there by a phone agent (free apps only), and the playtest runs on that phone (`src/mobile/install.ts`) | Already in `.env` |
 | `MOBILERUN_MODEL` | Optional (default `mobilerun/mobile-agent-fast`) | Leave unset |
 
 These are deliberately not deployed: `MONID_API_KEY` (no CLI on the function), `PORT` (Node

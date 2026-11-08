@@ -77,7 +77,10 @@ describe("developer keys and the studio MCP", () => {
   it("answers /offer and /signup-status for the new pages", async () => {
     const { c } = ctx();
     const handle = createHandler(c.config, c);
-    expect(await (await handle(new Request("http://x/offer"))).json()).toEqual({ playtestPriceUsd: null });
+    expect(await (await handle(new Request("http://x/offer"))).json()).toEqual({
+      playtestPriceUsd: null, levelPackPriceUsd: 49, levelPackLevels: 20, subscriptionPriceUsd: 199,
+      subscriptionLevels: 40, subscriptionPlaytests: 4, checkoutOpen: false,
+    });
     expect((await handle(new Request("http://x/signup-status?id=nope"))).status).toBe(400);
   });
 });

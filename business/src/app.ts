@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { integrationStatus, type Config } from "./config.js";
+import { integrationStatus, type Config, activeStripeKey } from "./config.js";
 import { createStore, type Query } from "./store.js";
 import { MonidCli } from "./research/monid.js";
 import { AgentMailSender } from "./outreach/send.js";
@@ -12,6 +12,7 @@ import { levelsQuery, publicLevelRoutes, studioLevels } from "./levels/public.js
 import { joinPage } from "./leads/join-page.js";
 import { playtestPage } from "./leads/playtest-page.js";
 import { createPlaytestOrder, enqueue, runPlaytestOrder } from "./leads/playtest-offer.js";
+import { afterOrderPaid, createOrder } from "./leads/orders.js";
 import { status as progressStatus, step as progressStep } from "./leads/progress.js";
 import { watchRoutes } from "./leads/watch.js";
 import { mobilerunClient } from "./mobile/playtest.js";
@@ -30,6 +31,7 @@ import type { PaymentRecord } from "./types.js";
  *   POST /webhooks/agentmail  replies → opt-outs, stage changes, and the Sales Reader
  *   GET  /join                the QR signup page
  *   POST /leads               the table QR form; starts the live audit and welcome email
+ *   POST /orders              a level pack or subscription order; answers with the checkout page to pay on
  *   GET  /health              which integrations are configured (booleans only)
  *   GET  /games, /levels, /levels/:id, /packs/:id, /levels-latest   public levels (levels/public.ts)
  *   GET  /studio/levels       a studio's levels (Bearer lvl_ developer key)
@@ -45,7 +47,8 @@ export function buildContext(config: Config): ToolContext {
     store: createStore(config.DATABASE_URL, config.TEAM_EMAILS.split(",").map((e) => e.trim()).filter(Boolean)),
     monid: config.MONID_API_KEY ? new MonidCli() : null,
     mail: config.AGENTMAIL_API_KEY && config.AGENTMAIL_INBOX_ID ? new AgentMailSender(config.AGENTMAIL_API_KEY, config.AGENTMAIL_INBOX_ID) : null,
-    stripe: config.STRIPE_SECRET_KEY ? stripeClient(config.STRIPE_SECRET_KEY, config.BILLING_ALLOW_LIVE === "1") : null,
+    // Live once the team turns it on (BILLING_ALLOW_LIVE=1 and a live key); test mode otherwise.
+    stripe: activeStripeKey(config) ? stripeClient(activeStripeKey(config)!, config.BILLING_ALLOW_LIVE === "1") : null,
     mobilerun: config.MOBILERUN_API_KEY ? mobilerunClient(config.MOBILERUN_API_KEY) : null,
     naive: config.NAIVE_API_KEY ? naiveClient(config.NAIVE_API_KEY, config.NAIVE_BASE_URL) : null,
   };
@@ -83,13 +86,20 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
   setReplyResponder((o) => answerReply(ctx, o));
 
   /** What a recorded payment sets off: an amount check against the team's price, then delivery. */
-  async function afterPayment(payment: PaymentRecord, metadata: Record<string, string>): Promise<void> {
+  async function afterPayment(payment: PaymentRecord, metadata: Record<string, string>, customerEmail: string | null = null): Promise<void> {
     const log = (action: string, why: string | null, result: string) =>
       ctx.store.logActivity({ at: new Date().toISOString(), agent: "billing", action, why, result, costUsd: null, human: false });
     const mode = payment.livemode ? "" : " (test mode)";
-    const price = { playtest: config.PLAYTEST_PRICE_USD, pilot_pack: config.PILOT_PRICE_USD, hint_pack: config.HINT_PACK_PRICE_USD, other: undefined }[payment.product];
+    const price = {
+      playtest: config.PLAYTEST_PRICE_USD, pilot_pack: config.PILOT_PRICE_USD, subscription: config.SUBSCRIPTION_PRICE_USD,
+      hint_pack: config.HINT_PACK_PRICE_USD, other: undefined,
+    }[payment.product];
     if (price && payment.amountMinor !== Math.round(price * 100)) {
       await log(`payment amount differs from the set price: ${payment.product}`, `expected ${price.toFixed(2)} USD, got ${(payment.amountMinor / 100).toFixed(2)} USD`, `recorded what was paid${mode}; left for a person`);
+    }
+    if (payment.product === "pilot_pack" || payment.product === "subscription") {
+      await afterOrderPaid(ctx, payment, metadata, customerEmail);
+      return;
     }
     if (payment.product !== "playtest") {
       await log(`delivery owed: ${payment.product}`, payment.leadId ? `lead ${payment.leadId}` : "no lead attached", `left for a person${mode}`);
@@ -108,6 +118,28 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
     void enqueue(() => runPlaytestOrder(ctx, lead, metadata.app_url!, metadata.focus || null, { id: payment.id, livemode: payment.livemode }, metadata.order_id || null)).catch((err) =>
       log(`playtest order needs a person: ${lead.company}`, err instanceof Error ? err.message.slice(0, 200) : "unknown error", `left for a person${mode}`).catch(() => undefined),
     );
+  }
+
+  /** Renewals and cancellations: logged for the team, who deliver the month's levels or stop work. */
+  async function afterSubscriptionEvent(
+    outcome: { kind: "renewal"; payment: PaymentRecord; subscriptionId: string } | { kind: "cancelled"; subscriptionId: string; leadId: string | null; livemode: boolean },
+  ): Promise<void> {
+    const leadId = outcome.kind === "renewal" ? outcome.payment.leadId : outcome.leadId;
+    const livemode = outcome.kind === "renewal" ? outcome.payment.livemode : outcome.livemode;
+    const mode = livemode ? "" : " (test mode)";
+    const company = (leadId ? await ctx.store.getLead(leadId) : null)?.company ?? `subscription ${outcome.subscriptionId}`;
+    const log = (action: string, why: string | null, result: string) =>
+      ctx.store.logActivity({ at: new Date().toISOString(), agent: "billing", action, why, result, costUsd: null, human: false });
+    if (outcome.kind === "cancelled") {
+      await log(`subscription cancelled: ${company}`, `subscription ${outcome.subscriptionId}`, `no more charges; stop this month's work after what's owed${mode}`);
+      return;
+    }
+    const p = outcome.payment;
+    await log(`subscription renewed: ${company}`, `subscription ${outcome.subscriptionId}`, `${(p.amountMinor / 100).toFixed(2)} ${p.currency.toUpperCase()}${mode}`);
+    if (p.amountMinor !== Math.round(config.SUBSCRIPTION_PRICE_USD * 100)) {
+      await log("payment amount differs from the set price: subscription", `expected ${config.SUBSCRIPTION_PRICE_USD.toFixed(2)} USD, got ${(p.amountMinor / 100).toFixed(2)} USD`, `recorded what was paid${mode}; left for a person`);
+    }
+    await log(`delivery owed: level subscription for ${company} (this month)`, `${config.SUBSCRIPTION_LEVELS} levels and ${config.SUBSCRIPTION_PLAYTESTS} playtests`, `left for the team${mode}`);
   }
 
   async function route(request: Request): Promise<Response> {
@@ -160,15 +192,17 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
     }
 
     if (request.method === "POST" && url.pathname === "/webhooks/stripe") {
-      if (!ctx.stripe || !config.STRIPE_WEBHOOK_SECRET) return json(503, { error: "billing not configured" });
+      const webhookSecrets = [config.STRIPE_WEBHOOK_SECRET_LIVE, config.STRIPE_WEBHOOK_SECRET].filter((x): x is string => Boolean(x));
+      if (!ctx.stripe || !webhookSecrets.length) return json(503, { error: "billing not configured" });
       const raw = await readBody(request);
       const outcome = await handleStripeWebhook({
-        stripe: ctx.stripe, webhookSecret: config.STRIPE_WEBHOOK_SECRET, rawBody: raw, signature: header(request, "stripe-signature"), store: ctx.store,
+        stripe: ctx.stripe, webhookSecret: webhookSecrets, rawBody: raw, signature: header(request, "stripe-signature"), store: ctx.store,
       });
       if (outcome.kind === "duplicate") {
         await ctx.store.logActivity({ at: new Date().toISOString(), agent: "billing", action: "payment event seen again", why: `event ${outcome.eventId}`, result: "ignored; already recorded", costUsd: null, human: false });
       }
-      if (outcome.kind === "paid") await afterPayment(outcome.payment, outcome.metadata);
+      if (outcome.kind === "paid") await afterPayment(outcome.payment, outcome.metadata, outcome.customerEmail);
+      if (outcome.kind === "renewal" || outcome.kind === "cancelled") await afterSubscriptionEvent(outcome);
       return json(200, { received: true, outcome: outcome.kind });
     }
 
@@ -203,6 +237,11 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
 
     if (request.method === "POST" && url.pathname === "/playtest-orders") {
       const result = await createPlaytestOrder(ctx, JSON.parse(await readBody(request)));
+      return json(result.ok ? 201 : 400, result.ok ? { ok: true, id: result.lead.id, payUrl: result.payUrl } : { ok: false, error: result.error });
+    }
+
+    if (request.method === "POST" && url.pathname === "/orders") {
+      const result = await createOrder(ctx, JSON.parse(await readBody(request)));
       return json(result.ok ? 201 : 400, result.ok ? { ok: true, id: result.lead.id, payUrl: result.payUrl } : { ok: false, error: result.error });
     }
 
@@ -265,7 +304,15 @@ export function createHandler(config: Config, ctx: ToolContext = buildContext(co
     }
 
     if (request.method === "GET" && url.pathname === "/offer") {
-      return json(200, { playtestPriceUsd: ctx.stripe && config.PLAYTEST_PRICE_USD ? config.PLAYTEST_PRICE_USD : null });
+      return json(200, {
+        playtestPriceUsd: ctx.stripe && config.PLAYTEST_PRICE_USD ? config.PLAYTEST_PRICE_USD : null,
+        levelPackPriceUsd: config.PILOT_PRICE_USD,
+        levelPackLevels: config.PILOT_LEVELS,
+        subscriptionPriceUsd: config.SUBSCRIPTION_PRICE_USD,
+        subscriptionLevels: config.SUBSCRIPTION_LEVELS,
+        subscriptionPlaytests: config.SUBSCRIPTION_PLAYTESTS,
+        checkoutOpen: Boolean(ctx.stripe),
+      });
     }
 
     return json(404, { error: "not found" });

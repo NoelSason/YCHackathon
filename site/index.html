@@ -35,6 +35,7 @@
       <a class="nav-link" href="#studios">For studios</a>
       <a class="nav-link" href="/games">Games</a>
       <a class="nav-link" href="/playtest">Playtests</a>
+      <a class="nav-link" href="/pricing">Pricing</a>
       <a class="nav-link" href="/developers">Developers</a>
       <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
         <svg viewBox="0 0 20 20" aria-hidden="true"><path class="l1" d="M3 4.5h14"/><path class="l3" d="M3 10h14"/><path class="l2" d="M3 15.5h14"/></svg>
@@ -49,6 +50,7 @@
       <a href="/join">Free levels</a>
       <a href="/games">Games</a>
       <a href="/playtest">Playtests</a>
+      <a href="/pricing">Pricing</a>
       <a href="/developers">Developers</a>
     </nav>
   </div>
@@ -225,9 +227,9 @@
             <i style="--h:58%"></i><i style="--h:66%"></i><i style="--h:76%"></i><i style="--h:86%"></i><i class="peak" style="--h:100%"></i>
           </div>
           <div class="curve-key" aria-hidden="true"><span style="--c:var(--cobalt)">Climb</span><span style="--c:var(--tomato)">Hard peak</span><span style="--c:var(--mint)">Breather</span></div>
-          <h3>Pilot packs</h3>
-          <p>A pack of 20 levels, tuned to the difficulty curve you pick. Email us for pricing.</p>
-          <a class="text-link" href="mailto:levelai@agentmail.to?subject=Pilot%20pack">Ask about a pilot pack</a>
+          <h3>Level packs</h3>
+          <p>A pack of 20 levels, tuned to the difficulty curve you pick and delivered within 48 hours. $49 a pack, or new levels every month on a subscription.</p>
+          <a class="text-link" href="/pricing">See pricing</a>
         </article>
 
         <article class="offer">
@@ -248,6 +250,53 @@
           </div>
           <a class="text-link" href="/playtest">Book a playtest</a>
         </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="pricing" aria-labelledby="pricing-title">
+    <div class="wrap">
+      <h2 id="pricing-title">Pricing</h2>
+      <p class="intro">Pay for one pack, or subscribe and get new levels every month.</p>
+
+      <div class="plans">
+        <article class="plan" aria-labelledby="plan-playtest">
+          <h3 id="plan-playtest">iPhone playtest</h3>
+          <p class="plan-price"><b>$5</b><span>one-time</span></p>
+          <ul class="plan-list">
+            <li>Your game played on a real iPhone, like a first-time player</li>
+            <li>A report by email: what loads, what breaks, and where players get stuck</li>
+          </ul>
+          <a class="btn" href="/playtest">Book a playtest</a>
+        </article>
+
+        <article class="plan" aria-labelledby="plan-pack">
+          <h3 id="plan-pack">Level pack</h3>
+          <p class="plan-price"><b>$49</b><span>one-time</span></p>
+          <ul class="plan-list">
+            <li>20 new levels designed for your game</li>
+            <li>Each one tested by bot players and tuned to the difficulty you pick</li>
+            <li>Delivered within 48 hours</li>
+          </ul>
+          <a class="btn" href="/pricing?plan=pack#order">Buy a level pack</a>
+        </article>
+
+        <article class="plan featured" aria-labelledby="plan-sub">
+          <span class="plan-tag">Best for live games</span>
+          <h3 id="plan-sub">Level subscription</h3>
+          <p class="plan-price"><b>$199</b><span>a month</span></p>
+          <ul class="plan-list">
+            <li>40 new tested levels every month</li>
+            <li>4 iPhone playtests every month</li>
+            <li>Developer API and connector access to your levels</li>
+          </ul>
+          <a class="btn ink" href="/pricing?plan=subscription#order">Subscribe</a>
+        </article>
+      </div>
+
+      <div class="plan-extra">
+        <p><strong>Developer API</strong>Free key. Level access comes with the subscription.</p>
+        <a class="text-link" href="/developers">Get a free key</a>
       </div>
     </div>
   </section>

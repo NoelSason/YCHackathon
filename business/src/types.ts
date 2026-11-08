@@ -74,8 +74,21 @@ export interface PaymentRecord {
   amountMinor: number;
   currency: string;
   livemode: boolean;
-  product: "pilot_pack" | "hint_pack" | "playtest" | "other";
+  /** pilot_pack is the $49 level pack; subscription is the monthly plan (first charge and renewals). */
+  product: "pilot_pack" | "hint_pack" | "playtest" | "subscription" | "other";
   createdAt: string;
+}
+
+/** A studio's monthly level subscription, keyed by the Stripe subscription id. */
+export interface SubscriptionRecord {
+  id: string;
+  leadId: string | null;
+  status: "active" | "cancelled";
+  livemode: boolean;
+  gameUrl: string | null;
+  difficulty: string | null;
+  startedAt: string;
+  cancelledAt: string | null;
 }
 
 export interface DeliveryRecord {

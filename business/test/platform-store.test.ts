@@ -67,6 +67,19 @@ describe("PlatformStore on the platform schema", () => {
     expect((await store.listPayments())[0]).toMatchObject({ amountMinor: 4900, livemode: false, product: "pilot_pack" });
   });
 
+  it("keeps one subscription row per Stripe subscription, and cancels it once", async () => {
+    const l = await store.upsertLead(baseLead);
+    const sub = { id: "sub_1", leadId: l.id, livemode: false, gameUrl: "https://g.example", difficulty: "hard" };
+    expect(await store.addSubscription(sub)).toMatchObject({ status: "active", leadId: l.id, difficulty: "hard" });
+    expect(await store.addSubscription(sub)).toBeNull();
+    const p = await store.recordPayment({ leadId: l.id, provider: "stripe", providerEventId: "evt_r", amountMinor: 19900, currency: "usd", livemode: false, product: "subscription" });
+    expect((await store.listPayments()).find((x) => x.id === p!.id)!.product).toBe("subscription");
+    expect(await store.cancelSubscription({ id: "sub_1", leadId: null, livemode: false })).toMatchObject({ status: "cancelled", gameUrl: "https://g.example" });
+    expect(await store.cancelSubscription({ id: "sub_1", leadId: null, livemode: false })).toBeNull();
+    expect(await store.cancelSubscription({ id: "sub_new", leadId: l.id, livemode: true })).toMatchObject({ status: "cancelled", livemode: true });
+    expect(await store.getSubscription("sub_1")).toMatchObject({ status: "cancelled", cancelledAt: expect.any(String) });
+  });
+
   it("writes agent activity to activity_log and human step-ins to interventions", async () => {
     await store.logActivity({ at: new Date().toISOString(), agent: "sales-sender", action: "outreach sent", why: "evidence", result: "m1", costUsd: null, human: false });
     await store.logActivity({ at: new Date().toISOString(), agent: "noel", action: "restarted the phone", why: "it froze", result: null, costUsd: null, human: true });
