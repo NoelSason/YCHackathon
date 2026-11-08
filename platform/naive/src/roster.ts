@@ -1,4 +1,4 @@
-import { DESIGNER_PROMPT } from "./designer-prompt.js";
+import { DESIGNER_PROMPT, DESIGNER_SCHEDULES } from "./designer-prompt.js";
 // The Naïve Team, from docs/agent-plan.md. Edit here, then `npm run setup` (idempotent).
 // Budgets are micro-USD. Daily caps from the plan table; per-task caps from the same table.
 
@@ -58,7 +58,7 @@ export const ROSTER: RosterAgent[] = [
     system: DESIGNER_PROMPT,
     tools: ["save_level"],
     cap_usd: 35, task_usd: 0.5, strictTools: true,
-    cron: { expr: "*/10 * * * *", input: "Scheduled level run: design one new level and save it with a single platform.save_level call.", budget_usd: 0.5 },
+    cron: DESIGNER_SCHEDULES[0], // setup-team/apply-quality expand the five explicit game schedules
   },
   {
     name: "tuner",

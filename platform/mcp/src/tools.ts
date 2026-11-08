@@ -1,3 +1,4 @@
+import { HUMAN_ATTEMPTS_CTE } from "../../../solver/src/player-attempts.js";
 // MCP tools. Names, inputs and outputs follow platform/CONTRACTS.md §2 exactly.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -245,22 +246,21 @@ export function registerTools(realServer: McpServer, catalog: Catalog = "core") 
   server.registerTool(
     "get_player_stats",
     {
-      description: "Play results per level from the browser games: attempts, wins, losses, quits, win rate.",
+      description: "Paired human:v1 player attempts and first outcomes; excludes automation and unclassified legacy telemetry.",
       inputSchema: { game_id: z.string(), level_ids: z.array(z.string().uuid()).optional(), since: z.string().datetime().optional() },
     },
     async ({ game_id, level_ids, since }) => {
       const levels = await q(
-        `select level_id,
-                count(*) filter (where type='attempt') as attempts,
-                count(*) filter (where type='win') as wins,
-                count(*) filter (where type='loss') as losses,
-                count(*) filter (where type='quit') as quits,
-                avg(moves_used) filter (where type in ('win','loss')) as avg_moves
-         from player_events
-         where game_id = $1
-           and ($2::uuid[] is null or level_id = any($2::uuid[]))
-           and ($3::timestamptz is null or ts >= $3::timestamptz)
-         group by level_id`,
+        `with ${HUMAN_ATTEMPTS_CTE}, ids as (
+           select distinct level_id from human_starts where game_id=$1
+         ) select i.level_id,
+           (select count(*) from human_starts s where s.game_id=$1 and s.level_id=i.level_id and ($3::timestamptz is null or s.started_at >= $3)) as attempts,
+           count(*) filter(where o.type='win') as wins,
+           count(*) filter(where o.type='loss') as losses,
+           count(*) filter(where o.type='quit') as quits,
+           avg(o.moves_used) filter(where o.type in ('win','loss')) as avg_moves
+         from ids i left join human_outcomes o on o.level_id=i.level_id and o.game_id=$1 and ($3::timestamptz is null or o.ts >= $3)
+         where ($2::uuid[] is null or i.level_id=any($2::uuid[])) group by i.level_id`,
         [game_id, level_ids ?? null, since ?? null],
       );
       return ok({

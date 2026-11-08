@@ -12,6 +12,7 @@
 //   - Cost per accepted level, from activity_log cost_usd of the Designer and Tuner (0 when the
 //     agents didn't report cost).
 // Read-only.
+import { HUMAN_ATTEMPTS_CTE } from "../../solver/src/player-attempts.js";
 import type { Query, Row } from "./decision-check.js";
 
 export const MAX_ROUNDS = 4;
@@ -64,6 +65,8 @@ export function referenceBot(results: Record<string, unknown>): string | null {
 const n = (v: unknown) => Number(v ?? 0);
 const r1 = (x: number) => Math.round(x * 10) / 10;
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+function superseded(row:Row):boolean { try { return Boolean(JSON.parse(String(row.notes))?.quality?.superseded_by); } catch { return false; } }
+
 
 export async function evalReport(q: Query, opts: { since?: Date; minFinished?: number } = {}): Promise<EvalReport> {
   const since = opts.since ?? null;
@@ -72,7 +75,7 @@ export async function evalReport(q: Query, opts: { since?: Date; minFinished?: n
 
   const levels = await q(
     `select level_id::text as level_id, game_id, parent_level_id::text as parent_level_id, status,
-            target_win_rate, measured_win_rate, created_at
+            target_win_rate, measured_win_rate, created_at, notes
        from levels
       where game_id <> 'stub' and ($1::timestamptz is null or created_at >= $1::timestamptz)
       order by created_at`,
@@ -101,10 +104,10 @@ export async function evalReport(q: Query, opts: { since?: Date; minFinished?: n
       order by r.level_id, r.finished_at desc nulls last`,
   );
   const played = await q(
-    `select level_id::text as level_id,
+    `with ${HUMAN_ATTEMPTS_CTE} select level_id::text as level_id,
             count(*) filter (where type = 'win') as wins,
             count(*) filter (where type in ('win','loss','quit')) as finished
-       from player_events where level_id is not null group by 1`,
+       from human_outcomes where level_id is not null group by 1`,
   );
   const playedBy = new Map(played.map((p) => [String(p.level_id), p]));
 
@@ -124,7 +127,7 @@ export async function evalReport(q: Query, opts: { since?: Date; minFinished?: n
       while (queue.length) {
         const cur = queue.shift()!;
         const st = String(cur.l.status);
-        if ((st === "accepted" || st === "published") && (!acceptedAt || cur.depth < acceptedAt.depth)) acceptedAt = cur;
+        if ((st === "accepted" || st === "published") && !superseded(cur.l) && (!acceptedAt || cur.depth < acceptedAt.depth)) acceptedAt = cur;
         if (st === "rejected") anyRejected = true;
         for (const c of children.get(String(cur.l.level_id)) ?? []) queue.push({ l: c, depth: cur.depth + 1 });
       }
@@ -149,7 +152,7 @@ export async function evalReport(q: Query, opts: { since?: Date; minFinished?: n
     const points: CalibrationPoint[] = [];
     for (const lr of lastRuns) {
       const lvl = byId.get(String(lr.level_id));
-      if (!lvl || lvl.game_id !== g) continue;
+      if (!lvl || lvl.game_id !== g || superseded(lvl)) continue;
       const p = playedBy.get(String(lr.level_id));
       if (!p || n(p.finished) < minFinished) continue;
       const results = (typeof lr.results === "string" ? JSON.parse(lr.results) : lr.results) as Record<string, { win_rate?: number }>;

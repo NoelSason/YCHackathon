@@ -11,6 +11,7 @@
 // never relabeled. Levels now off target are reported (not retuned or hidden); the CEO or Tuner
 // decides what to do with them. Honors the kill switches.
 import { evidenceStamp } from "../evidence.js";
+import { wilson95 } from "../stats.js";
 import { readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import pg from "pg";
@@ -79,8 +80,14 @@ export async function record(q: Query, game: string, label: string, reason: stri
       const [level] = await q("select game_id,level,target_win_rate,notes from levels where level_id=$1 and created_by='production' for update", [r.level_id]);
       if (!level || level.game_id !== game || Math.abs(Number(level.target_win_rate)-r.target)>1e-9) throw Error("level or target changed since remeasurement");
       const stamp=evidenceStamp(game,level.level as object);
+      const adapter=getAdapter(game);
+      if(!adapter)throw Error('unknown remeasurement adapter');
+      const reference=r.results[referenceBot(adapter)];
+      if(!reference || !Number.isFinite(r.measured) || Math.abs(reference.win_rate-r.measured)>1e-9 || r.on_target!==onTarget(reference,r.target))throw Error('remeasurement summary disagrees with reference evidence');
       for (const result of Object.values(r.results)) {
-        if (result.runs<RUNS || result.level_hash!==stamp.level_hash || result.rules_version!==stamp.rules_version || Math.abs(result.wins/result.runs-result.win_rate)>.000051) throw Error("stale or incomplete remeasurement");
+        if (!Number.isInteger(result.runs) || !Number.isInteger(result.wins) || result.wins<0 || result.wins>result.runs || result.runs<RUNS || result.level_hash!==stamp.level_hash || result.rules_version!==stamp.rules_version || Math.abs(result.wins/result.runs-result.win_rate)>.000051) throw Error("stale or incomplete remeasurement");
+        const interval=wilson95(result.wins,result.runs);
+        if(Math.abs(interval.low-result.ci95_low)>.000051 || Math.abs(interval.high-result.ci95_high)>.000051)throw Error('remeasurement confidence interval disagrees with completed games');
       }
       const prior=await q("select results from solver_runs where level_id=$1 and claimed_by=$2 and status='done'",[r.level_id,`remeasure:${label}`]);
       if (prior.length) {

@@ -1,3 +1,6 @@
+import { RULES_VERSION } from "../../shared/rules-version.js";
+import { catalogLevelId } from "../../shared/catalog.js";
+import { PlayerAttempt, sourceFor } from "../../shared/attempt.js";
 // Turbo Lanes in the browser. The rules run in fixed ticks with the same step() the solver and the
 // bots use; the screen only interpolates between ticks so it scrolls smoothly.
 //   ?level=<id>   play a level saved on the platform (sends player events)
@@ -59,24 +62,25 @@ const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElem
 
 // ---------- player events (platform/CONTRACTS.md §1) ----------
 
-function sendEvent(type: "attempt" | "win" | "loss" | "quit", beacon = false): void {
-  if (!run.levelId) return;
-  const body = JSON.stringify({
-    game_id: GAME_ID,
-    level_id: run.levelId,
-    session_id: SESSION,
-    type,
-    ...(type === "attempt" ? {} : { moves_used: run.state.tick, time_seconds: Math.round((run.state.tick / run.level.speed) * 10) / 10 }),
+let telemetry:PlayerAttempt;
+function newTelemetry():PlayerAttempt {
+  return new PlayerAttempt((packet,beacon)=>{
+    if(!run.levelId)return;
+    const blob=new Blob([JSON.stringify({game_id:GAME_ID,level_id:run.levelId,...packet})],{type:"text/plain;charset=UTF-8"});
+    if(beacon&&navigator.sendBeacon?.(`${API}/events`,blob))return;
+    void fetch(`${API}/events`,{method:"POST",body:blob,keepalive:true}).catch(()=>undefined);
   });
-  // text/plain keeps this a simple request (no CORS preflight); the platform parses the JSON body.
-  const blob = new Blob([body], { type: "text/plain;charset=UTF-8" });
-  if (beacon && navigator.sendBeacon?.(`${API}/events`, blob)) return;
-  fetch(`${API}/events`, { method: "POST", body: blob, keepalive: true }).catch(() => undefined);
+}
+function sendEvent(type:"attempt"|"win"|"loss"|"quit",beacon=false):void {
+  if(type==="attempt")telemetry.start(sourceFor(location.search,run.autoplay!==null));
+  else telemetry?.end(type,{moves_used:run.state.tick,time_seconds:Math.round(run.state.tick/run.level.speed*10)/10},beacon);
 }
 
 // ---------- setup ----------
 
 function load(level: Level, levelId: string | null, sample: number | null): void {
+  if(run)sendEvent("quit");
+  telemetry=newTelemetry();
   const s = startState(level);
   run = {
     level, levelId, sample,
@@ -499,18 +503,14 @@ function bindInput(): void {
 const SERIES_KEY = `${GAME_ID}:verified-next`;
 let seriesAt = 0; // the verified-series position on screen, or 0
 
-async function productionId(n: number): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`production-v1:1:${GAME_ID}:${n}`));
-  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
-}
+async function productionId(n: number): Promise<string> { return catalogLevelId("racer",n); }
 
 /** n if this level is verified-series position n (its title number and its id agree), else 0. */
 async function seriesPosition(title: string | undefined, id: string | null): Promise<number> {
   const m = /(\d{4})$/.exec(title ?? "");
   if (!m || !id) return 0;
   const n = Number(m[1]);
-  return n >= 1 && (await productionId(n)) === id ? n : 0;
+  return n >= 1 && n <= 1000 && (await productionId(n)) === id ? n : 0;
 }
 
 /** Where this browser left off in the series (1 for a new player). */
@@ -542,7 +542,7 @@ async function fetchLiveIds(): Promise<void> {
 
 /** Next verified position if it's live, else the next level from the live list, else race again. */
 async function playNext(series: number | null, live: string | null): Promise<void> {
-  if (series && (await loadLive(await productionId(series), true))) return;
+  if (series && series <= 1000 && (await loadLive(await productionId(series), true))) return;
   if (live && (await loadLive(live, true))) return;
   restart();
 }
@@ -650,6 +650,7 @@ window.addEventListener("pagehide", () => {
 declare global {
   interface Window {
     turboLanes: {
+      rulesVersion: string;
       state(): { row: number; lane: number; tick: number; status: Status; coins: number; crashes: number; time_limit: number; level_id: string | null };
       start(): void;
       steer(dir: -1 | 1): void;
@@ -659,6 +660,7 @@ declare global {
   }
 }
 window.turboLanes = {
+  rulesVersion: RULES_VERSION.racer!,
   state: () => ({
     row: run.state.row, lane: run.state.lane, tick: run.state.tick, status: run.status,
     coins: run.coins, crashes: run.crashes, time_limit: run.level.time_limit, level_id: run.levelId,

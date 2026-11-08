@@ -1,3 +1,4 @@
+import { HUMAN_ATTEMPTS_CTE } from "../../solver/src/player-attempts.js";
 // The CEO's "did that decision work?" check (docs/master-plan.md, package 11).
 //
 // Given a decision from the `decisions` table, measure what happened after it:
@@ -104,12 +105,12 @@ export function parseExpectation(text: string | null): Expectation | null {
 async function windowRates(q: Query, levelIds: string[], from: Date, to: Date): Promise<Rates> {
   if (!levelIds.length) return rates(undefined);
   const [row] = await q(
-    `select count(*) filter (where type = 'attempt') as plays,
-            count(*) filter (where type = 'win')     as wins,
-            count(*) filter (where type = 'loss')    as losses,
-            count(*) filter (where type = 'quit')    as quits
-       from player_events
-      where level_id = any($1::uuid[]) and ts >= $2 and ts < $3`,
+    `with ${HUMAN_ATTEMPTS_CTE}
+       select (select count(*) from human_starts where level_id=any($1::uuid[]) and started_at >= $2 and started_at < $3) as plays,
+         count(*) filter(where type='win') as wins,
+         count(*) filter(where type='loss') as losses,
+         count(*) filter(where type='quit') as quits
+       from human_outcomes where level_id=any($1::uuid[]) and ts >= $2 and ts < $3`,
     [levelIds, from.toISOString(), to.toISOString()],
   );
   return rates(row);

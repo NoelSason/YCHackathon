@@ -40,7 +40,7 @@ export async function addPlays(
     const end = i < n.wins ? "win" : i < n.wins + n.quits ? "quit" : "loss";
     await q(
       `insert into player_events(game_id, level_id, session_id, type, ts) values ($1,$2,$3,'attempt',$4), ($1,$2,$3,$5,$4)`,
-      [game_id, level_id, `s${i}`, ts.toISOString(), end],
+      [game_id, level_id, `human:v1:${from.getTime()}-${i}`, ts.toISOString(), end],
     );
   }
 }

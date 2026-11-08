@@ -4,6 +4,11 @@ export function scheduledGame(minute:number):typeof DESIGNER_GAMES[number] {
   if(!Number.isInteger(minute)||minute<0||minute>59)throw Error('minute must be 0–59');
   return DESIGNER_GAMES[Math.floor(minute/10)%DESIGNER_GAMES.length]!;
 }
+export const DESIGNER_SCHEDULES = DESIGNER_GAMES.map((game,index)=>({
+  key:index===0?'designer':`designer_${game}`,
+  game,expr:index===0?'0,50 * * * *':`${index*10} * * * *`,
+  input:`[LevelAI quality schedule:${game}] Scheduled level run: design ONE ${game} level at target_win_rate 0.50. Keep that requested target unchanged; save exactly once.`,budget_usd:0.5,
+}));
 export const DESIGNER_EXAMPLES = {
   match3:{name:'Garden Pilot',width:7,height:9,colour_count:5,seed:48213,goal:{colour:'red',target:30},move_limit:20},
   watersort:{title:'Tide Pilot',capacity:4,tubes:[['red','sky','pink','red'],['pink','red','sky','pink'],['sky','pink','red','sky'],[],[]],move_limit:40},

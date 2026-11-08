@@ -23,7 +23,8 @@ It never changes `levels`. The Tuner accepts or rejects them.
 
 ```json
 { "random": { "runs": 200, "wins": 80, "win_rate": 0.4, "avg_moves": 7.4,
-              "ci95_low": 0.3338, "ci95_high": 0.4699, "first_seed": 1313858495 } }
+              "ci95_low": 0.3338, "ci95_high": 0.4699, "first_seed": 1313858495,
+              "rules_version": "<adapter-version>", "level_hash": "<sha256>" } }
 ```
 
 `runs`, `wins`, `win_rate`, and `avg_moves` are the contract's shape. The other fields are
@@ -31,6 +32,10 @@ additive:
 
 - `ci95_low` and `ci95_high` are the 95% Wilson interval of the win rate.
 - `first_seed` is the first of the seeds used.
+- `rules_version` and canonical `level_hash` bind evidence to the actual rules and payload.
+  Acceptance needs at least 200 completed reference games and current, on-target evidence.
+  The shared policy allows 5 percentage points, or at most 8 when the target lies inside the Wilson interval.
+  Bot success estimates are not human difficulty calibration.
 - `budget_hit` and `runs_requested` appear only when the time budget ended play early. Then
   `runs` is the number actually played.
 
@@ -44,7 +49,7 @@ The worker plays 3 games first to time the game.
   single-threaded play.
 - **Each run has a time budget.** The default is `SOLVER_MAX_SECONDS` = 240, shared fairly between
   the bots, with at least 20 games per bot.
-- **Why the budget is needed.** Match-3's `greedy` bot takes about 1.7 s a game:
+- **Historical timing before the shared-engine optimization:** match-3's `greedy` bot took about 1.7 s a game:
 
   | Match-3 `greedy`, 200 games | Time |
   |---|---|
@@ -87,7 +92,7 @@ call. When its queue is idle, the worker tunes each new Designer level:
 1. Claim it (`draft` → `solving`, `for update skip locked`).
 2. Measure the reference bot. Each measurement is a `solver_runs` row with the usual seeds.
 3. Move the game's knob, and save the new version with `parent_level_id`.
-4. Accept within 5 pts of the target in at most 6 rounds (`MAX_ROUNDS`), or reject with the reason.
+4. Accept within 5 pts of the target in at most 12 rounds (`MAX_ROUNDS`), or reject with the reason.
 
 Superseded versions are retired as `rejected`. Each step is an `activity_log` row: agent `tuner`,
 reason starting "auto-tuner (program):".
@@ -104,9 +109,11 @@ rejected instead of retried, in case it is what stops the harness.
 |---|---|---|
 | watersort | `move_limit` | the solver's minimum |
 | racer | `time_limit` | the solver's minimum |
-| match3 | `goal.target` | — (bigger is harder, about 3–5 pts per gem; 100 games per round because `greedy` is slow) |
+| match3 | `goal.target` | 1 (larger is harder; 200 games per round) |
+| lotescape | `move_limit` | the solver's minimum |
+| platformer | `move_limit` | the solver's minimum (an omitted limit starts unlimited) |
 
-Games with no knob (platformer) aren't claimed. `AUTOTUNE=0` turns the auto-tuner off on a worker.
+Games with no knob (the test stub) aren't claimed. `AUTOTUNE=0` turns the auto-tuner off on a worker.
 
 ## Run it
 
@@ -152,10 +159,23 @@ These come from `platform/CONTRACTS.md` §1:
 
 ## Fast production to 1,000 levels per game
 
-`npm run production` compiles a resumable progression for Splash Sort, Turbo Lanes, and match-3
-without waiting for the Designer's 10-minute cron. Live production fills only a 100-level buffer
+`npm run production` compiles a resumable progression for all five existing games
+without waiting for the Designer cron. Live production fills only a 100-level buffer
 ahead of player wins; `-- --database --watch` maintains it without deleting surplus. It uses the shared adapters, one completion
 profile and independent 200-game verification, with a 55-second per-position deadline. Add
 `-- --database` to import accepted levels and evidence into LevelOps; no automatic publication.
 See [PRODUCTION.md](PRODUCTION.md) for progression, supported feature unlocks, commands, stopping,
 resume, measurements, and the distinction between authored plans and accepted playable content.
+
+## Quality rollout and repair
+
+See [the completion and handoff record](../docs/pinara-quality-handoff.md) for live rollout evidence,
+explicit deployment responsibilities, and commands. Run production only from a clean committed
+checkout. `repair-targets.ts` restores the two documented incident targets; `repair-catalog.ts`
+creates independently verified child revisions instead of overwriting public levels. Its publication
+guard requires the corrected racer client to be deployed first.
+
+Player metrics and the production buffer use paired `human:v1:` attempts/outcomes only. Each
+client starts an attempt at first actual input; engine replay and `?qa=1` are separate sources.
+Legacy events stay in the database, unclassified. These client tags are not authenticated identity
+or unique people. All automated phone playtests must use `?qa=1` (or `&qa=1`).

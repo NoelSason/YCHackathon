@@ -1,3 +1,5 @@
+import { catalogLevelId } from "../../shared/catalog.js";
+import { PlayerAttempt, sourceFor } from "../../shared/attempt.js";
 // Splash Sort in the browser. Uses the same rules module as the solver and the bots.
 //   ?level=<id>   play a level saved on the platform (sends player events)
 //   ?pack=<id>    play a published pack in order, from the site's /api/packs/<id> (&n=<k> starts at level k)
@@ -72,19 +74,18 @@ const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElem
 
 // ---------- player events (platform/CONTRACTS.md §1) ----------
 
-function sendEvent(type: "attempt" | "win" | "loss" | "quit", beacon = false): void {
-  if (!game.levelId) return;
-  const body = JSON.stringify({
-    game_id: GAME_ID,
-    level_id: game.levelId,
-    session_id: SESSION,
-    type,
-    ...(type === "attempt" ? {} : { moves_used: game.moves, time_seconds: Math.round((Date.now() - game.startedAt) / 100) / 10 }),
+let telemetry: PlayerAttempt;
+function newTelemetry():PlayerAttempt {
+  return new PlayerAttempt((packet,beacon)=>{
+    if(!game.levelId)return;
+    const blob=new Blob([JSON.stringify({game_id:GAME_ID,level_id:game.levelId,...packet})],{type:"text/plain;charset=UTF-8"});
+    if(beacon&&navigator.sendBeacon?.(`${API}/events`,blob))return;
+    void fetch(`${API}/events`,{method:"POST",body:blob,keepalive:true}).catch(()=>undefined);
   });
-  // text/plain keeps this a simple request (no CORS preflight); the platform parses the JSON body.
-  const blob = new Blob([body], { type: "text/plain;charset=UTF-8" });
-  if (beacon && navigator.sendBeacon?.(`${API}/events`, blob)) return;
-  fetch(`${API}/events`, { method: "POST", body: blob, keepalive: true }).catch(() => undefined);
+}
+function sendEvent(type:"attempt"|"win"|"loss"|"quit",beacon=false):void {
+  if(type==="attempt")telemetry.start(sourceFor(location.search,engine));
+  else telemetry?.end(type,{moves_used:game.moves,time_seconds:Math.round((Date.now()-game.startedAt)/100)/10},beacon);
 }
 
 // ---------- game flow ----------
@@ -94,7 +95,9 @@ function setHint(text: string): void {
 }
 
 function start(level: Level, levelId: string | null, sample: number | null): void {
+  if(game)sendEvent("quit");
   stopAutoplay();
+  telemetry=newTelemetry();
   setHint(DEFAULT_HINT);
   game = {
     level, levelId, sample,
@@ -116,7 +119,6 @@ function start(level: Level, levelId: string | null, sample: number | null): voi
   el("overlay").classList.add("hidden");
   renderSamples();
   render();
-  sendEvent("attempt");
 }
 
 /** Leaving an attempt that's still open: a stuck board counts as a loss, as it does for the bots. */
@@ -182,6 +184,7 @@ function tap(i: number, automated = false): void {
   }
   const amount = pourAmount(game.tubes, cap, from, i);
   game.lastPour = { from, to: i, amount, color: top(game.tubes[from]!) };
+  sendEvent("attempt");
   game.history.push(game.tubes);
   game.tubes = applyPour(game.tubes, from, i, amount);
   game.moves++;
@@ -438,18 +441,14 @@ function notice(text: string): void {
 const SERIES_KEY = `${GAME_ID}:verified-next`;
 let seriesAt = 0; // the verified-series position on screen, or 0
 
-async function productionId(n: number): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`production-v1:1:${GAME_ID}:${n}`));
-  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
-}
+async function productionId(n: number): Promise<string> { return catalogLevelId("watersort",n); }
 
 /** n if this level is verified-series position n (its title number and its id agree), else 0. */
 async function seriesPosition(title: string | undefined, id: string | null): Promise<number> {
   const m = /(\d{4})$/.exec(title ?? "");
   if (!m || !id) return 0;
   const n = Number(m[1]);
-  return n >= 1 && (await productionId(n)) === id ? n : 0;
+  return n >= 1 && n <= 1000 && (await productionId(n)) === id ? n : 0;
 }
 
 /** Where this browser left off in the series (1 for a new player). */
@@ -482,7 +481,7 @@ async function fetchLiveIds(): Promise<void> {
 /** Start a live level by id and put it in the address bar, so the link can be shared. */
 /** Next verified position if it's live, else the next level from the live list, else play again. */
 async function playNext(series: number | null, live: string | null): Promise<void> {
-  if (series && (await startLive(await productionId(series), true))) return;
+  if (series && series <= 1000 && (await startLive(await productionId(series), true))) return;
   if (live && (await startLive(live, true))) return;
   restart();
 }

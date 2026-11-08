@@ -1,3 +1,80 @@
+// ../shared/catalog.ts
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+async function originalCatalogId(game, n) {
+  if (!Number.isInteger(n) || n < 1 || n > 1e3) throw Error("catalog position must be 1\u20131000");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`production-v1:1:${game}:${n}`));
+  const h = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+function checkedOverrides(value) {
+  if (!value || typeof value !== "object") throw Error("invalid catalog override manifest");
+  const v = value;
+  if (v.version !== 1 || !v.games || typeof v.games !== "object") throw Error("invalid manifest version");
+  const out = {};
+  for (const game of ["watersort", "racer", "match3", "lotescape", "platformer"]) {
+    const rows = v.games[game];
+    if (rows === void 0) continue;
+    if (!rows || typeof rows !== "object" || Array.isArray(rows)) throw Error("invalid override game");
+    const map = {};
+    for (const [k, id] of Object.entries(rows)) {
+      const n = Number(k);
+      if (!Number.isInteger(n) || n < 1 || n > 1e3 || String(n) !== k || typeof id !== "string" || !UUID.test(id)) throw Error("invalid override position/id");
+      map[k] = id;
+    }
+    out[game] = map;
+  }
+  return out;
+}
+var cached;
+async function browserOverrides() {
+  if (typeof window === "undefined") return {};
+  return cached ??= (async () => {
+    const c = new AbortController(), timer = setTimeout(() => c.abort(), 2500);
+    try {
+      const r = await fetch("/games/catalog-overrides.json", { signal: c.signal, cache: "no-cache" });
+      if (!r.ok) return {};
+      return checkedOverrides(await r.json());
+    } catch {
+      return {};
+    } finally {
+      clearTimeout(timer);
+    }
+  })();
+}
+async function catalogLevelId(game, n, overrides) {
+  const original = await originalCatalogId(game, n);
+  const map = overrides ?? await browserOverrides();
+  return map[game]?.[String(n)] ?? original;
+}
+
+// ../shared/attempt.ts
+function sourceFor(search, automated = false) {
+  return new URLSearchParams(search).get("qa") === "1" ? "qa" : automated ? "engine" : "human";
+}
+function attemptId(source) {
+  return `${source}:v1:${crypto.randomUUID()}`;
+}
+var PlayerAttempt = class {
+  constructor(emit) {
+    this.emit = emit;
+  }
+  id = null;
+  ended = false;
+  start(source) {
+    if (this.id || this.ended) return;
+    this.id = attemptId(source);
+    this.emit({ session_id: this.id, type: "attempt" });
+  }
+  end(type, metrics = {}, beacon = false) {
+    if (!this.id || this.ended) return;
+    this.ended = true;
+    this.emit({ session_id: this.id, type, ...metrics }, beacon);
+  }
+  get inProgress() {
+    return this.id !== null && !this.ended;
+  }
+};
+
 // src/engine.ts
 function initialState(level2) {
   return { vehicles: level2.vehicles.map((v) => ({ ...v })), moves: 0, won: level2.vehicles.length === 0 };
@@ -515,17 +592,23 @@ var levelId;
 var activeIndex = 0;
 var best;
 var ended = false;
-var sessionId = crypto.randomUUID();
 var cars = /* @__PURE__ */ new Map();
 var exits = /* @__PURE__ */ new Map();
 var lane = document.createElement("div");
 lane.className = "lane";
-function event(type) {
-  if (!api) return;
-  const body = JSON.stringify({ game_id: "lotescape", level_id: levelId ?? null, session_id: sessionId, type, moves_used: state.moves });
-  if (type === "quit" && navigator.sendBeacon) navigator.sendBeacon(`${api}/events`, new Blob([body], { type: "application/json" }));
-  else void fetch(`${api}/events`, { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {
+var telemetry;
+function newTelemetry() {
+  const capturedId = levelId;
+  return new PlayerAttempt((packet, beacon) => {
+    if (!api || !capturedId) return;
+    const blob = new Blob([JSON.stringify({ game_id: "lotescape", level_id: capturedId, ...packet })], { type: "text/plain;charset=UTF-8" });
+    if (beacon && navigator.sendBeacon?.(`${api}/events`, blob)) return;
+    void fetch(`${api}/events`, { method: "POST", body: blob, keepalive: true }).catch(() => void 0);
   });
+}
+function event(type) {
+  if (type === "attempt") telemetry.start(sourceFor(location.search, engine));
+  else telemetry?.end(type, { moves_used: state.moves }, type === "quit");
 }
 function vehicleSvg(vehicle) {
   const W = vehicle.length * 100, horizontal = vehicle.axis === "h";
@@ -683,6 +766,7 @@ function finish2() {
   }
 }
 function commit(next) {
+  if (next !== state) event("attempt");
   state = next;
   if (!state.vehicles.some((v) => v.id === selected)) selected = state.vehicles[0]?.id ?? "";
   if (message.textContent === BLOCKED2) message.textContent = HINT;
@@ -690,6 +774,8 @@ function commit(next) {
   render();
 }
 function restart() {
+  event("quit");
+  telemetry = newTelemetry();
   stopAutoplay();
   drag = void 0;
   for (const car of cars.values()) car.remove();
@@ -699,11 +785,9 @@ function restart() {
   state = initialState(level);
   selected = state.vehicles[0]?.id ?? "";
   ended = false;
-  sessionId = crypto.randomUUID();
   message.textContent = HINT;
   message.className = "message";
   render();
-  event("attempt");
 }
 function act(direction) {
   stopAutoplay();
@@ -805,16 +889,13 @@ function readRun() {
 function saveRun() {
   store.set(KEY_RUN, JSON.stringify(endless));
 }
-var PRODUCTION = { version: "production-v1", series: 1, game: "lotescape" };
 var KEY_VERIFIED = "lotescape:verified-next";
 var verifiedAt = 0;
 async function productionId(n) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${PRODUCTION.version}:${PRODUCTION.series}:${PRODUCTION.game}:${n}`));
-  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+  return catalogLevelId("lotescape", n);
 }
 async function fetchVerified(n) {
-  if (!api || !Number.isInteger(n) || n < 1) return null;
+  if (!api || !Number.isInteger(n) || n < 1 || n > 1e3) return null;
   try {
     const id = await productionId(n);
     const response = await fetch(`${api}/levels/${id}`);

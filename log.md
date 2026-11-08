@@ -20,6 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-08 03:48 PT · Pinara (Codex) · branch `pinara/finish-quality`
+
+**What:** Fixed five-game attempt telemetry and manual-only eval/buffer queries; added resumable versioned racer repairs, browser catalog overrides, and five explicit Naïve Designer schedules with scoped rollout/proof commands. Updated quality documentation. Executed the previous commit's audited target repair and 100-level racer remeasurement.
+**Why:** Distinguish test/replay traffic from player evidence, prevent duplicate outcomes or false progress, preserve old public level versions, and finish Pinara's team-plan pipeline without the local chatbot.
+**Files:** `games/shared/`, five game/player clients and built assets; `solver/src/player-attempts.ts`, production buffer/repair tools and tests; `evals/`; compatible platform event parsing/stats; scoped Naïve scripts; `docs/pinara-quality-handoff.md`.
+**State:** Solver 58/58 and evals 13/13 passed; all affected package typechecks passed before documentation/proof-script finishing. Actual production: both incident chains restored to 30%; match-3 accepted at 34%/200, off-target sort acceptance withdrawn and replacement rejected honestly. Corrected racer remeasurement: 100 levels ×200, 69 on target, 31 need child repairs. Browser mechanics checked against rebuilt clients; no QA events sent to production. Runtime repairs/agent rollout will use this committed snapshot and receive a later outcome entry.
+**Next / heads-up:** Abhinav deploy current backend (live Lot Escape schema is still 404), quality guards and player stats; repin CEO's quality agents. Noel/Max deploy site/catalog manifest, then publish verified repair pack using the documented guarded command; run phones with `qa=1`. Real human calibration/CEO uplift remains unproven. All main-checkout dirty files, `forge/`, `work/`, secrets and scratch artifacts excluded; no teammate history reverted. See handoff for concrete commands and owners.
+
 ### 2026-11-08 03:16 PT · Pinara (Codex) · branch `pinara/finish-quality`
 
 **What:** Added shared acceptance policy and level/rules-bound evidence; the automatic Tuner requires 200 completed reference games. Existing MCP accept/publish signatures now validate real current evidence instead of trusting a supplied rate. Added an idempotent, audited repair for the two documented target incidents. Remeasurement now resumes without duplicate evidence and does not refresh content timestamps. Legacy checkpoints regenerate missing stock with current evidence. Designer/Tuner prompts cover all five existing adapters and preserve requested targets.

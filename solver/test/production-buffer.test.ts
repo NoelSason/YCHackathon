@@ -34,11 +34,11 @@ test("actual wins advance the matching game/series; buffer blocks new excess imp
     const accepted=calibrate(recipe("watersort",1));
     for(const position of [...Array.from({length:51},(_,i)=>i+1),101,550]) {
       const [row]=await q("insert into levels(game_id,level,status,created_by,notes,target_win_rate) values ('watersort',$1,'accepted','production',$2,0.85) returning level_id::text as id",[JSON.stringify(accepted.level),JSON.stringify({producer:RECIPE_VERSION,series:1,position})]);
-      if(position<50) await q("insert into player_events(game_id,level_id,session_id,type) values ('watersort',$1,'player','win')",[row!.id]);
+      if(position<50) await q("insert into player_events(game_id,level_id,session_id,type) values ('watersort',$1,'human:v1:win','attempt'),('watersort',$1,'human:v1:win','win')",[row!.id]);
       if(position===50) {
-        await q("insert into player_events(game_id,level_id,session_id,type) values ('watersort',$1,'player','attempt'),('watersort',$1,'player','loss')",[row!.id]);
+        await q("insert into player_events(game_id,level_id,session_id,type) values ('watersort',$1,'human:v1:loss','attempt'),('watersort',$1,'human:v1:loss','loss')",[row!.id]);
         assert.equal((await readBuffer(q,'watersort',1)).played_through,49);
-        await q("insert into player_events(game_id,level_id,session_id,type) values ('watersort',$1,'player','win')",[row!.id]);
+        await q("insert into player_events(game_id,level_id,session_id,type) values ('watersort',$1,'human:v1:win','attempt'),('watersort',$1,'human:v1:win','win')",[row!.id]);
       }
     }
     const state=await readBuffer(q,'watersort',1);
@@ -66,7 +66,7 @@ test("lotescape and platformer follow the same rule: winning 1-50 in order asks 
     for (const game of ["lotescape","platformer"] as const) {
       for (let position=1; position<=100; position++) {
         const [row]=await q("insert into levels(game_id,level,status,created_by,notes,target_win_rate) values ($1,'{}','accepted','production',$2,0.75) returning level_id::text as id",[game,JSON.stringify({producer:RECIPE_VERSION,series:1,position})]);
-        if (position<=50) await q("insert into player_events(game_id,level_id,session_id,type) values ($1,$2,'player','win')",[game,row!.id]);
+        if (position<=50) await q("insert into player_events(game_id,level_id,session_id,type) values ($1,$2,'human:v1:win','attempt'),($1,$2,'human:v1:win','win')",[game,row!.id]);
       }
       const state=await readBuffer(q,game,1);
       assert.equal(state.played_through,50,game);

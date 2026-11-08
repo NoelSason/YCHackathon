@@ -15,7 +15,7 @@ if (!TOKEN) {
 }
 
 const app = express();
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "1mb", type: ["application/json", "text/plain"] }));
 
 app.get("/health", async (_req, res) => {
   try {

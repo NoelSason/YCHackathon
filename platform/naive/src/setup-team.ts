@@ -1,3 +1,4 @@
+import { DESIGNER_SCHEDULES } from "./designer-prompt.js";
 // Create or update the Naïve Team: the roster agents, the CEO coordinator with its board, and the
 // cron deployments. Idempotent: agents are matched by name, so re-running updates them in place.
 // Writes platform/naive/team.json (ids only, no secrets) for the other scripts and the dashboard.
@@ -68,11 +69,11 @@ ids.ceo = ceo.id;
 const existingDeps = (await naive.deployments.list({ limit: 100 })).data as Array<{ id: string; agent_id: string; cron: string }>;
 const deployments: Record<string, string> = {};
 for (const a of [...ROSTER, CEO]) {
-  const cron = a.cron;
-  if (!cron) continue;
+  const schedules = a.name === "designer" ? DESIGNER_SCHEDULES : a.cron ? [{...a.cron,key:a.name}] : [];
+  for (const cron of schedules) {
   const have = existingDeps.find((d) => d.agent_id === ids[a.name] && d.cron === cron.expr);
   if (have && !process.env.RESET_DEPLOYMENTS) {
-    deployments[a.name] = have.id;
+    deployments[cron.key] = have.id;
     console.log(`deploy   ${a.name} exists ${have.id}`);
     continue;
   }
@@ -85,8 +86,9 @@ for (const a of [...ROSTER, CEO]) {
     window: "immediate",
     enabled: false, // switched on at 6:00 PM with `npm run kill -- on`, not by setup
   });
-  deployments[a.name] = d.id;
-  console.log(`deploy   ${a.name} created ${d.id} (disabled until switch-on)`);
+  deployments[cron.key] = d.id;
+  console.log(`deploy   ${cron.key} created ${d.id} (disabled until switch-on)`);
+  }
 }
 
 writeFileSync(new URL("../team.json", import.meta.url), JSON.stringify({ model: MODEL, agents: ids, versions, deployments, mcp: PLATFORM_MCP_URL }, null, 2) + "\n");

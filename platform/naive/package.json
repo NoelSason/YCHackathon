@@ -11,7 +11,8 @@
     "vault": "node --env-file=.env --import tsx src/vault.ts",
     "ceo-now": "node --env-file=.env --import tsx src/run-ceo.ts",
     "inspect": "node --env-file=.env --import tsx src/inspect-session.ts",
-    "approver": "node --env-file=.env --import tsx src/approver.ts"
+    "approver": "node --env-file=.env --import tsx src/approver.ts",
+    "quality:apply": "node --env-file=.env --import tsx src/apply-quality.ts"
   },
   "dependencies": {
     "@usenaive-sdk/managed-agents": "^0.12.3",

@@ -2,13 +2,8 @@ import { createHash } from "node:crypto";
 import { MIN_VERIFICATION_RUNS, onTarget } from "./policy.js";
 import { wilson95 } from "./stats.js";
 
-// Bump a game's version whenever its simulation rules or reference bot changes.
-// Runtime checkouts are pinned separately; this binds evidence to game semantics.
-export const RULES_VERSION: Readonly<Record<string, string>> = {
-  racer: "racer-cleared-history-boost-v2",
-  watersort: "watersort-reference-v1", match3: "match3-shuffle-greedy-v1",
-  lotescape: "lotescape-human-v1", platformer: "platformer-step-budget-human-v1", stub: "stub-v1",
-};
+export { RULES_VERSION } from "../../games/shared/rules-version.js";
+import { RULES_VERSION } from "../../games/shared/rules-version.js";
 function canonical(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;

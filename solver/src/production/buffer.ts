@@ -1,3 +1,4 @@
+import { HUMAN_ATTEMPTS_CTE } from "../player-attempts.js";
 import type { Query } from "../queue.js";
 import { LEVEL_CAP, RECIPE_VERSION, type ProductionGame } from "./catalog.js";
 
@@ -31,7 +32,7 @@ export async function readBuffer(q: Query, game: ProductionGame, series: number)
     positions.set(String(row.level_id), note.position!);
     if (row.status === "accepted" || row.status === "published") ready.push(note.position!);
   }
-  const wins = await q(`select distinct e.level_id::text as level_id from player_events e
+  const wins = await q(`with ${HUMAN_ATTEMPTS_CTE} select distinct e.level_id::text as level_id from human_outcomes e
     join levels l on l.level_id=e.level_id where e.game_id=$1 and l.game_id=$1
     and l.created_by='production' and e.type='win'`, [game]);
   const completed = new Set(wins.map(row => positions.get(String(row.level_id))).filter((p): p is number => p !== undefined));

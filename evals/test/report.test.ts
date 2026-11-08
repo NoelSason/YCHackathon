@@ -64,3 +64,12 @@ test("the reference bot is the most person-like one the game has", () => {
   assert.equal(referenceBot({ random: {}, greedy: {} }), "greedy");
   assert.equal(referenceBot({ random: {} }), "random");
 });
+
+
+test("current quality uses the verified replacement while preserving the legacy root",async()=>{
+ const q=await freshDb();await addGame(q,"racer");
+ const parent=await addLevel(q,{game_id:"racer",target:.5,status:"published",measured:.9});
+ const child=await addLevel(q,{game_id:"racer",target:.5,status:"accepted",measured:.5,parent});
+ await q("update levels set notes=$2 where level_id=$1",[parent,JSON.stringify({quality:{superseded_by:child}})]);
+ const r=await evalReport(q);assert.equal(r.games[0]!.accepted,1);assert.equal(r.games[0]!.mean_abs_error_pts,0);assert.equal(r.games[0]!.mean_rounds_to_accept,2);
+});

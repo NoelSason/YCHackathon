@@ -74,3 +74,15 @@ test("the kill switch records nothing", async () => {
     assert.deepEqual((await q("select distinct measured_win_rate::float as m from levels")).map((r) => r.m), [0.123]);
   } finally { await pg.close(); }
 });
+
+
+test("remeasure refuses a summary or confidence interval that differs from its evidence", async () => {
+ const {pg,q}=await db();try{
+  await seedLevels(q);const items=await remeasure(q,"racer","tamper");
+  const summary=structuredClone(items);summary[0]!.measured=0.12345;
+  await assert.rejects(record(q,"racer","tamper-summary","test",summary),/summary disagrees/);
+  const interval=structuredClone(items);interval[0]!.results.human!.ci95_low=0.999;
+  await assert.rejects(record(q,"racer","tamper-ci","test",interval),/summary disagrees|confidence interval/);
+  assert.equal((await q("select count(*)::int n from solver_runs where claimed_by like 'remeasure:%'"))[0]!.n,0);
+ }finally{await pg.close();}
+});

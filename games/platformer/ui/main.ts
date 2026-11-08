@@ -1,10 +1,11 @@
+import { catalogLevelId } from "../../shared/catalog.js";
+import { PlayerAttempt, sourceFor } from "../../shared/attempt.js";
 import { type PlatformLevel, type PlayState, type Pos, cell, find, initialState, move, neighbors, path, validateLevel } from "../src/engine.js";
 import { SAMPLES } from "../src/levels.js";
 declare const __PLATFORM_URL__: string;
 const params=new URLSearchParams(location.search);
 const API=(params.get("api")??__PLATFORM_URL__).replace(/\/+$/,"");
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const session=crypto.randomUUID();
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 let level:PlatformLevel,state:PlayState,levelId:string|null=null,sample:number|null=null;
 let playlist:Array<{level_id:string;level:PlatformLevel}>=[],playlistIndex=0;
@@ -17,13 +18,9 @@ let generation=0;
 let verifiedAt=0,engine=false;
 const KEY_VERIFIED="mosslight:verified-next";
 const store={get(k:string):string|null{try{return localStorage.getItem(k);}catch{return null;}},set(k:string,v:string):void{try{localStorage.setItem(k,v);}catch{/* storage blocked: nothing is remembered */}}};
-async function productionId(n:number):Promise<string>{
-  const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(`production-v1:1:platformer:${n}`));
-  const hex=[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,"0")).join("");
-  return `${hex.slice(0,8)}-${hex.slice(8,12)}-5${hex.slice(13,16)}-a${hex.slice(17,20)}-${hex.slice(20,32)}`;
-}
+async function productionId(n:number):Promise<string>{return catalogLevelId("platformer",n);}
 async function fetchVerified(n:number):Promise<{id:string;level:PlatformLevel}|null>{
-  if(!API||!Number.isInteger(n)||n<1)return null;
+  if(!API||!Number.isInteger(n)||n<1||n>1000)return null;
   try{const id=await productionId(n);const r=await fetch(`${API}/levels/${id}`);if(!r.ok)return null;
     const body=await r.json() as {game_id?:string;level?:unknown;status?:string};
     if(body.game_id!=="platformer"||!body.level||(body.status!==undefined&&body.status!=="accepted"&&body.status!=="published"))return null;
@@ -38,16 +35,24 @@ function badge():void{
   el("mode").textContent=`${label} · ${engine?"ENGINE":"YOU"}`;el("mode").classList.toggle("engine",engine);
   el("mode").title=engine?"The solver is walking this trail (autoplay)":"You are playing this trail";
 }
-function event(type:"attempt"|"win"|"loss"|"quit",beacon=false):void{
-  if(!levelId)return;
-  const blob=new Blob([JSON.stringify({game_id:"platformer",level_id:levelId,session_id:session,type,...(type==="attempt"?{}:{moves_used:state.moves})})],{type:"text/plain;charset=UTF-8"});
-  if(beacon&&navigator.sendBeacon?.(`${API}/events`,blob))return;
-  void fetch(`${API}/events`,{method:"POST",body:blob,keepalive:true}).catch(()=>undefined);
+let telemetry:PlayerAttempt;
+function newTelemetry():PlayerAttempt {
+  return new PlayerAttempt((packet,beacon)=>{
+    if(!levelId)return;
+    const blob=new Blob([JSON.stringify({game_id:"platformer",level_id:levelId,...packet})],{type:"text/plain;charset=UTF-8"});
+    if(beacon&&navigator.sendBeacon?.(`${API}/events`,blob))return;
+    void fetch(`${API}/events`,{method:"POST",body:blob,keepalive:true}).catch(()=>undefined);
+  });
+}
+function event(type:"attempt"|"win"|"loss"|"quit",beacon=false):void {
+  if(type==="attempt")telemetry.start(sourceFor(location.search,engine));
+  else telemetry?.end(type,{moves_used:state.moves},beacon);
 }
 function checked(value:unknown):PlatformLevel{const v=validateLevel(value);if(!v.ok)throw Error(v.errors[0]);return value as PlatformLevel;}
 function notice(text:string):void{el("notice").textContent=text;el("notice").classList.remove("hidden");}
 function load(next:PlatformLevel,id:string|null=null,practice:number|null=null,verified=0):void{
   if(state?.status==="playing"&&started)event("quit");
+  telemetry=newTelemetry();
   window.clearInterval(auto);generation++;
   level=checked(next);state=initialState(level);levelId=id;sample=practice;verifiedAt=verified;engine=false;started=false;hinted=null;selection=0;
   el("overlay").classList.add("hidden");el("app").inert=false;

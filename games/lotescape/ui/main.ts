@@ -1,3 +1,5 @@
+import { catalogLevelId } from "../../shared/catalog.js";
+import { PlayerAttempt, sourceFor } from "../../shared/attempt.js";
 import { axisDirections, initialState, move, slide, slideLimit, type Direction, type Level, type State, type Vehicle } from "../src/engine.js";
 import { BUILT_IN_BEST, LEVELS } from "../src/levels.js";
 import { solveLevel } from "../src/solver.js";
@@ -18,12 +20,25 @@ const api = (window.STUDIO_API ?? "").replace(/\/$/, "");
 const HINT = "Each car has a marked exit. Clear its lane to let it leave.";
 const BLOCKED = "That lane is blocked. Try sliding another car first.";
 let level: Level = LEVELS[0]!; let state: State = initialState(level); let selected = state.vehicles[0]?.id ?? "";
-let levelId: string | undefined; let activeIndex = 0; let best: number | undefined; let ended = false; let sessionId = crypto.randomUUID();
+let levelId: string | undefined; let activeIndex = 0; let best: number | undefined; let ended = false;
 const cars = new Map<string, HTMLButtonElement>();
 const exits = new Map<string, HTMLElement>();
 const lane = document.createElement("div"); lane.className = "lane";
 
-function event(type: "attempt" | "win" | "loss" | "quit") { if (!api) return; const body = JSON.stringify({ game_id: "lotescape", level_id: levelId ?? null, session_id: sessionId, type, moves_used: state.moves }); if (type === "quit" && navigator.sendBeacon) navigator.sendBeacon(`${api}/events`, new Blob([body], { type: "application/json" })); else void fetch(`${api}/events`, { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {}); }
+let telemetry:PlayerAttempt;
+function newTelemetry():PlayerAttempt {
+  const capturedId=levelId;
+  return new PlayerAttempt((packet,beacon)=>{
+    if(!api||!capturedId)return;
+    const blob=new Blob([JSON.stringify({game_id:"lotescape",level_id:capturedId,...packet})],{type:"text/plain;charset=UTF-8"});
+    if(beacon&&navigator.sendBeacon?.(`${api}/events`,blob))return;
+    void fetch(`${api}/events`,{method:"POST",body:blob,keepalive:true}).catch(()=>undefined);
+  });
+}
+function event(type:"attempt"|"win"|"loss"|"quit"):void {
+  if(type==="attempt")telemetry.start(sourceFor(location.search,engine));
+  else telemetry?.end(type,{moves_used:state.moves},type==="quit");
+}
 
 // Top-down vehicle art drawn in a frame that matches the vehicle's cells exactly (100 units per
 // cell), so every vehicle is the same thickness and a car is two cells long, a truck three. The
@@ -135,17 +150,20 @@ function finish() {
   else if (state.moves >= level.move_limit && !ended) { ended = true; message.textContent = "Move limit reached. Give the lot another try."; message.className = "message bad"; event("loss"); }
 }
 function commit(next: State) {
+  if(next!==state)event("attempt");
   state = next;
   if (!state.vehicles.some((v) => v.id === selected)) selected = state.vehicles[0]?.id ?? "";
   if (message.textContent === BLOCKED) message.textContent = HINT;
   finish(); render();
 }
 function restart() {
+  event("quit");
+  telemetry=newTelemetry();
   stopAutoplay();
   drag = undefined;
   for (const car of cars.values()) car.remove(); for (const marker of exits.values()) marker.remove(); cars.clear(); exits.clear();
-  state = initialState(level); selected = state.vehicles[0]?.id ?? ""; ended = false; sessionId = crypto.randomUUID();
-  message.textContent = HINT; message.className = "message"; render(); event("attempt");
+  state = initialState(level); selected = state.vehicles[0]?.id ?? ""; ended = false;
+  message.textContent = HINT; message.className = "message"; render();
 }
 function act(direction: Direction) {
   stopAutoplay();
@@ -220,13 +238,9 @@ function saveRun() { store.set(KEY_RUN, JSON.stringify(endless)); }
 const PRODUCTION = { version: "production-v1", series: 1, game: "lotescape" } as const;
 const KEY_VERIFIED = "lotescape:verified-next";
 let verifiedAt = 0;
-async function productionId(n: number): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${PRODUCTION.version}:${PRODUCTION.series}:${PRODUCTION.game}:${n}`));
-  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
-}
+async function productionId(n:number):Promise<string>{return catalogLevelId("lotescape",n);}
 async function fetchVerified(n: number): Promise<{ id: string; level: Level } | null> {
-  if (!api || !Number.isInteger(n) || n < 1) return null;
+  if (!api || !Number.isInteger(n) || n < 1 || n > 1000) return null;
   try {
     const id = await productionId(n);
     const response = await fetch(`${api}/levels/${id}`);

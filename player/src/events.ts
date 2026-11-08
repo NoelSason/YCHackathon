@@ -1,3 +1,4 @@
+import { attemptId, sourceFor } from "../../games/shared/attempt.js";
 /**
  * Player events for the platform (platform/CONTRACTS.md §1): POST /events with
  * { game_id, level_id, session_id, type, moves_used?, time_seconds? }.
@@ -10,18 +11,7 @@
  */
 type EndType = "win" | "loss" | "quit";
 
-function sessionId(): string {
-  const fresh = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
-  try {
-    const saved = localStorage.getItem("levelai.player");
-    if (saved) return saved;
-    const id = fresh();
-    localStorage.setItem("levelai.player", id);
-    return id;
-  } catch {
-    return fresh();
-  }
-}
+function sessionId():string { return attemptId(sourceFor(location.search)); }
 
 export class Attempt {
   private startedAt = 0;
