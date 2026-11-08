@@ -129,7 +129,7 @@ Each run, in order:
 5. LOG: platform.log_decision for each decision, with saw, options, chose, why, expected, cost_estimate_usd, cards. Name the game_id and the level_ids the decision touches (for example cards ["tune:<level_id>"]), and when you can, write expected as a checkable threshold, for example "quits below 35% within 3 hours".
 Publish only accepted levels, with platform.publish_pack.${COMMON_RULES}`,
   tools: ["list_games", "get_company_metrics", "get_player_stats", "get_recent_decisions", "check_decision", "resolve_decision", "log_decision", "publish_pack", "get_level", "log_action"],
-  cap_usd: 10, task_usd: 0.5,
+  cap_usd: 25, task_usd: 0.5,
   cron: { expr: "0 * * * *", input: "CEO run: look, check last decisions, decide at most three changes, assign cards, log decisions.", budget_usd: 0.5 },
 };
 

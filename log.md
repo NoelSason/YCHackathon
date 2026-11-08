@@ -20,6 +20,16 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### Sun Nov 8, 9:25 AM PT, Noel, Claude Code, main
+
+**What:** Outreach reads charts in 9 storefronts (US charts ran dry overnight), up to 8 charts a pass and 5 emails a run. Phone loop can run back to back, gives every third run to a market study, and can use a cheaper model for the loop only. Database calls retry on a network drop. CEO cap set to $25 in roster.ts to match the live agent.
+**Why:** No outreach had gone out since 11:45 PM, the phone was idle about 27 of every 30 minutes, the CEO had been budget-paused since 10 PM, and one database blip made a signup fail with "we couldn't email you".
+**Files:** business/src/outreach/autopilot.ts, business/src/research/{monid,targets}.ts, business/src/mobile/loop.ts, business/src/store.ts, business/src/config.ts, platform/naive/src/roster.ts, tests.
+**State:** Works. Business 332 tests and demo tests pass. Verified live 9:19-9:21 AM: form to a never-emailed address answered in 18 s, emailed audit in under 1 min, agency and studio emails sending again, CEO run started.
+**Next / heads-up:** Abhinav: roster.ts CEO cap is now 25 and 99 stale CEO sessions were cancelled (research and finance parked runs too), done through the API, setup-team not re-run. Mobilerun balance is 435 credits with no API to read it; the loop model and interval are .env settings. /tmp/levelai-phone-pause pauses the phone loop. git stash@{0} is a spare copy of this work and can be dropped.
+
+---
+
 ### 2026-11-08 04:17 PT · Pinara (Codex) · branch `pinara/finish-quality`
 
 **What:** Added `docs/AGENT-HANDOFF-2026-11-08.md`, a detailed owner-by-owner pickup checklist, and linked it from `AGENTS.md` and Pinara's completion record. It includes deployment dependencies, bounded Lot Escape retry, racer publication, worker restart/checkpoints, metrics fixes, phone QA, real-player evals, business verification and demo gates.

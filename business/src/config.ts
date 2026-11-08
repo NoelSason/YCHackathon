@@ -44,6 +44,8 @@ const EnvSchema = z.object({
   /** A second cloud iPhone signed in to the App Store. App Store links that Mobilerun can't install are downloaded and played there. */
   MOBILERUN_APPSTORE_DEVICE_ID: z.string().optional(),
   MOBILERUN_MODEL: z.string().default("mobilerun/mobile-agent-fast"),
+  /** Model for the background playtest loop only, so the loop can run often without spending what orders need. */
+  MOBILERUN_LOOP_MODEL: z.string().optional(),
   /** Keep the phone playtesting between paid orders (src/mobile/loop.ts). */
   PLAYTEST_LOOP: z.enum(["0", "1"]).default("0"),
   PLAYTEST_LOOP_MINUTES: z.coerce.number().int().positive().default(30),

@@ -157,6 +157,18 @@ describe("playtest loop", () => {
     expect(workToTask(w1!)).toContain("match-3 level made by our level designer");
   });
 
+  it("studies another game after two runs of our own levels", async () => {
+    const c = ctx(fakePhone().client);
+    const [w1] = await pickWork(c, withLevels([LEVEL_A, LEVEL_B]));
+    await log(c, `playtested ${w1!.name}: won in 9 moves`);
+    const [w2] = await pickWork(c, withLevels([LEVEL_A, LEVEL_B]));
+    await log(c, `playtested ${w2!.name}: lost`);
+    const [w3] = await pickWork(c, withLevels([LEVEL_A, LEVEL_B]));
+    expect(w3!.kind).toBe("market");
+    await log(c, `playtested ${w3!.name} (web game): won`);
+    expect((await pickWork(c, withLevels([LEVEL_A, LEVEL_B])))[0]!.kind).toBe("own");
+  });
+
   it("falls back to market work when the level list can't be read", async () => {
     const c = ctx(fakePhone().client);
     const down: typeof fetch = async () => { throw new Error("offline"); };

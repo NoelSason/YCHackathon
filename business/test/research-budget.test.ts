@@ -99,7 +99,7 @@ describe("outreach pass", () => {
     const { monid, chartCalls } = monidWith([[], [], []]);
     const { ctx, store } = ctxFor(monid);
     expect(await runOutreachCycle(ctx, { maxGames: 5 })).toMatchObject({ sent: 0, reason: null });
-    expect(chartCalls()).toBe(3);
+    expect(chartCalls()).toBe(8);
     expect(await store.listResearchRuns()).toHaveLength(0);
     expect((await store.listActivity()).some((a) => a.action.startsWith("no new games to read"))).toBe(true);
   });

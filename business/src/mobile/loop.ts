@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import type Mobilerun from "@mobilerun/sdk";
 import { z } from "zod";
 import type { ToolContext } from "../mcp/tools.js";
@@ -113,6 +114,8 @@ export type CycleOutcome =
   | { ran: true; work: LoopWork; taskId: string | null; status: string; result: LoopResult | null; summary: string; error: string | null; tried: string[] };
 
 export const LOOP_AGENT = "playtest-lead";
+/** While this file exists the loop leaves the phone alone, for a person using its live view (a sign-in, say). */
+export const PHONE_PAUSE_FILE = "/tmp/levelai-phone-pause";
 export const MAX_STEPS = 25;
 export const MAX_SECONDS = 6 * 60;
 /** Games tried per cycle when one doesn't load. */
@@ -200,7 +203,9 @@ export async function pickWork(ctx: ToolContext, fetchImpl: typeof fetch = fetch
         targetWinRate: typeof l.target_win_rate === "number" ? l.target_win_rate : null,
       };
     })
-    .sort((a, b) => Number(played(a.name) !== -1) - Number(played(b.name) !== -1));
+    .map((work) => ({ work, age: played(work.name) === -1 ? Number.POSITIVE_INFINITY : played(work.name) }))
+    .sort((a, b) => (a.age === b.age ? 0 : b.age - a.age))
+    .map(({ work }) => work);
   // Activity is newest first, so a higher index means played longer ago. Never played sorts first.
   const age = (g: MarketGame) => {
     const i = played(`${g.name} (${g.bundleId ? "iOS app" : "web game"}`);
@@ -210,7 +215,10 @@ export async function pickWork(ctx: ToolContext, fetchImpl: typeof fetch = fetch
     .map((g, order) => ({ g, order, age: age(g) }))
     .sort((a, b) => (a.age === b.age ? a.order - b.order : b.age - a.age))
     .map(({ g }): LoopWork => ({ kind: "market", name: g.name, url: g.url, game: g }));
-  return [...own, ...market];
+  // Every third run studies another game, so a run of our own levels can't crowd out the market studies.
+  const lastRuns = recent.filter((a) => /^playtest(ed| failed for) /.test(a.action)).slice(0, 2);
+  const studyNext = lastRuns.length === 2 && lastRuns.every((a) => a.action.includes(" our "));
+  return studyNext ? [...market.slice(0, 1), ...own, ...market.slice(1)] : [...own, ...market];
 }
 
 const RULES = [
@@ -299,7 +307,7 @@ async function waitForScreen(client: Mobilerun, deviceId: string, pollMs: number
 }
 
 /** `moves` and `maxSteps` shorten a run (a pack's phone study must finish within its time limit). */
-type Opts = { pollMs?: number; maxSeconds?: number; deadlineMs?: number; moves?: number; maxSteps?: number };
+type Opts = { pollMs?: number; maxSeconds?: number; deadlineMs?: number; moves?: number; maxSteps?: number; model?: string };
 
 /**
  * Runs one job on the phone and logs it. Returns null (after logging the failure) when the page
@@ -329,7 +337,7 @@ export async function runWork(ctx: ToolContext, client: Mobilerun, deviceId: str
     const task = await client.tasks.run({
       deviceId,
       task: workToTask(work, opts.moves),
-      llmModel: ctx.config.MOBILERUN_MODEL,
+      llmModel: opts.model ?? ctx.config.MOBILERUN_MODEL,
       maxSteps: opts.maxSteps ?? MAX_STEPS,
       executionTimeout: maxSeconds,
       vision: true,
@@ -387,6 +395,7 @@ export async function runLoopCycle(ctx: ToolContext, opts: Opts & { fetchImpl?: 
   const deviceId = ctx.config.MOBILERUN_DEVICE_ID;
   const client = ctx.mobilerun;
   if (!client || !deviceId) return { ran: false, reason: "phone not configured" };
+  if (existsSync(PHONE_PAUSE_FILE)) return { ran: false, reason: "paused while a person uses the phone" };
   if (!(await orderQueueIdle())) return { ran: false, reason: "a paid playtest order is queued or running" };
   try {
     const active = await activePhoneTask(client, deviceId);
@@ -405,7 +414,7 @@ export async function runLoopCycle(ctx: ToolContext, opts: Opts & { fetchImpl?: 
       const active = await activePhoneTask(client, deviceId).catch(() => "unknown (check failed)");
       if (active) return { ran: false, reason: `another task is running on the phone (${active})` };
       tried.push(work.name);
-      const r = await runWork(ctx, client, deviceId, work, opts);
+      const r = await runWork(ctx, client, deviceId, work, { ...opts, model: opts.model ?? ctx.config.MOBILERUN_LOOP_MODEL });
       if (r) return { ...r, tried };
     }
     return { ran: false, reason: `nothing loaded on the phone (tried ${tried.join(", ")})` };

@@ -57,6 +57,8 @@ export function targetFromSignals(game: StoreGame, analyzed: number, signals: Re
 export interface FindTargetsOptions {
   /** How many chart games to read reviews for. Each costs about $0.0015 in Monid credit. */
   maxGames?: number;
+  /** Google Play storefront for the chart, e.g. "gb". Default "us". */
+  country?: string;
   minSignals?: number;
   chart?: string;
   /** Google Play games category, e.g. GAME_PUZZLE (default), GAME_CASUAL, GAME_BOARD, GAME_WORD. */
@@ -77,7 +79,7 @@ export interface FindTargetsOptions {
 export async function findTargets(monid: MonidRunner, opts: FindTargetsOptions = {}): Promise<Target[]> {
   const maxGames = opts.maxGames ?? 10;
   const minSignals = opts.minSignals ?? 2;
-  const games = (await fetchTopPuzzleGames(monid, opts.chart, opts.category)).filter(
+  const games = (await fetchTopPuzzleGames(monid, opts.chart, opts.category, opts.country)).filter(
     (g) => !BIG_STUDIOS.some((re) => re.test(g.developer)) && !opts.skip?.has(g.appId),
   );
   const targets: Target[] = [];

@@ -687,9 +687,24 @@ export class PlatformStore implements Store {
   }
 }
 
+const DB_NETWORK_ERROR = /fetch failed|Error connecting to database/i;
+
+/** Retries a query that failed on the network. A brief drop shouldn't turn a signup into "we couldn't email you". */
+export async function withDbRetry<T>(run: () => Promise<T>, delaysMs: number[] = [300, 1200, 3000]): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await run();
+    } catch (err) {
+      const delay = delaysMs[attempt];
+      if (delay === undefined || !DB_NETWORK_ERROR.test(err instanceof Error ? err.message : String(err))) throw err;
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+}
+
 export function neonQuery(databaseUrl: string): Query {
   const sql = neon(databaseUrl);
-  return async (text, params = []) => (await sql.query(text, params)) as Row[];
+  return (text, params = []) => withDbRetry(async () => (await sql.query(text, params)) as Row[]);
 }
 
 export function createStore(databaseUrl: string | undefined, teamEmails: string[] = []): Store {

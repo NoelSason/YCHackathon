@@ -25,9 +25,13 @@ const CATEGORIES: Array<[string, string]> = [
   ["GAME_PUZZLE", "puzzle"], ["GAME_CASUAL", "casual"], ["GAME_WORD", "word"], ["GAME_BOARD", "board"], ["GAME_CARD", "card"],
 ];
 const CHART_KINDS: Array<[string, string]> = [["topselling_free", "top free"], ["topgrossing", "top-grossing"], ["topselling_paid", "top paid"]];
-// 15 passes: every chart kind for each category, interleaved so consecutive passes differ.
-const CHARTS: Array<{ chart: string; category: string; label: string }> = CHART_KINDS.flatMap(([chart, cl]) =>
-  CATEGORIES.map(([category, gl]) => ({ chart, category, label: `${cl} ${gl}` })),
+// Every chart kind for each category, in several storefronts. The US charts alone ran dry overnight
+// (Nov 8: "no new games" on every pass), and a chart costs a fraction of a cent to check.
+const COUNTRIES: Array<[string, string]> = [
+  ["gb", "UK"], ["ca", "Canada"], ["au", "Australia"], ["in", "India"], ["de", "Germany"], ["tr", "Turkey"], ["br", "Brazil"], ["sg", "Singapore"], ["us", "US"],
+];
+const CHARTS: Array<{ chart: string; category: string; country: string; label: string }> = COUNTRIES.flatMap(([country, place]) =>
+  CHART_KINDS.flatMap(([chart, cl]) => CATEGORIES.map(([category, gl]) => ({ chart, category, country, label: `${cl} ${gl} (${place})` }))),
 );
 // Games read in the last 6 hours, kept in a temp file so a restart doesn't re-read (and re-pay for) them.
 const READ_FILE = join(tmpdir(), "levelai-games-read.json");
@@ -54,7 +58,7 @@ let cycleCount = Math.floor(Date.now() / (10 * 60_000));
 // One "paused" row per day at most, so a capped night doesn't fill the feed.
 let capLoggedDay: string | null = null;
 /** A pass with nothing new on its chart moves to the next chart, up to this many in one pass. */
-const MAX_CHARTS_PER_PASS = 3;
+const MAX_CHARTS_PER_PASS = 8;
 
 /** Milliseconds until the next pass: `intervalMs` after this one started, or a short pause if it ran longer. */
 export function nextPassDelayMs(startedAt: number, finishedAt: number, intervalMs: number): number {
@@ -78,7 +82,7 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
     return { sent: 0, reason: "Monid daily cap reached" };
   }
 
-  const perRun = opts.perRun ?? 3;
+  const perRun = opts.perRun ?? 5;
   const known = new Set((await ctx.store.listLeads()).map((l) => l.appId).filter((x): x is string => Boolean(x)));
   const cutoff = Date.now() - 6 * 3600_000;
   for (const [id, at] of recentlyRead) if (at < cutoff) recentlyRead.delete(id);
@@ -130,7 +134,7 @@ export async function runOutreachCycle(ctx: ToolContext, opts: { maxGames?: numb
     await log("research", `scanning the ${chart.label} games for unhappy players`, "outreach loop", null);
     try {
       await findTargets(ctx.monid, {
-        maxGames: opts.maxGames ?? 30, minSignals: 2, chart: chart.chart, category: chart.category, skip, verify,
+        maxGames: opts.maxGames ?? 30, minSignals: 2, chart: chart.chart, category: chart.category, country: chart.country, skip, verify,
         onSkip: (game, err) => console.error(`outreach loop: skipped ${game.title}: ${err instanceof Error ? err.message.slice(0, 120) : "unknown"}`),
         // Pitch each studio as soon as its game qualifies, so a restart mid-pass doesn't lose the emails.
         onRead: async (t) => {
