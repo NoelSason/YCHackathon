@@ -34,6 +34,7 @@ async function setup(stage: Lead["stage"] = "sample_made") {
 
 function draftFor(lead: Lead, paymentUrl: string | null = null) {
   return composeOutreach({
+    offer: { sampleLevels: 5, genres: ["water-sort"], playtestPrice: null },
     lead, target, sampleUrl: lead.sampleUrl!, pilot: { levels: 20, priceLabel: "$49", paymentUrl },
     sender: { name: "Noel", company: "Level Studio", postalAddress: ADDRESS },
   });

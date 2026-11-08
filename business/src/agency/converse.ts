@@ -374,7 +374,7 @@ function historyFor(agency: AgencyRecord | null, lead: Lead, turns: Turn[]): Arr
     ? `${lead.company} wrote to us first; we hadn't emailed them before.`
     : agency
     ? `Our first email offered ${lead.company} a free ${SAMPLE_LEVELS}-level sample for one of their clients' puzzle games, or a free iPhone playtest of any build.`
-    : `Our first email to ${lead.company}: ${lead.reason ?? "an offer of puzzle levels"}`;
+    : `Our first email to ${lead.company}: ${lead.reason ?? "an offer of puzzle levels"} It offered a free ${SAMPLE_LEVELS}-level sample in one of our genres if they reply yes, and a paid iPhone playtest.`;
   const out: Array<{ from: "us" | "them"; text: string }> = [{ from: "us", text: first }];
   for (const t of turns.slice(-6)) {
     if (t.inboundText) out.push({ from: "them", text: t.inboundText.slice(0, 1500) });

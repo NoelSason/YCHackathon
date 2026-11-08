@@ -52,6 +52,11 @@ const EnvSchema = z.object({
   AGENTMAIL_API_KEY: z.string().optional(),
   AGENTMAIL_INBOX_ID: z.string().optional(),
   AGENTMAIL_WEBHOOK_SECRET: z.string().optional(),
+  // Second send path when AgentMail refuses for a limit: the Naïve inbox if set, otherwise Resend.
+  NAIVE_SALES_INBOX_ID: z.string().optional(),
+  NAIVE_SALES_INBOX_ADDRESS: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM: z.string().optional(),
 
   // Stripe
   STRIPE_SECRET_KEY: z.string().optional(),

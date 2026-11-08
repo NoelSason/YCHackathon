@@ -32,7 +32,7 @@ describe("business flow, research to reply (no network)", () => {
     expect(lead.stage).toBe("found");
 
     const noSample = await toolDraftOutreach(ctx, { leadId: lead.id, senderName: "Noel" });
-    expect(noSample.body).toContain("reply and we'll make you a free sample set");
+    expect(noSample.body).toContain(`Reply "yes" and we'll build you a free 5-level sample`);
     const staged = await toolSetSample(ctx, { leadId: lead.id, sampleUrl: "https://levels.example.com/s/1" });
     expect(staged.stage).toBe("sample_made");
 

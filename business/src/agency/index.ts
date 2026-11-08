@@ -47,7 +47,9 @@ export function agencyResponder(ctx: ToolContext, deps: Partial<ConverseDeps> = 
     const agency = await full.agencies.forLead(o.leadId);
     const talking = (await full.agencies.turns(o.leadId, agency?.startedAt)).length > 0;
     const autoAnswered = (await ctx.store.listActivity(500)).some((a) => /^auto-replied to /.test(a.action) && a.why?.startsWith(`lead ${o.leadId}:`));
-    if (intent === "interested" && !agency && !talking && !autoAnswered) {
+    // A studio we emailed from research was offered a free sample for a reply, and only the agent can start one.
+    const lead = await ctx.store.getLead(o.leadId);
+    if (intent === "interested" && !agency && !talking && !autoAnswered && lead?.source !== "research") {
       if (await answerReply(ctx, o)) return true;
     }
     return converse(ctx, full, o);

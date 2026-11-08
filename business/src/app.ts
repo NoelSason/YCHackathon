@@ -3,7 +3,8 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { integrationStatus, type Config, activeStripeKey } from "./config.js";
 import { createStore, isTeamEmail, type Query } from "./store.js";
 import { MonidCli } from "./research/monid.js";
-import { AgentMailSender } from "./outreach/send.js";
+import { AgentMailSender, FallbackMailSender, type MailSender } from "./outreach/send.js";
+import { NaiveMailSender, ResendMailSender } from "./outreach/alt-mail.js";
 import { answerReply, handleInboundReply, parseAgentMailEvent, setReplyResponder, verifySvixSignature } from "./outreach/inbound.js";
 import { handleStripeWebhook, isSignatureError, stripeClient } from "./billing/stripe.js";
 import { flagMoneyRequest } from "./billing/requests.js";
@@ -51,12 +52,30 @@ export type Handler = (request: Request) => Promise<Response>;
 
 export const MAX_BODY_BYTES = 1_000_000;
 
+/** The Naïve inbox the second send path uses and whose replies the server polls, when it's configured. */
+export function naiveInboxOptions(config: Config) {
+  const { NAIVE_API_KEY_SOCIAL: apiKey, NAIVE_SOCIAL_IDENTITY_ID: identityId, NAIVE_SALES_INBOX_ID: inboxId, NAIVE_SALES_INBOX_ADDRESS: address, NAIVE_BASE_URL: baseUrl } = config;
+  return apiKey && identityId && inboxId && address ? { apiKey, identityId, inboxId, address, baseUrl } : null;
+}
+
+/** AgentMail, with the first configured alternative behind it. With no alternative, a limit stays a refusal (today's behavior). */
+export function buildMail(config: Config, fetchImpl?: typeof fetch): MailSender | null {
+  if (!config.AGENTMAIL_API_KEY || !config.AGENTMAIL_INBOX_ID) return null;
+  const main = new AgentMailSender(config.AGENTMAIL_API_KEY, config.AGENTMAIL_INBOX_ID);
+  const naive = naiveInboxOptions(config);
+  if (naive) return new FallbackMailSender(main, new NaiveMailSender({ ...naive, ...(fetchImpl ? { fetchImpl } : {}) }));
+  if (config.RESEND_API_KEY && config.RESEND_FROM) {
+    return new FallbackMailSender(main, new ResendMailSender({ apiKey: config.RESEND_API_KEY, from: config.RESEND_FROM, replyTo: config.AGENTMAIL_INBOX_ID, ...(fetchImpl ? { fetchImpl } : {}) }));
+  }
+  return main;
+}
+
 export function buildContext(config: Config): ToolContext {
   return {
     config,
     store: createStore(config.DATABASE_URL, config.TEAM_EMAILS.split(",").map((e) => e.trim()).filter(Boolean)),
     monid: config.MONID_API_KEY ? new MonidCli() : null,
-    mail: config.AGENTMAIL_API_KEY && config.AGENTMAIL_INBOX_ID ? new AgentMailSender(config.AGENTMAIL_API_KEY, config.AGENTMAIL_INBOX_ID) : null,
+    mail: buildMail(config),
     // Live once the team turns it on (BILLING_ALLOW_LIVE=1 and a live key); test mode otherwise.
     stripe: activeStripeKey(config) ? stripeClient(activeStripeKey(config)!, config.BILLING_ALLOW_LIVE === "1") : null,
     mobilerun: config.MOBILERUN_API_KEY ? mobilerunClient(config.MOBILERUN_API_KEY) : null,

@@ -16,6 +16,9 @@ import { readMonid, summarize, type SpendSource } from "../finance/snapshot.js";
 import { runPlan } from "../mobile/playtest.js";
 import type { PlanInput } from "../mobile/plan.js";
 import { syncLeadToCrm, type NaiveClient } from "../naive.js";
+import { SAMPLE_LEVELS } from "../agency/facts.js";
+import { GENRES, packGameOpen } from "../levels/deliver-pack.js";
+import { PACK_GAME_IDS } from "../levels/pack-types.js";
 
 /**
  * The business tools the Naïve agents call, as plain functions. `server.ts` exposes them over MCP.
@@ -139,14 +142,16 @@ export async function toolDraftOutreach(
   }
 
   const pilot = await pilotOffer(ctx, lead);
+  const [, , playtestPrice] = offerLinks(ctx, lead);
   const draft = composeOutreach({
     lead,
     target,
     sampleUrl: lead.sampleUrl ?? null,
     pilot,
     sender: { name: args.senderName, company: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "" },
+    offer: { sampleLevels: SAMPLE_LEVELS, genres: PACK_GAME_IDS.filter(packGameOpen).map((g) => GENRES[g].label), playtestPrice: playtestPrice || null },
   });
-  const extraAllowed = [lead.sampleUrl ?? "", pilot.paymentUrl ?? "", pilot.priceLabel, ctx.config.COMPANY_POSTAL_ADDRESS ?? ""];
+  const extraAllowed = [lead.sampleUrl ?? "", pilot.paymentUrl ?? "", pilot.priceLabel, playtestPrice, ctx.config.COMPANY_POSTAL_ADDRESS ?? ""];
   const blockedReason = await checkOutreach(lead, draft, {
     store: ctx.store, dailyCap: ctx.config.OUTREACH_DAILY_CAP, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS, extraAllowedNumbers: extraAllowed,
   });

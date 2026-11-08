@@ -24,6 +24,8 @@ export interface ComposeInput {
   sampleUrl: string | null;
   pilot: { levels: number; priceLabel: string; paymentUrl: string | null };
   sender: { name: string; company: string; postalAddress: string };
+  /** What a plain "yes" gets them, from the same settings the sales agent answers from. */
+  offer: { sampleLevels: number; genres: string[]; playtestPrice: string | null };
 }
 
 const OPENERS: Record<SignalKind, (n: number, total: number, game: string, store: string) => string> = {
@@ -45,7 +47,7 @@ const SUBJECTS: Record<SignalKind, (game: string) => string> = {
 };
 
 export function composeOutreach(input: ComposeInput): OutreachDraft {
-  const { target, lead, sampleUrl, pilot, sender } = input;
+  const { target, lead, sampleUrl, pilot, sender, offer } = input;
   const kind = target.primarySignal;
   if (!kind) throw new Error(`No signal to pitch on for ${target.appTitle}.`);
   const n = target.signalCounts[kind];
@@ -65,9 +67,10 @@ export function composeOutreach(input: ComposeInput): OutreachDraft {
           sampleUrl,
         ]
       : [
-          "We make and tune puzzle levels. Before a level ships, our test players play it hundreds of times, so its difficulty is measured, not guessed.",
+          "We make and tune puzzle levels. Bot players play each level until it lands on a target win rate, so its difficulty is measured, not guessed.",
           "",
-          `If it would help, reply and we'll make you a free sample set in the style of ${target.appTitle}, tuned to the difficulty you want. We also do pilot packs of ${pilot.levels} levels, tuned to the curve you choose.`,
+          `Reply "yes" and we'll build you a free ${offer.sampleLevels}-level sample in whichever of our genres fits best (${offer.genres.join(", ")}), at the difficulty you pick.`,
+          ...(offer.playtestPrice ? ["", `We can also play your game on a real iPhone and send you a short report for ${offer.playtestPrice}, from an App Store or web link.`] : []),
         ]),
     ...(sampleUrl
       ? [
@@ -96,6 +99,8 @@ export function composeOutreach(input: ComposeInput): OutreachDraft {
       { value: String(total), source: "reviews analyzed (Monid: dataforseo /google-play/app-reviews)" },
       { value: String(n), source: `reviews matching ${kind}` },
       { value: String(pilot.levels), source: "pilot pack size (team setting)" },
+      { value: String(offer.sampleLevels), source: "free sample size (facts sheet)" },
+      ...numbersIn(offer.genres.join(" ")).map((value) => ({ value, source: "genre name" })),
     ],
   };
 }

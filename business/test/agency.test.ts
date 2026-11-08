@@ -468,3 +468,18 @@ describe("agency names", () => {
     expect(d.body.startsWith("Hi N-iX Games team,")).toBe(true);
   });
 });
+
+describe("a yes from a studio we emailed from research", () => {
+  it("goes to the sales agent, which can start the free sample the email offered", async () => {
+    const s = setup();
+    const lead = await s.store.upsertLead({ company: "Loop Games", appId: "com.loop.game", contactName: null, email: "hello@loop.example", source: "research", stage: "emailed", reason: "5 of the 150 newest reviews ask for more levels.", sampleUrl: null, crmContactId: null });
+    const decide = fixed(decision({ reply: "Hi Loop Games team, which genre fits best?" }));
+    setReplyResponder(agencyResponder(s.ctx, { agencies: s.agencies, decide, startWork: false }));
+    try {
+      await handleInboundReply(msg(lead.email!, "yes"), s.store);
+      expect(decide.calls).toBe(1);
+    } finally {
+      setReplyResponder(null);
+    }
+  });
+});

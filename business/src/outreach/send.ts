@@ -14,8 +14,9 @@ export function idempotencyKey(...parts: string[]): string {
 export interface MailAttachment { filename: string; contentType: string; contentBase64: string; contentId?: string; inline?: boolean }
 
 export interface MailSender {
-  send(args: { to: string; subject: string; text: string; html?: string; idempotencyKey: string; attachments?: MailAttachment[] }): Promise<{ messageId: string }>;
-  reply(args: { messageId: string; text: string; html?: string; idempotencyKey: string }): Promise<{ messageId: string }>;
+  /** `from` is set when the email left from an address other than the main inbox. */
+  send(args: { to: string; subject: string; text: string; html?: string; idempotencyKey: string; attachments?: MailAttachment[] }): Promise<{ messageId: string; from?: string }>;
+  reply(args: { messageId: string; text: string; html?: string; idempotencyKey: string }): Promise<{ messageId: string; from?: string }>;
 }
 
 /**
@@ -26,6 +27,33 @@ export class SendRefused extends Error {
   constructor(message: string, readonly status: number | null) {
     super(message);
     this.name = "SendRefused";
+  }
+}
+
+/** True when the provider refused because of a sending or new-recipient limit, not because of this address. */
+export function isSendLimit(err: unknown): boolean {
+  return err instanceof SendRefused && /recipient limit|send(ing)? limit|limit exceeded|daily limit/i.test(err.message);
+}
+
+/**
+ * The main inbox first; when it refuses a send for a limit, the same email goes from the alternative.
+ * Any other refusal (a blocked address, a bad request) stands, so a bad address isn't tried twice.
+ * A reply goes from whichever inbox the message arrived at: the Naïve feed's ids start with "inb_".
+ */
+export class FallbackMailSender implements MailSender {
+  constructor(private readonly primary: MailSender, private readonly alternative: MailSender) {}
+
+  async send(args: Parameters<MailSender["send"]>[0]): Promise<{ messageId: string; from?: string }> {
+    try {
+      return await this.primary.send(args);
+    } catch (err) {
+      if (!isSendLimit(err)) throw err;
+      return this.alternative.send(args);
+    }
+  }
+
+  reply(args: Parameters<MailSender["reply"]>[0]): Promise<{ messageId: string; from?: string }> {
+    return args.messageId.startsWith("inb_") ? this.alternative.reply(args) : this.primary.reply(args);
   }
 }
 
@@ -150,7 +178,7 @@ export async function sendOutreach(lead: Lead, draft: OutreachDraft, opts: SendO
   }
 
   const key = opts.idempotencyKey ?? idempotencyKey("first-touch", lead.id);
-  const { messageId } = opts.replyToMessageId
+  const { messageId, from } = opts.replyToMessageId
     ? await opts.sender.reply({ messageId: opts.replyToMessageId, text: draft.body, ...(draft.html ? { html: draft.html } : {}), idempotencyKey: key })
     : await opts.sender.send({ to, subject: draft.subject, text: draft.body, ...(draft.html ? { html: draft.html } : {}), idempotencyKey: key });
   const record = await opts.store.addOutreach({ ...base, status: "sent", blockedReason: null, providerMessageId: messageId });
@@ -158,7 +186,7 @@ export async function sendOutreach(lead: Lead, draft: OutreachDraft, opts: SendO
   if (lead.stage === "found" || lead.stage === "sample_made") await opts.store.setStage(lead.id, "emailed");
   await opts.store.logActivity({
     at: new Date().toISOString(), agent: opts.agent, action: `outreach sent to ${lead.company}`,
-    why: lead.reason, result: `message ${messageId}`, costUsd: null, human: false,
+    why: lead.reason, result: `message ${messageId}${from ? ` from ${from}` : ""}`, costUsd: null, human: false,
   });
   return record;
 }

@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 11:32 PM PT · Noel · Claude Code (hourly checkpoint) · main
+- **What:** Hourly checkpoint of the outreach agent's work in progress: a fallback sender for new recipients (`outreach/alt-mail.ts`), a stronger offer in `compose.ts`, and related agency and config changes.
+- **Why:** Noel asked for a commit every hour.
+- **Files:** `business/src/outreach/`, `business/src/agency/`, `business/src/{app,config,server}.ts`, `business/src/mcp/tools.ts`, `business/test/`, `business/.env.example`
+- **State:** partly works: business 328/328, demo 21/21. The fallback isn't active: no alternative sender is configured, and the running server hasn't loaded this code.
+- **Next / heads-up:** The outreach agent is still working; its final entry follows.
+
 ### 2026-11-07 11:19 PM PT · Noel · Claude Code (Sentinels 16 phone, 17 levels, 18 pack) · main
 - **What:** (1) Generator pack at 10 tries, run live at 11:18 PM: 5 of 5 in 7.2 s, 24 generator calls; email says "Hi Noel" and states the on-target rule; links 200. Demo script section F updated. (2) Levels: 13 agent-made accepted; production doesn't depend on the CEO (Designer cron every 20 min, Tuner is a program), so about 20 more are expected by 10:30 AM. (3) Phone since 10 PM: 6 playtests started, 5 logged, 0 failed; one orphan from the 10:05 PM restart.
 - **Why:** Closes the last untested generator item and confirms levels keep growing with the CEO paused.
