@@ -3,7 +3,7 @@ import type { Check } from "../types.js";
 // queued a delivery that was fulfilled. Reads the platform `payments` table and Noel's
 // `biz_deliveries`. No money is needed: Stripe test mode + the 4242 card produce a real event.
 const check: Check = {
-  name: "billing", owner: "Noel", path: "Billing (Stripe test payment → delivery)",
+  name: "billing_payment", owner: "Noel", path: "Billing (a Stripe event reached the webhook and was delivered)",
   async run({ db, expectRunning }) {
     const hasDeliveries = (await db.query(`select to_regclass('biz_deliveries') as t`)).rows[0]?.t;
     const p = await db.query(`select
