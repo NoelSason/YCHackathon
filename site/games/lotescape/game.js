@@ -691,6 +691,7 @@ function commit(next) {
 }
 function restart() {
   stopAutoplay();
+  drag = void 0;
   for (const car of cars.values()) car.remove();
   for (const marker of exits.values()) marker.remove();
   cars.clear();
@@ -705,6 +706,7 @@ function restart() {
   event("attempt");
 }
 function act(direction) {
+  stopAutoplay();
   if (!selected || ended) return;
   const next = move(level, state, selected, direction);
   if (next === state) {
@@ -952,6 +954,7 @@ board.addEventListener("pointerdown", (e) => {
   const vehicle = car && !ended ? state.vehicles.find((v) => v.id === car.dataset.id) : void 0;
   if (!car || !vehicle) return;
   e.preventDefault();
+  stopAutoplay();
   select(vehicle.id);
   const [neg, pos] = axisDirections(vehicle), left = level.move_limit - state.moves;
   const back = slideLimit(level, state, vehicle.id, neg), ahead = slideLimit(level, state, vehicle.id, pos);
@@ -988,7 +991,12 @@ function endDrag(e) {
   commit(slide(level, state, id, steps < 0 ? neg : pos, Math.abs(steps)));
 }
 board.addEventListener("pointerup", endDrag);
-board.addEventListener("pointercancel", endDrag);
+board.addEventListener("pointercancel", (e) => {
+  if (!drag || e.pointerId !== drag.pointer) return;
+  cars.get(drag.id)?.classList.remove("dragging");
+  drag = void 0;
+  render();
+});
 async function loadSaved(id) {
   const response = await fetch(`${api}/levels/${encodeURIComponent(id)}`);
   if (!response.ok) throw new Error(`Could not load saved level (${response.status}).`);

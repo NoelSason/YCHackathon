@@ -81,8 +81,9 @@ function render(previous?:Pos):void{
   for(const dir of [-1,1])el<HTMLButtonElement>(dir<0?"left":"right").disabled=!options.some(p=>p.x===state.position.x+dir);
   el<HTMLButtonElement>("guide").disabled=state.status!=="playing";
 }
-function take(target:Pos):void{
+function take(target:Pos,automated=false):void{
   const next=move(level,state,target);if(next===state)return;
+  if(!automated){window.clearInterval(auto);engine=false;badge();}
   if(!started){started=true;event("attempt");}
   const prev=state.position;state=next;hinted=null;selection=0;render(prev);
   if(state.status==="lost"){event("loss");window.clearInterval(auto);el("hint").textContent=`Out of steps (${level.move_limit}). Restart to try a shorter route.`;return;}
@@ -94,7 +95,7 @@ function take(target:Pos):void{
 }
 function steer(dir:number):void{const choice=targets().filter(p=>p.x===state.position.x+dir).sort((a,b)=>Math.abs(a.y-state.position.y)-Math.abs(b.y-state.position.y))[0];if(choice)take(choice);}
 function guide():void{const route=path(level,state.position);if(!route?.[1])return notice("No route from this ledge. Restart to try another path.");hinted=route[1];render();el("hint").textContent=`Next safe landing: column ${hinted.x+1}, row ${hinted.y+1}.`;}
-function autoplay():void{window.clearInterval(auto);if(state.status!=="playing"||state.moves>0)load(level,levelId,sample,verifiedAt);engine=true;badge();const route=path(level,state.position);if(!route)return notice("No route from this ledge.");let n=1;const g=generation;auto=window.setInterval(()=>{if(g!==generation||state.status!=="playing"||!route[n])return window.clearInterval(auto);take(route[n++]!);},330);}
+function autoplay():void{window.clearInterval(auto);if(state.status!=="playing"||state.moves>0)load(level,levelId,sample,verifiedAt);engine=true;badge();const route=path(level,state.position);if(!route)return notice("No route from this ledge.");let n=1;const g=generation;auto=window.setInterval(()=>{if(g!==generation||state.status!=="playing"||!route[n])return window.clearInterval(auto);take(route[n++]!,true);},330);}
 function renderSamples():void{el("samples").replaceChildren(...SAMPLES.map((s,i)=>{const b=document.createElement("button");b.type="button";const number=document.createElement("b");number.textContent=`TRAIL ${String(i+1).padStart(2,"0")}`;b.append(number,document.createTextNode(s.name));if(sample===i+1)b.setAttribute("aria-current","true");b.onclick=()=>{playlist=[];load(s,null,i+1);};return b;}));}
 async function json(url:string):Promise<Record<string,unknown>>{
   const controller=new AbortController(),timer=window.setTimeout(()=>controller.abort(),8000);
@@ -123,5 +124,5 @@ async function startVerified():Promise<boolean>{const n=Math.max(1,Math.floor(Nu
 async function startLive():Promise<void>{try{const body=await json(`${location.origin}/levels-latest?game=platformer&limit=30`);if(!Array.isArray(body.levels)||!body.levels.length)throw Error("no live trails yet");playlist=(body.levels as Array<{level_id:string;level:unknown}>).map(r=>({level_id:r.level_id,level:checked(r.level)}));playlistIndex=0;load(playlist[0]!.level,playlist[0]!.level_id);}catch{load(level,levelId,sample,verifiedAt);notice("You've walked every verified trail so far. More are being made.");}}
 window.addEventListener("pagehide",()=>{if(started&&state?.status==="playing")event("quit",true);});
 declare global{interface Window{mosslightTrails:{state():(PlayState&{level_id:string|null})|null;step(p:Pos):void;steer(dir:number):void;autoplay():void;restart():void;};}}
-window.mosslightTrails={state:()=>state?({...state,position:{...state.position},collected:[...state.collected],level_id:levelId}):null,step:take,steer,autoplay,restart:()=>load(level,levelId,sample)};
+window.mosslightTrails={state:()=>state?({...state,position:{...state.position},collected:[...state.collected],level_id:levelId}):null,step:take,steer,autoplay,restart:()=>load(level,levelId,sample,verifiedAt)};
 void boot();
