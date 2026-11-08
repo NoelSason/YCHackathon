@@ -12,16 +12,17 @@
     "ceo": "agt_tyrbqjyp9v1k3xrdnp1t13rcag"
   },
   "versions": {
-    "designer": 4,
-    "tuner": 4,
-    "playtest": 4,
-    "research": 4,
-    "sales_reader": 4,
-    "sales_sender": 4,
-    "finance": 4,
-    "marketing": 1
+    "designer": 10,
+    "tuner": 10,
+    "playtest": 10,
+    "research": 10,
+    "sales_reader": 10,
+    "sales_sender": 10,
+    "finance": 10,
+    "marketing": 7
   },
   "deployments": {
+    "designer": "dep_pf9e3h9p6br7je19c7nttxwjkg",
     "research": "dep_71hgm7qph0x4yd232efkn31ne9",
     "finance": "dep_2d3kj15nrv066s30d0wze6v58v",
     "marketing": "dep_yz1an1cq9zks2qe8mkvgeqz2f7",

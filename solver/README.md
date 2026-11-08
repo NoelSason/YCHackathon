@@ -74,6 +74,33 @@ Every 30 s the worker writes a heartbeat to `settings` under `solver_worker:<WOR
 `solver_queue` readiness check reads it. The check fails when no worker has written in 3 minutes
 (after switch-on), or when a game has queued runs that no live worker knows.
 
+### The automatic Tuner (`src/autotune.ts`)
+
+**Why it's a program.** Naïve flags a chat after its first MCP read. From then on, every MCP call
+in that chat waits for a person, even at `allow` (Naïve docs, tools.md, "Once a chat has read
+people's data"). An LLM Tuner's loop (solve → read → adjust → save → accept) therefore can't run
+unattended.
+
+**How the work is split.** The Designer agent saves one level per chat with a single `save_level`
+call. When its queue is idle, the worker tunes each new Designer level:
+1. Claim it (`draft` → `solving`, `for update skip locked`).
+2. Measure the reference bot. Each measurement is a `solver_runs` row with the usual seeds.
+3. Move the game's knob, and save the new version with `parent_level_id`.
+4. Accept within 5 pts of the target in at most 4 rounds, or reject with the reason.
+
+Superseded versions are retired as `rejected`. Each step is an `activity_log` row: agent `tuner`,
+reason starting "auto-tuner (program):".
+
+**Knobs:**
+
+| Game | Knob | Floor |
+|---|---|---|
+| watersort | `move_limit` | the solver's minimum |
+| racer | `time_limit` | the solver's minimum |
+| match3 | `goal.target` | — (bigger is harder, about 3–5 pts per gem; 100 games per round because `greedy` is slow) |
+
+Games with no knob (platformer) aren't claimed. `AUTOTUNE=0` turns the auto-tuner off on a worker.
+
 ## Run it
 
 ```bash
