@@ -16,7 +16,7 @@
   <img alt="Mobilerun cloud iPhone" src="https://img.shields.io/badge/phones-Mobilerun_cloud_iPhone-0A84FF?logo=apple&logoColor=white">
   <img alt="TypeScript on Node.js 22" src="https://img.shields.io/badge/TypeScript-Node.js_22-3178C6?logo=typescript&logoColor=white">
   <img alt="Neon Postgres" src="https://img.shields.io/badge/Neon-Postgres-00E599?logo=postgresql&logoColor=white">
-  <img alt="Stripe in test mode" src="https://img.shields.io/badge/Stripe-test_mode-635BFF?logo=stripe&logoColor=white">
+  <img alt="Stripe live payments" src="https://img.shields.io/badge/Stripe-live-635BFF?logo=stripe&logoColor=white">
   <img alt="Status: hackathon prototype" src="https://img.shields.io/badge/status-hackathon_prototype-orange">
 </p>
 
@@ -32,7 +32,7 @@
 </p>
 
 > [!IMPORTANT]
-> Level AI is a hackathon prototype, built in 22 hours at the Naïve × YC Autonomous Company Hackathon in San Francisco (Nov 7–8, 2026). Payments run in Stripe test mode, and real revenue is $0. No agent-made level has passed tuning yet. Every number below says when it was taken.
+> Level AI is a hackathon prototype, built in 22 hours at the Naïve × YC Autonomous Company Hackathon in San Francisco (Nov 7–8, 2026). Stripe has taken live payments since 7:26 PM PT on Nov 7, but no customer has paid yet, so real revenue is $0. Every number below says when it was taken.
 
 ## Why
 
@@ -45,8 +45,11 @@ The question behind the hackathon was how much of a company agents can run witho
 | Link | What's there |
 |---|---|
 | [levelai.vercel.app](https://levelai.vercel.app) | The company's site, with live counts and "What players are saying right now," refreshed from the agents' market research |
-| [levelai.vercel.app/play](https://levelai.vercel.app/play) | The web player for published levels. It shows "New levels are on the way" until the first agent-made pack is published. |
-| [levelai.vercel.app/playtest](https://levelai.vercel.app/playtest) | Order a playtest of your app on a real iPhone ($5, test mode) |
+| [levelai.vercel.app/play](https://levelai.vercel.app/play) | The web player for published levels, each labeled with its target and measured win rate |
+| [levelai.vercel.app/games](https://levelai.vercel.app/games) | Splash Sort, Turbo Lanes, Lot Escape, and Gem Match in the browser |
+| [levelai.vercel.app/pricing](https://levelai.vercel.app/pricing) | $5 iPhone playtest, $49 level pack, $199/month subscription, with live checkout |
+| [levelai.vercel.app/developers](https://levelai.vercel.app/developers) | The level API and the level JSON formats |
+| [levelai.vercel.app/playtest](https://levelai.vercel.app/playtest) | Order a playtest of your app on a real cloud iPhone ($5), and watch it live at `/watch` |
 | [levelai.vercel.app/join](https://levelai.vercel.app/join) | Name your puzzle game; the agents read its reviews and email you what they found |
 
 The console in the screenshot above is the team's live view of the log. It's password protected, so it isn't linked here.
@@ -143,64 +146,69 @@ These run with nobody at the keyboard, each with a cap and a kill switch:
 - The social loop. Off with `SOCIAL_LOOP=0`.
 - The Naïve cron jobs above, and the Solver worker.
 - Watchdogs that restart the business server, the console, the Solver worker, and their public tunnels when they die.
+- A health monitor (`ops/monitor.sh`) that checks the public site, the console, the activity log, the Solver heartbeat, and the phones every 5 minutes, and recovers anything down for 15 minutes. Each recovery is a `watchdog` row in the log.
 
 Every agent action is a row in `activity_log`, and every human step-in is a row in `interventions` with who, what, and why. The console's "Running on its own for" timer counts from the newest step-in. Nobody types those numbers in.
 
-**Where a person stepped in** (as of Nov 7, 6:12 PM PT):
+**Where a person stepped in** (as of Nov 7, 8:15 PM PT). Six rows in `interventions`:
 
-- **Logged:** 1 step-in. Abhinav switched the company on at 4:44 PM PT (deployments enabled, publishing allowed).
-- **Setup a person did:** set prices, caps, and kill switches; connected the social accounts; wrote and restarted the code all afternoon. We're still building, so the unattended run is planned for 2:00 to 8:00 AM PT on Nov 8.
-- **Blocked on a person:** the CEO's first live session (4:50 PM PT) was held by Naïve's rule that a chat which has read people's data asks for approval on every call. It tripped on our own metrics, which had counts such as `emails_sent`. We didn't approve it. A fix at 5:35 PM PT moved those counts to Finance's tool, so the CEO reads only production numbers. A live CEO run hasn't confirmed the fix yet.
-- **Needs a person on the phone:** the cloud iPhone sometimes stops on an Apple Account sign-in screen. We filed a support ticket with Mobilerun.
+- 4:44 PM PT, Abhinav: switched the company on (deployments enabled, publishing allowed).
+- 6:21 PM PT, Pinara: enabled the Designer's scheduled run, which setup had created disabled, and ran it once by hand to check it.
+- 6:25 PM PT, Pinara: cancelled that test run, which had parked on an approval for a tool outside the Designer's allow-list, and ran it again.
+- 7:57 PM PT, Pinara (through Codex): started the level compiler's bulk run.
+- 8:10 PM PT, Pinara (through Codex): stopped the bulk run and switched the compiler to keep 100 levels ahead of demand.
+
+Also true, and not counted as step-ins:
+
+- **Setup a person did:** set prices, caps, and kill switches; connected the social accounts; logged in to X on the phone; wrote and restarted the code all evening.
+- **The policy auto-approver.** Naïve holds a tool call after a chat reads any MCP output, even our own metrics. `npm run approver` in `platform/naive` approves held calls only for tools on our own servers, and logs each one as `auto_approve` (346 by 8:15 PM PT). Anything else waits for a person. It runs on a teammate's laptop, not the demo laptop.
+- **Needs a person on the phone:** the second cloud iPhone needs an Apple Account sign-in before it can download App Store apps.
 
 ## Numbers
 
-Taken from the public endpoints on **Nov 7, 2026, at 6:11 PM PT** (Nov 8, 02:11 UTC):
+Taken from the public endpoints and the database on **Nov 7, 2026, at 8:15 PM PT** (Nov 8, 04:15 UTC):
 
-| From `/public-stats` | Value |
+| From `/market-research` (7 chart passes since 5:33 PM PT) | Value |
 |---|---|
-| Player reviews read | 3,150 |
-| Studios audited | 6 |
-| Emails sent to studios | 8 |
-| Playtests run on the iPhone | 5 |
-| Studios who signed up | 0 |
+| Games read | 155 |
+| Reviews read | 22,312 |
+| Reviews saying the levels are too hard | 99 |
+| Reviews saying the levels are too easy | 52 |
+| Reviews asking for more levels | 7 |
+| Reviews calling the levels repetitive | 9 |
+| Games with enough evidence to pitch | 6 |
 
-| From `/market-research` (2 chart passes) | Value |
+| From the database | Value |
 |---|---|
-| Games read | 22 |
-| Reviews read | 3,150 |
-| Reviews saying the levels are too hard | 4 |
-| Reviews saying the levels are too easy | 8 |
-| Reviews asking for more levels | 0 |
-| Reviews calling the levels repetitive | 0 |
-| Games with a clear pattern in these passes | 0 |
+| Studios audited from research | 13 |
+| Studios emailed | 8 (Loop Games, Rotatelab, GOODROID, ABI Games, Oakever Games, Hidden Folks B.V., Rollic Games, Loom Games) |
+| Studio replies and signups | 0. The one signup on the board is our own test. |
+| iPhone playtests finished | 16, mostly market studies of free web games and App Store games |
+| Payments | 0 live. 6 test payments from our own orders ($5 playtests, a $49 pack, a $199 subscription). Real revenue: $0. |
+| Levels accepted by the Designer → Tuner agents | 3 |
+| Levels accepted by the level compiler | 769 (see Status and limits) |
+| Levels in delivered packs | 40, in 2 match-3 packs for our own test orders |
+| Packs published to `/play` | 4 |
+| Player events (attempts, wins, quits) | 235, including our own play |
+| CEO decisions | 14 rows: 4 smoke tests from setup, and 10 real decisions since 8:03 PM PT |
+| Activity log rows | 1,594, of which 769 are the compiler's and 346 are auto-approvals |
+| Human step-ins logged | 6 |
 
-The market-research table was added at 5:33 PM PT, so reviews read before then aren't in either count. The studios emailed earlier came from passes that predate it.
-
-Read-only counts from the database at **6:12 PM PT**:
-
-| | Value |
-|---|---|
-| Activity log rows, since 2:52 PM PT | 111 |
-| Human step-ins logged | 1 |
-| Payments | 1 test payment of $5 (the team's own order). Real revenue: $0. |
-| Agent-made levels accepted | 0 |
-| Packs published | 0 |
-| Player events | 0 |
-| CEO decisions | 4, all smoke tests. The console hides them, so it shows 0. |
+`/public-stats`, which feeds the home page tiles, counts only the newest 500 log rows, so tonight its email and playtest tiles show far less than the table above.
 
 ## Status and limits
 
-- **No agent-made level has been accepted yet.** The design → tune → solve path works end to end on a throwaway local database (Splash Sort accepted at 49% for a 50% target, Turbo Lanes at 54%), but not yet in production. `/play` is empty until the first pack is published, and the free-levels offer in our emails depends on it.
-- **Match-3 is hard to tune with one knob.** In our tunability eval, the greedy bot's win rate jumps from 26% to 43% to 60% to 100% as the move limit goes from 6 to 11, so the Tuner hit 0 of 5 middle targets. A second knob or a faster bot is the fix.
-- **No real revenue.** Stripe runs in test mode, and live keys are refused unless `BILLING_ALLOW_LIVE=1`. The one payment is a $5 test order we placed ourselves to prove the path. We don't count it as revenue.
+- **Most accepted levels come from a program, not an agent.** The level compiler (`solver/src/production/`) builds levels from recipes with the existing game rules and accepts each one only after at least 200 bot replays land near its target. No model runs inside it. The Designer and Tuner agents, which write and retune levels through Naïve, had accepted 3 levels in production by 8:15 PM PT.
+- **Match-3 is hard to tune with one knob.** In our tunability eval, the greedy bot's win rate jumps from 26% to 43% to 60% to 100% as the move limit goes from 6 to 11, so the Tuner hit 0 of 5 middle targets.
+- **No real revenue.** Live payments have been on since 7:26 PM PT. Every payment so far is a test order the team placed to prove the path.
+- **New email recipients are capped until 3:04 PM PT on Nov 8.** The email account is in its new-account period: at most 10 distinct new recipients in its first 24 hours, and we reached that at about 7:40 PM PT on Nov 7. Until the cap rises to 25, first emails to new addresses (cold outreach, signup replies, order confirmations) fail. Replies to people who emailed us first still go out. A paid email plan removes the cap.
 - **No real replies or signups yet.** The auto-answer was tested with our own reply.
-- **The CEO hasn't made a real decision yet.** Its first session stalled on the approval rule above. The four decisions in the log are smoke tests.
-- **The phone plays web pages.** The cloud iPhone runs our levels and free web games in Safari. App Store apps are limited to Mobilerun's catalog, Google Play links are refused at order time, and a queued order is held in memory, so a server restart drops it.
-- **The business server runs on a laptop.** Research calls the Monid CLI and drafts live in memory, so the server runs on Noel's laptop behind a Cloudflare quick tunnel, and the site forwards its live pages there. Watchdogs restart a dead server or tunnel within about a minute. If the laptop is off, the live pages fail.
-- **Spend is only partly logged.** Until 6:18 PM PT, log rows carried no cost, which is why the console showed "Spent $0.00." Research passes now log Monid's reported cost. OpenAI calls, Mobilerun minutes, and Naïve usage aren't in the log yet, so "Spent" undercounts.
+- **The CEO's sessions still stop on approvals.** The auto-approver clears held calls to our own servers, but some CEO sessions stay held for hours, so its hourly run doesn't always finish.
+- **The phone plays web pages and a few App Store games.** The main cloud iPhone runs our levels, free web games, and catalog apps (Candy Crush Saga and Sudoku.com, for market study only). Google Play links are refused at order time.
+- **The business server runs on a laptop.** Research calls the Monid CLI, so the server runs on Noel's laptop behind a Cloudflare quick tunnel, and the site forwards its live pages there. Watchdogs restart a dead server or tunnel within about a minute, and `ops/monitor.sh` recovers anything that stays down 15 minutes. If the laptop sleeps or goes offline, the live pages fail.
+- **Spend is only partly logged.** Research passes log Monid's reported cost. OpenAI calls, Mobilerun credits, and Naïve usage aren't in the log, so the console's "Spent" undercounts. Naïve's own ledger showed about $5 spent by 8:15 PM PT.
 - **Evidence covers recent reviews only.** Counts come from each game's newest reviews (often 150), not its full history. A keyword match is checked by a model, and only exact quotes survive, but a model can still misread a review.
-- **Social posting covers X only.** The first post went out at 6:11 PM PT. The other platforms aren't connected, and attempts on them failed.
+- **Social posting covers X only,** and X posts go out from the cloud iPhone's browser because X refuses the account's API posts.
 - **Emails carry the email provider's footer** and display name. That's an inbox setting we haven't changed.
 
 ## Stack
@@ -211,7 +219,7 @@ Read-only counts from the database at **6:12 PM PT**:
 | [Mobilerun](https://docs.mobilerun.ai/llms.txt) | The cloud iPhone, driven by its task agent (`mobilerun/mobile-agent-fast`) from a written plan |
 | Monid | Google Play and App Store charts and reviews, and domain searches for public role addresses |
 | AgentMail | The sales inbox: sends, receives, and keeps threads |
-| Stripe | Payment links and the webhook, in test mode |
+| Stripe | Checkout, payment links, and the webhook, live since 7:26 PM PT on Nov 7 (test and live payments kept apart) |
 | Neon | Postgres for every table the console reads, and Neon Functions for the platform MCP server |
 | Vercel | The site, the web player, and the console's password-protected address |
 | OpenAI | `gpt-5.4-mini` for the evidence check, capped by `OPENAI_DAILY_CALLS` |
@@ -229,6 +237,7 @@ Everything is TypeScript on Node.js 22: two MCP servers (platform and business),
 | [`evals/`](evals/) | Pipeline evals, the tunability set, and `check_decision` | Pinara |
 | [`games/`](games/) | One folder per game: adapter, rules, bots, `SKILL.md`, and browser client | Max (match-3, platformer, Lot Escape), Pinara (Splash Sort, Turbo Lanes) |
 | [`site/`](site/), [`player/`](player/) | The public site and the web player | Noel |
+| [`ops/`](ops/) | The overnight health monitor and its recovery steps | Noel |
 | [`docs/`](docs/) | The [team plan](docs/plan.md), the [master plan](docs/master-plan.md), and the [agent plan](docs/agent-plan.md) | Everyone |
 | [`log.md`](log.md) | The build log: what each push changed and why | Everyone |
 
@@ -257,6 +266,9 @@ business/live.sh
 ./demo.sh
 demo/console.sh
 (demo/keepalive.sh > /tmp/levelai-keepalive.log 2>&1 &)
+
+# The health monitor: checks everything every 5 min and recovers what stays down (ops/README.md)
+(nohup ops/keepalive.sh >> /tmp/levelai-monitor-keepalive.log 2>&1 &)
 ```
 
 The variables, by part. Names only; see each `.env.example`.

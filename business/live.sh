@@ -31,7 +31,7 @@ cloudflared tunnel --no-autoupdate --url "http://localhost:${PORT}" > "$LOG_DIR/
 TUNNEL_PID=$!
 URL=""
 for _ in $(seq 1 60); do
-  URL="$(grep -aoE 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG_DIR/tunnel.log" | head -1 || true)"
+  URL="$(grep -aoE 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG_DIR/tunnel.log" | grep -v '://api\.trycloudflare' | head -1 || true)"
   [ -n "$URL" ] && break
   sleep 1
 done
@@ -70,13 +70,24 @@ cat > "$ROOT/site/vercel.json" <<JSON
     { "source": "/developer-keys", "destination": "$URL/developer-keys" },
     { "source": "/studio-mcp", "destination": "$URL/studio-mcp" },
     { "source": "/webhooks/:path*", "destination": "$URL/webhooks/:path*" },
+    { "source": "/social/post-now", "destination": "$URL/social/post-now" },
+    { "source": "/agency/demo-start", "destination": "$URL/agency/demo-start" },
     { "source": "/mcp", "destination": "$URL/mcp" }
   ]
 }
 JSON
 if command -v vercel >/dev/null && [ -d "$ROOT/site/.vercel" ]; then
   echo "Pointing $SITE/join and /playtest at this tunnel..."
-  (cd "$ROOT/site" && vercel deploy --prod --yes > "$LOG_DIR/site-deploy.log" 2>&1) && PUBLIC="$SITE" || { echo "Site update failed; using the tunnel URL. See $LOG_DIR/site-deploy.log"; PUBLIC="$URL"; }
+  # One retry, then keep the permanent address anyway: a tunnel URL written into .env would end up in
+  # emails and die on the next restart. A failure is logged loudly for ops/monitor.sh and the keepalive
+  # retries the redeploy; it never fails silently.
+  PUBLIC="$SITE"
+  if ! (cd "$ROOT/site" && vercel deploy --prod --yes > "$LOG_DIR/site-deploy.log" 2>&1); then
+    sleep 20
+    if ! (cd "$ROOT/site" && vercel deploy --prod --yes > "$LOG_DIR/site-deploy.log" 2>&1); then
+      echo "$(date '+%Y-%m-%d %H:%M:%S') live.sh: site deploy failed twice; $SITE still points at the old tunnel. See $LOG_DIR/site-deploy.log" | tee -a "${TMPDIR:-/tmp}/levelai-deploy-failures.log" >&2
+    fi
+  fi
 else
   PUBLIC="$URL"
 fi

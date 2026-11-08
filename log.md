@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 9:32 PM PT · Noel · Claude Code (ops subagent + main) · main
+- **What:** (1) Overnight ops: `ops/monitor.sh` checks the public site, console, activity freshness, solver heartbeat, and both phones every 5 min. It runs the documented recovery after 15 min red, writes a `watchdog` row when it does, and takes hourly replay snapshots in demo/data/. Logs go to /tmp/levelai-monitor.log. Read it with `grep -E 'RED|RECOVERY|WARN'`. The business keepalive and the monitor hold caffeinate. live.sh retries a failed deploy and keeps the permanent address. The keepalive only redeploys site/ when the tunnel still answers. (2) Fixed live.sh and console.sh picking `api.trycloudflare.com` as the tunnel URL during an outage, which pointed the site at Cloudflare's control server. The laptop was offline ~8:25–9:28 PM; I restarted the business tunnel at 9:30 PM. (3) README and demo-script refresh by the ops agent.
+- **Why:** The site must survive the night unattended. The outage exposed the tunnel-URL bug.
+- **Files:** `ops/**`, `business/{live.sh,keepalive.sh}`, `demo/console.sh`, `README.md`, `docs/demo-script.md`
+- **State:** works; the site, console, and /health recovered after the outage, and monitor lines are green.
+- **Next / heads-up:** **BLOCKER:** AgentMail's new-account cap (10 new recipients in the first 24 h) was hit at ~7:40 PM, so no first email to a NEW address until 3:04 PM Sunday (judge QR emails, cold outreach, confirmations). Replies still work. Fix: upgrade AgentMail (Noel), plus the email-in audit fallback being built. The approver runs on a teammate's laptop; keep it awake. team.json lists a deleted Designer deployment.
+
 ### 2026-11-07 20:24 PT · Pinara (Codex) · branch `pinara/game-ui`
 
 **What:** Published the verified opening 100 levels for each of watersort, racer and match3 to the real production catalog as ordered packs, retaining all prior levels and packs. Added the live play links and evidence to `solver/PRODUCTION.md`. Publication and browser QA were requested by Pinara; this was recorded as a human intervention, not a CEO decision.

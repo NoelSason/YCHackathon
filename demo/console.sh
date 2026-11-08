@@ -20,7 +20,7 @@ pkill -f "cloudflared tunnel --no-autoupdate --url http://localhost:${PORT}" 2>/
 cloudflared tunnel --no-autoupdate --url "http://localhost:${PORT}" > "$LOG_DIR/tunnel.log" 2>&1 &
 URL=""
 for _ in $(seq 1 60); do
-  URL="$(grep -aoE 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG_DIR/tunnel.log" | head -1 || true)"
+  URL="$(grep -aoE 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG_DIR/tunnel.log" | grep -v '://api\.trycloudflare' | head -1 || true)"
   [ -n "$URL" ] && break
   sleep 1
 done

@@ -15,6 +15,11 @@ console. Rewritten Nov 7, 7:50 PM to match what is actually built.
 
 1. **The judge becomes a customer in 30 seconds.** Scan the QR, enter any game, and an email
    arrives quoting that game's own players (verified at 30 s end to end).
+   **Blocked as of Nov 7, 8:15 PM:** the email account has hit its new-account cap of 10 distinct
+   new recipients and can't email a new address until 3:04 PM Sunday, after the demo. A judge's
+   email will fail unless Noel upgrades the email plan (paid plans have no cap) or the judge emails
+   levelai@agentmail.to first (replies to people who wrote to us are always allowed). Re-test at
+   10:30 AM with an address that has never been emailed.
 2. **A real iPhone, live, playing App Store games.** It plays Candy Crush to study the genre leader,
    plays our own levels, and posts our marketing on X from Safari.
 3. **A $49 level pack that builds itself.** A paid order makes the phone study the customer's
@@ -28,8 +33,8 @@ console. Rewritten Nov 7, 7:50 PM to match what is actually built.
 
 Screen-record the console (levelai-console.vercel.app, full screen with F) plus the phone, and
 voice over. Use only real names from the log: the studios we emailed are Loop Games, Rotatelab,
-GOODROID, ABI Games, Oakever Games, and Hidden Folks B.V. Don't invent studios, games, levels, or
-step-ins.
+GOODROID, ABI Games, Oakever Games, Hidden Folks B.V., Rollic Games, and Loom Games (8 as of
+8:15 PM). Don't invent studios, games, levels, or step-ins.
 
 | Time | On screen | Voiceover |
 |---|---|---|
@@ -37,7 +42,7 @@ step-ins.
 | 0:10–0:20 | Console header: "Running on its own for …", agent actions, human step-ins. | "Level AI is a studio run by AI agents. This is the company's live log since we stopped touching it." |
 | 0:20–0:35 | Market research card (reviews read), a "read N reviews of 30 top free puzzle games" feed row. | "Every 10 minutes the research agent reads a top chart: thirty games, the newest reviews of each. It's read [N] so far, and a model checks every quote." |
 | 0:35–0:50 | Outreach board: a studio card with the evidence sentence, the quote, and the email subject. | "When three or more players describe the same problem, the sales agent writes to the studio's public address, quoting them. [N] studios so far, each with an opt-out." |
-| 0:50–1:15 | The phone, live: a Candy Crush study, then our level. The console counts the pack: "level k of 20 accepted". | "A studio orders a level pack. The iPhone plays their game to measure its difficulty curve. Then the agents build twenty levels: design, fifty bot plays, tune, accept, one at a time." |
+| 0:50–1:15 | The phone, live: a Candy Crush study, then our level. The console counts the pack: "level k of 20 accepted". | "A studio orders a level pack. The iPhone plays their game to measure its difficulty curve. Then our pack builder makes twenty levels: generate, fifty bot plays, tune, accept, one at a time." |
 | 1:15–1:30 | Pack email arriving; the phone opens the pack's first level. | "The pack lands in their inbox with each level's target and measured difficulty, and the phone plays the first one." |
 | 1:30–1:45 | /pricing, then a Stripe live payment (only if real), or the live checkout page. | "Three products, live payments: a five-dollar iPhone playtest, a forty-nine-dollar pack, and a subscription." |
 | 1:45–2:00 | The "Where a person stepped in" list, then the logo. | "Here's every time a human stepped in, and why. Everything else, the agents did." |
@@ -59,9 +64,15 @@ Fill in each [N] from the console right before recording. If no real payment has
 
 ## Honest answers to likely questions
 
-- **"Where did humans step in?"** Read the console list: the 6 PM switch-on, Pinara's level-pipeline
-  fixes, logging in to X on the phone, signing in to the App Store phone, and anything since.
-  Never invent or hide one.
+- **"Where did humans step in?"** Read the console list. As of 8:15 PM it holds 6 rows: Abhinav's
+  4:44 PM switch-on, Pinara enabling and re-running the Designer's scheduled run (6:21 and 6:25 PM),
+  and Pinara starting (7:57 PM) and stopping (8:10 PM) the level compiler's bulk run. Also say what
+  isn't a row: logging in to X on the phone, and the policy auto-approver, which approves held calls
+  to our own servers only and logs each one. Never invent or hide one.
+- **"Did agents make all those levels?"** No. The Designer and Tuner agents had accepted 3 levels
+  by 8:15 PM. The rest come from two deterministic programs that use the same game rules and bots:
+  the level compiler (hundreds of levels, each verified with 200+ bot replays) and the pack builder
+  for paid orders. The agents decide what to make; the programs make and measure it.
 - **"Do you put levels inside the customer's game?"** No. Packs are levels in our engine for their
   genre (match-3, sort, racer, parking), calibrated to how their game plays, delivered as playable
   previews plus JSON in a documented format (/developers).
@@ -82,13 +93,15 @@ Fill in each [N] from the console right before recording. If no real payment has
 - [ ] One pack run completes end to end with `POST /orders/demo-run`. Note its wall time.
 - [ ] X on the phone is still logged in (the last phone post succeeded).
 - [ ] Record the 2-minute video once tonight as a backup. Re-record at 10:30 AM with fresh numbers and submit before 11:00.
+- [ ] The health monitor is running (`ops/README.md`); `grep -E 'RED|RECOVERY|WARN' /tmp/levelai-monitor.log` is quiet.
+- [ ] Email to new addresses works again (upgrade the email plan), or the QR segment is replaced by "email levelai@agentmail.to".
 - [ ] Don't touch the system after midnight unless something is broken. Each step-in shows on the console.
 
 ## If something breaks on stage
 
 | Break | Do |
 |---|---|
-| The email takes longer than 45 s | Keep narrating the feed. Past 90 s, show the email from the 10:30 AM test and say it's from the rehearsal. |
+| The email takes longer than 45 s | Keep narrating the feed. Past 90 s, show the email from the 10:30 AM test and say it's from the rehearsal. If the email plan wasn't upgraded, expect this: say the account is capped on new recipients until 3 PM, and show the rehearsal email. |
 | Phone view frozen | Open the Mobilerun dashboard's live view, or say the phone is between jobs and show the last playtest row. |
 | The public site or console is down | The watchdogs restart a dead tunnel within about a minute. Meanwhile, show localhost:4545. |
 | The pack run is slow | Show how far it got ("level k of 20") and the levels already accepted. Don't pretend it finished. |
