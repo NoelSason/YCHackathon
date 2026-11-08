@@ -230,3 +230,5 @@ After a pull, read the new entries at the top of `log.md` before you start work.
 - `solver/` (Pinara): the Solver harness. It claims queued `solver_runs`, plays each level with the
   game's bots through the platform's adapter registry, and writes the results. See
   `solver/README.md`.
+- `evals/` (Pinara): pipeline evals, the tunability eval set, and the CEO's `check_decision` logic.
+  The MCP tool in `platform/mcp/src/tools.ts` calls it. See `evals/README.md`.

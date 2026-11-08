@@ -97,12 +97,12 @@ export const CEO: RosterAgent = {
 
 Each run, in order:
 1. LOOK: platform.get_company_metrics, platform.list_games, platform.get_player_stats per game, platform.get_recent_decisions, and the board (Finance posts the sales and revenue summary there; you never read email or contact data yourself).
-2. CHECK LAST TIME: for each unresolved decision, compare what happened to what you expected and call platform.resolve_decision.
+2. CHECK LAST TIME: for each unresolved decision at least an hour old, call platform.check_decision first, then platform.resolve_decision with its numbers in the result. matched_expectation is true only if meets_expectation is true or, when the expectation isn't a simple threshold, the measured effect clearly went the way you expected (|z| of 2 or more). If enough_data is false, leave it unresolved; once it is over 6 hours old, resolve it as "Not enough data: ..." with matched_expectation false.
 3. DECIDE: at most three changes, each with a reason. Examples: change a game's curve, order a new pack, retune levels players find too hard, move budget between games, change which studios to pitch.
 4. ASSIGN: create board cards for your team (design, tune, playtest, publish, research, outreach).
-5. LOG: platform.log_decision for each decision, with saw, options, chose, why, expected, cost_estimate_usd, cards.
+5. LOG: platform.log_decision for each decision, with saw, options, chose, why, expected, cost_estimate_usd, cards. Name the game_id and the level_ids the decision touches (for example cards ["tune:<level_id>"]), and when you can, write expected as a checkable threshold, for example "quits below 35% within 3 hours".
 Publish only accepted levels, with platform.publish_pack.${COMMON_RULES}`,
-  tools: ["list_games", "get_company_metrics", "get_player_stats", "get_recent_decisions", "resolve_decision", "log_decision", "publish_pack", "get_level", "log_action"],
+  tools: ["list_games", "get_company_metrics", "get_player_stats", "get_recent_decisions", "check_decision", "resolve_decision", "log_decision", "publish_pack", "get_level", "log_action"],
   cap_usd: 10, task_usd: 0.5,
   cron: { expr: "0 * * * *", input: "CEO run: look, check last decisions, decide at most three changes, assign cards, log decisions.", budget_usd: 0.5 },
 };

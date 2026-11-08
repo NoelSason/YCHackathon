@@ -43,21 +43,24 @@ page explains it for an agent.
 
 The Tuner measures difficulty; never guess it from the layout. The solver harness reports:
 
-- **Bot win rates.** `human` (the reference bot: plans one pour ahead, sometimes slips), `greedy`,
-  and `random`, each played 200+ times.
+- **Bot win rates.** `human` is the reference bot: it plans one pour ahead, but wastes about 3
+  pours in 10, as people do, and sometimes gets stuck. `greedy` and `random` run too, each played
+  200+ times.
 - **`solvable` and `min_moves`.** An exact search proves whether the level can be solved within
   `move_limit`, and the fewest pours needed.
 
 Knobs, strongest first. These were measured on our generated levels:
 
-1. **`move_limit` relative to `min_moves`.** On a 7-color level with a minimum of 23 pours, the
+1. **`move_limit` relative to `min_moves`.** On "Deep End" (7 colors, minimum 23 pours), the
    human bot's win rate was:
 
-   | `move_limit` | 23 | 25 | 27 | 29 |
-   |---|---|---|---|---|
-   | Human win rate | about 2% | about 26% | about 84% | about 98% |
+   | `move_limit` | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 |
+   |---|---|---|---|---|---|---|---|---|---|
+   | Human win rate | 1% | 4% | 13% | 27% | 46% | 60% | 74% | 82% | 87% |
 
-   Tune this first: small steps, one at a time.
+   **Each extra pour moves the win rate about 15 to 19 points,** so tune `move_limit` one pour at a
+   time. If the target falls between two pours, accept the closer one only if it's within 5
+   points; otherwise change the layout (below) and tune again.
 2. **Number of colors.** More colors mean more pours:
 
    | Colors | 5 | 7 | 9 |

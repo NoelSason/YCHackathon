@@ -20,6 +20,72 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 17:42 PT · Pinara (Claude Code) · branch `main`
+
+**What:** The rest of package 11 (evals and the CEO's decision check), plus fixes the evals found.
+- **`check_decision`**, a new read-only MCP tool. Its logic is in `evals/src/decision-check.ts`.
+  For a decision, it compares players' win and quit rates on the levels the decision named (and
+  their retuned versions) before and after, against the same game's untouched levels
+  (difference-in-differences, z-scores). It also:
+  - checks a threshold expectation like "quits below 35%" automatically
+  - says `not_enough_data` below 15 finished plays per group
+  - uses no person-like fields
+- **CEO prompt (`roster.ts`):**
+  - Step 2 calls `check_decision` before `resolve_decision`, and sets `matched_expectation` from
+    its numbers.
+  - Step 5 asks for level ids in cards and checkable thresholds.
+  - `check_decision` is allow-listed for the CEO.
+- **Pipeline evals** (`evals/`, `npm run report`): per game, the Tuner's hit rate (accepted within
+  4 versions and 5 points), rounds, error, solver runs, bot-vs-player calibration, and cost per
+  accepted level.
+- **Tunability eval set** (`npm run tunability`): 5 targets per game, with an ideal Tuner.
+- **New readiness check** `design_tune_solve` (`platform/checks`): every live game needs an
+  on-target level in 3 h. It also shows when the harness last finished a run.
+- **Splash Sort's human bot** now wastes about 3 pours in 10, as people do. The eval showed the
+  old near-perfect bot made `move_limit` a staircase (30 to 50 points per pour), so only 4 of 10
+  targets were reachable. Now it's 15 to 19 points per pour and 8 of 10. `SKILL.md` and `README`
+  have the new numbers.
+
+**Why:** The master plan's package 11 (evals and the CEO's "did that decision work?" check, due
+10 PM) and the "Design → tune → solve" demo check.
+**Files:** `evals/`, `platform/mcp/src/tools.ts`, `platform/naive/src/roster.ts`,
+`platform/checks/src/checks/15-design-tune-solve.ts`, `games/watersort/src/bots.ts`,
+`games/watersort/{SKILL,README}.md`, `platform/CONTRACTS.md` (one new tool row), `AGENTS.md`.
+**State:** Works.
+- **Tests:** `evals` 10/10, `solver` 17/17, `watersort` 8/8, `racer` 8/8. Typecheck is clean in
+  every package, including `platform/mcp`, `platform/naive`, and `platform/checks`.
+- **End to end on a throwaway local Postgres,** through the real `fn.ts` handler over MCP:
+  1. `fn.ts` seeded all 5 games.
+  2. Splash Sort: design, then 4 Tuner rounds with the real worker; accepted at 49% for a 50%
+     target.
+  3. Turbo Lanes: accepted at 54% in 3 rounds.
+  4. The CEO logged a decision, and players' quits fell from 50% to 19.5% (control flat).
+  5. `check_decision` returned "changed", −30.5 points on quits (z −2.27), expectation met. The
+     decision was resolved.
+  6. `npm run report` showed 100% hit rate and a 2.2-point calibration gap.
+  7. Readiness checks: `solver_queue`, `levels_flow`, and `design_tune_solve` are correct (red only
+     for match3 and platformer, which had no levels in the test).
+- **Not run against Neon:** the agents need Abhinav's key.
+
+**Next / heads-up:**
+- **Abhinav:**
+  - `check_decision` is a new tool, additive. Redeploy, then re-run `npm run setup` for the CEO
+    step and allow-list.
+  - The CEO's "check last time" now waits for 15 finished plays per group, so real players matter
+    for the CEO's results.
+- **Max:**
+  - The tunability eval scored match3 0/5. `greedy` jumps from 26% to 43% to 60% to 100% between
+    6 and 11 moves, so `move_limit` alone can't hit middle targets.
+  - `greedy` takes about 1.7 s a game, so 200 games take about 6 min on one thread and about 2 min
+    with the harness's new threads.
+  - A faster bot, or a second knob such as `goal.target`, would make match3 tunable.
+- **Uncommitted work by another session** is in `games/racer/*` (oil and shields) and the Splash
+  Sort UI. It's not in this push.
+
+- **Push scope:** the solver runner hookup (`queue.ts`, `worker.ts`, `README`, `.env.example`, plus
+  `run.ts`, `sim-worker.ts`, and tests) already landed in `0942497`, from another session, together
+  with its worker heartbeat. This push contains only the files listed above.
+
 ### 2026-11-07 5:44 PM PT · Noel · Claude Code (verifier subagent) · main
 - **What:** Cold-outreach evidence is now checked by a model before sending. For each game that passes the keyword threshold (≥3 matching reviews), `gpt-5.4-mini` (strict JSON) confirms each candidate sentence is a real complaint about this game's levels, and may add complaints the keywords missed, but only sentences that appear word for word in a review. Counts, pitch angle, quotes, reason, and score are rebuilt from confirmed sentences only. Falls back to the keyword result if the key is missing, a call fails, or the daily cap (`OPENAI_DAILY_CALLS`, 300) is hit. It logs a line when the check changes the evidence.
 - **Why:** Fewer wrong emails, more right ones. Real run: Parking Loop 7/7 quotes confirmed; Color Block Jam's angle moved from too easy (3) to too hard (4).

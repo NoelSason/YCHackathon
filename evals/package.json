@@ -1,0 +1,24 @@
+{
+  "name": "@studio/evals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Evals for the level pipeline and the CEO's 'did that decision work?' check (master plan package 11).",
+  "scripts": {
+    "report": "node --env-file-if-exists=.env --import tsx src/cli.ts report",
+    "decision": "node --env-file-if-exists=.env --import tsx src/cli.ts decision",
+    "tunability": "node --import tsx src/cli.ts tunability",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.15.4",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}

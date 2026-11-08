@@ -78,6 +78,7 @@ Every tool: input is a JSON object, output is a JSON object. Errors come back as
 | `get_pipeline_metrics` | `{ since?: iso }` | `{ leads_total, leads_progressed, outbound_count, inbound_count, payments_count, revenue_usd }` | allow | Finance only |
 | `log_action` | `{ agent, action, reason, result?, cost_usd?, ref?: { kind, id } }` | `{ id }` | allow | all |
 | `log_decision` | the decision record (§3) | `{ id }` | allow | CEO |
+| `check_decision` | `{ decision_id }` | `{ verdict: "changed"\|"no_clear_change"\|"not_enough_data", summary, scope, changed: { before, after }, untouched, effect: { method, win_rate_pts, quit_rate_pts, z_win, z_quit }, expectation, meets_expectation, pipeline_since, enough_data }` (read-only; see `evals/README.md`) | allow | CEO |
 | `resolve_decision` | `{ decision_id, result, matched_expectation: boolean }` | `{ ok }` | allow | CEO |
 | `get_recent_decisions` | `{ limit? }` | `{ decisions: [...] }` | allow | CEO |
 | `crm_upsert` | `{ studio: { name, domain?, contact_email?, reason }, stage? }` | `{ studio_id }` | allow | Research, Sales |

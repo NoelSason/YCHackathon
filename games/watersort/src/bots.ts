@@ -1,12 +1,15 @@
 // Splash Sort bots. Each plays one level from a seed and reports won/lost and pours used.
 // The same seed always gives the same game, so the solver harness can replay any run.
 //
-//   human   plays like a person: looks one pour ahead, remembers only recent positions,
-//           and sometimes picks a merely good pour instead of the best one
+//   human   plays like a person: looks one pour ahead and remembers only recent positions, but
+//           about 3 pours in 10 are wasted on a random legal pour (pouring back and forth,
+//           emptying into a spare tube). Measured on our samples, this spreads the pours a
+//           player needs over several moves, so each extra allowed pour changes the win rate by
+//           about 20 points instead of 30-50, and players sometimes get stuck, as people do.
 //   greedy  always takes the best-scoring pour now, and never repeats a position
 //   random  picks any useful pour at random
 import {
-  applyPour, isComplete, isSolved, type Level, type Pour, stateKey, toTubes, top, topRun, type Tubes, usefulPours,
+  applyPour, isComplete, isSolved, type Level, type Pour, pourAmount, stateKey, toTubes, top, topRun, type Tubes, usefulPours,
 } from "./engine.js";
 
 export const BOTS = ["human", "greedy", "random"] as const;
@@ -64,8 +67,25 @@ function shortMemory(size: number): Memory {
 }
 
 const REPEAT_PENALTY = 60;
+export const HUMAN_WASTE = 0.3;
+
+/** Every legal pour, including ones that can't help. */
+function anyPour(tubes: Tubes, cap: number): Pour[] {
+  const out: Pour[] = [];
+  for (let from = 0; from < tubes.length; from++) {
+    for (let to = 0; to < tubes.length; to++) {
+      const amount = pourAmount(tubes, cap, from, to);
+      if (amount > 0) out.push({ from, to, amount });
+    }
+  }
+  return out;
+}
 
 function pick(tubes: Tubes, cap: number, bot: BotName, rnd: () => number, memory: Memory): Pour | null {
+  if (bot === "human" && rnd() < HUMAN_WASTE) {
+    const all = anyPour(tubes, cap);
+    if (all.length) return all[Math.floor(rnd() * all.length)]!;
+  }
   const moves = usefulPours(tubes, cap);
   if (!moves.length) return null;
   if (bot === "random") return moves[Math.floor(rnd() * moves.length)]!;
@@ -88,9 +108,6 @@ function pick(tubes: Tubes, cap: number, bot: BotName, rnd: () => number, memory
     return { p, s: s + rnd() * 0.01 }; // tiny noise breaks ties reproducibly
   });
   scored.sort((a, b) => b.s - a.s);
-  if (bot === "human" && scored.length > 1 && rnd() < 0.12) {
-    return scored[1 + Math.floor(rnd() * Math.min(2, scored.length - 1))]!.p; // a slip
-  }
   return scored[0]!.p;
 }
 

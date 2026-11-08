@@ -32,7 +32,7 @@ npm run build      # static site in dist/ (index.html, style.css, app.js)
 |---|---|
 | `src/engine.ts` | The rules, the level JSON Schema, and `validateLevel`. Pure, so Node and the browser share it. |
 | `src/solver.ts` | Breadth-first search, which gives the fewest pours. Validation bounds (up to 9 colors, up to 2 spare tubes) keep it under a second. |
-| `src/bots.ts` | `human`, the reference bot: one pour of lookahead, short memory, and occasional slips. Also `greedy` and `random`. All seeded. |
+| `src/bots.ts` | `human`, the reference bot: one pour of lookahead and short memory, but it wastes about 3 pours in 10 on a random legal pour, as people do. Also `greedy` and `random`. All seeded. |
 | `src/levels.ts` | 4 practice levels and a seeded generator |
 | `adapter/index.ts` | The platform adapter (`platform/CONTRACTS.md` §1) |
 | `ui/main.ts`, `public/` | The phone game |
@@ -46,13 +46,17 @@ npm run build      # static site in dist/ (index.html, style.css, app.js)
   - `min_moves`: the fewest pours.
   - `inputs`: one shortest solution.
 
-Measured on one 7-color level (minimum 23 pours), the human bot's win rate by `move_limit`:
+Measured on "Deep End" (minimum 23 pours, 400 games each), the human bot's win rate by
+`move_limit`:
 
-| `move_limit` | 23 | 25 | 27 | 29 |
-|---|---|---|---|---|
-| Human win rate | 2% | 26% | 84% | 98% |
+| `move_limit` | 23 | 25 | 27 | 29 | 31 |
+|---|---|---|---|---|---|
+| Human win rate | 1% | 13% | 46% | 74% | 87% |
 
-200 games for each of the 3 bots take about 0.3 s.
+**Each extra pour moves it about 15 to 19 points.** The first human bot played almost perfectly,
+which made the curve a staircase: about 30 to 50 points per pour. The tunability eval
+(`evals/`) caught that, and the ideal tuner's hits went from 4 to 8 out of 10. 200 games for each
+of the 3 bots take about 0.3 s.
 
 ## Connecting it to the platform (not done yet: Abhinav's and Max's areas)
 

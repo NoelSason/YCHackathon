@@ -3,6 +3,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { q, one } from "./db.js";
 import { getAdapter, listAdapters } from "./adapters.js";
+// Pinara's "did that decision work?" check (master plan package 11). Read-only.
+import { checkDecision } from "../../../evals/src/decision-check.js";
 
 type Json = Record<string, unknown>;
 
@@ -344,6 +346,21 @@ export function registerTools(server: McpServer) {
       const r = await q(`update decisions set result=$2, matched_expectation=$3, resolved_at=now() where id=$1 returning id`, [decision_id, result, matched_expectation]);
       if (!r.length) return err("not_found", "no such decision");
       return ok({ ok: true });
+    },
+  );
+
+  server.registerTool(
+    "check_decision",
+    {
+      description:
+        "Measure what happened after a decision, before you resolve it: win and quit rates on the levels it changed (and their retuned versions), before vs. after, against the same games' untouched levels; whether a threshold expectation like 'quits below 35%' was met; and the levels and packs shipped since. Read-only.",
+      inputSchema: { decision_id: z.string().uuid() },
+    },
+    async ({ decision_id }) => {
+      const r = await checkDecision((text, params) => q(text, params ?? []), decision_id);
+      if (!r) return err("not_found", "no such decision");
+      await audit("check_decision", { kind: "decision", id: decision_id }, r.verdict);
+      return ok(r as unknown as Json);
     },
   );
 
