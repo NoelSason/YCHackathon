@@ -20,6 +20,17 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:40 PT · Abhinav (Claude) · branch `main`
+
+**What:** `npm run ceo-now` in `platform/naive`: starts one CEO session with the cron's input and
+streams its tool calls, decisions, and stop reason for up to 15 minutes.
+**Why:** The CEO cron fires at :00, so after the 6:00 switch-on the first run would be 7:00; this
+kicks it immediately and lets us watch it.
+**Files:** `platform/naive/src/run-ceo.ts`, `package.json`, `README.md`.
+**State:** Typechecks. Not run yet (needs the switch-on).
+**Next / heads-up:** Switch-on plan: 6:00 `npm run kill -- on`, then `npm run ceo-now`, then
+`EXPECT_RUNNING=1 npm run check` from `platform/checks`.
+
 ### 2026-11-07 16:35 PT · Abhinav (Claude) · branch `main`
 
 **What:** Business bearer re-vaulted for the permanent URL `https://levelai.vercel.app/mcp`
