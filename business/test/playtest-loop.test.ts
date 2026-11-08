@@ -142,7 +142,7 @@ describe("playtest loop", () => {
     const c = ctx(fakePhone().client);
     await log(c, `playtested ${MARKET_GAMES[0]!.name} (web game): won`);
     expect((await pickWork(c, noLevels))[0]!.name).toBe(MARKET_GAMES[1]!.name);
-    for (const g of MARKET_GAMES.slice(1)) await log(c, `playtested ${g.name} (web game): won`);
+    for (const g of MARKET_GAMES.slice(1)) await log(c, `playtested ${g.name} (${g.bundleId ? "iOS app" : "web game"}): won`);
     expect((await pickWork(c, noLevels))[0]!.name).toBe(MARKET_GAMES[0]!.name);
   });
 

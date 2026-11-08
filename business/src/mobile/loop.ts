@@ -37,6 +37,8 @@ export interface MarketGame {
   genre: string;
   /** One or two sentences the phone agent needs to play it. */
   howToPlay: string;
+  /** Set for a native iOS app (installed from Mobilerun's catalog); `url` is then its App Store page. */
+  bundleId?: string;
 }
 
 /**
@@ -69,6 +71,22 @@ export const MARKET_GAMES: MarketGame[] = [
     url: "https://www.chiark.greenend.org.uk/~sgtatham/puzzles/js/flood.html",
     genre: "move-limited color puzzle",
     howToPlay: "Tap a square to flood-fill the top-left region with that square's color. Make the whole grid one color within the move limit shown under the grid (for example \"0 / 23 moves\"). The page is small, so zoom in if a tap misses.",
+  },
+  // Native iOS apps from Mobilerun's catalog, installed on the main phone Nov 7, 7:35 PM. We study how the
+  // genre leaders ramp difficulty; we never use their names, art, or levels in our own games.
+  {
+    name: "Candy Crush Saga",
+    url: "https://apps.apple.com/app/id553834731",
+    bundleId: "com.midasplayer.apps.candycrushsaga",
+    genre: "match-3 (genre leader)",
+    howToPlay: "If a tutorial or popup appears, follow or close it (never buy anything, never connect an account; tap 'Not now' or the X). Swap two neighboring candies to make a line of three or more. Play the current level; the goal and moves left are shown at the top.",
+  },
+  {
+    name: "Sudoku.com",
+    url: "https://apps.apple.com/app/id1193508329",
+    bundleId: "com.easybrain.sudoku",
+    genre: "sudoku",
+    howToPlay: "Close any popups (never buy, never subscribe; tap X or 'No thanks'). Start an Easy game. Tap a cell, then tap a number to fill it.",
   },
 ];
 
@@ -114,7 +132,8 @@ const errText = (err: unknown) => (err instanceof Error ? err.message : String(e
 /** How the log names a job: the label the console shows. */
 export function label(work: LoopWork, when: "start" | "result"): string {
   if (work.kind === "own") return work.name;
-  return when === "start" ? `${work.name} (web game, market study)` : `${work.name} (web game)`;
+  const kind = work.game.bundleId ? "iOS app" : "web game";
+  return when === "start" ? `${work.name} (${kind}, market study)` : `${work.name} (${kind})`;
 }
 
 /** True when the order queue is empty: a no-op job put on it starts within a few milliseconds. */
@@ -168,7 +187,7 @@ export async function pickWork(ctx: ToolContext, fetchImpl: typeof fetch = fetch
     .sort((a, b) => Number(played(a.name) !== -1) - Number(played(b.name) !== -1));
   // Activity is newest first, so a higher index means played longer ago. Never played sorts first.
   const age = (g: MarketGame) => {
-    const i = played(`${g.name} (web game`);
+    const i = played(`${g.name} (${g.bundleId ? "iOS app" : "web game"}`);
     return i === -1 ? Number.POSITIVE_INFINITY : i;
   };
   const market = [...MARKET_GAMES]
@@ -186,7 +205,10 @@ const RULES = [
 ];
 
 export function workToTask(work: LoopWork): string {
-  const open = `Safari should already show ${work.url}. If it doesn't, open Safari, tap the address bar, type ${work.url}, and press Go.`;
+  const bundle = work.kind === "market" ? work.game.bundleId : undefined;
+  const open = bundle
+    ? `The app "${work.name}" should already be open. If it isn't, go to the home screen and open "${work.name}".`
+    : `Safari should already show ${work.url}. If it doesn't, open Safari, tap the address bar, type ${work.url}, and press Go.`;
   const play =
     work.kind === "own"
       ? [
@@ -196,7 +218,7 @@ export function workToTask(work: LoopWork): string {
           "Play until you win, run out of moves, or have made 15 moves. Count every move.",
         ]
       : [
-          `Goal: study the free web puzzle game "${work.name}" (${work.game.genre}) the way a new player would, for game-design research.`,
+          `Goal: study the ${work.game.bundleId ? "iOS puzzle app" : "free web puzzle game"} "${work.name}" (${work.game.genre}) the way a new player would, for game-design research.`,
           open,
           `How to play: ${work.game.howToPlay}`,
           "Play for up to 15 moves, or until you lose or the game clearly gets hard. Count every move, and note the level number you reach if the game has levels.",
@@ -248,6 +270,18 @@ async function openAndWait(client: Mobilerun, deviceId: string, url: string, pol
   return !sawBlank;
 }
 
+/** For native apps (already started): wait until the screen shows something. */
+async function waitForScreen(client: Mobilerun, deviceId: string, pollMs: number): Promise<boolean> {
+  let sawBlank = false;
+  for (let i = 0; i < LOAD_POLLS; i++) {
+    await sleep(pollMs);
+    const s = await screenState(client, deviceId);
+    if (s === "showing") return true;
+    if (s === "blank") sawBlank = true;
+  }
+  return !sawBlank;
+}
+
 type Opts = { pollMs?: number; maxSeconds?: number; deadlineMs?: number };
 
 /**
@@ -259,9 +293,11 @@ export async function runWork(ctx: ToolContext, client: Mobilerun, deviceId: str
     ctx.store.logActivity({ at: new Date().toISOString(), agent: LOOP_AGENT, action, why, result, costUsd: null, human: false });
   const pollMs = opts.pollMs ?? 3000;
   const maxSeconds = opts.maxSeconds ?? MAX_SECONDS;
-  const why = work.kind === "own" ? `Level AI match-3 level ${work.levelId.slice(0, 8)}` : `${work.name} (free web game)`;
+  const why = work.kind === "own" ? `Level AI match-3 level ${work.levelId.slice(0, 8)}` : `${work.name} (${work.game.bundleId ? "iOS app from the App Store" : "free web game"})`;
 
-  if (!(await openAndWait(client, deviceId, work.url, pollMs))) {
+  const bundleId = work.kind === "market" ? work.game.bundleId : undefined;
+  if (bundleId) await client.devices.apps?.start?.(bundleId, { deviceId })?.catch(() => undefined);
+  if (!(await (bundleId ? waitForScreen(client, deviceId, pollMs) : openAndWait(client, deviceId, work.url, pollMs)))) {
     await goHome(client, deviceId);
     await log(`playtest failed for ${label(work, "result")}`, why, "didn't load on the phone: the page stayed blank");
     return null;
