@@ -92,6 +92,19 @@ async function handle(request: Request): Promise<Response> {
     return a ? json(a.schema) : json({ error: "unknown game" }, 404);
   }
 
+  const level = path.match(/^\/levels\/([^/]+)$/);
+  if (level) {
+    if (request.method !== "GET") return json({ error: "method not allowed" }, 405);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(level[1]!)) {
+      return json({ error: "invalid level id" }, 400);
+    }
+    const rows = await q<{ level_id: string; game_id: string; level: object; status: string }>(
+      "select level_id, game_id, level, status from levels where level_id = $1",
+      [level[1]],
+    );
+    return rows.length ? json(rows[0]) : json({ error: "level not found" }, 404);
+  }
+
   if (path === "/mcp") {
     if (!TOKEN || request.headers.get("authorization") !== `Bearer ${TOKEN}`) {
       return json({ error: "unauthorized" }, 401);
@@ -117,7 +130,7 @@ async function handle(request: Request): Promise<Response> {
   return json(
     {
       error: "not found",
-      routes: ["/health", "POST /events", "/games/:id/schema", "/mcp"],
+      routes: ["/health", "POST /events", "/games/:id/schema", "GET /levels/:id", "/mcp"],
     },
     404,
   );

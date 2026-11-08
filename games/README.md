@@ -3,15 +3,18 @@
 The unified workflow is defined in [the routing plan](../docs/skill-routing-plan.md). Run
 `python games/skill_router.py --game <id> --task create` to resolve a configured skill route.
 
-## Integrated skill packs
+## Programmatic adapter skills
 
 - [Match-3](match3/README.md) — [level design skill](match3/SKILL.md).
+- [Platformer](platformer/README.md) — [level design skill](platformer/SKILL.md).
 
-## Editor-only skills
+The local match-3 browser demo and its small server live in `match3/demo/`.
 
-- [Platformer editor skill](platformer/SKILL.md) for an external editor; not a product integration.
-- [Official Geometry Dash Editor skill](editors/geometry-dash/SKILL.md) using Mobilerun on an
-  existing user-authorized device; not a product integration.
+## Editor-only workflow
 
-The current product plan is for three games. Editor-only skills do not approve additional game
-integrations or add external editors as shipped dependencies.
+- [Official Geometry Dash Editor skill](editors/geometry-dash/SKILL.md) uses Mobilerun on an
+  existing user-authorized device. It does not ship a Geometry Dash fork or provide headless
+  simulation.
+
+The product adapters currently cover match-3 and platformer. The Geometry Dash editor route is a
+separate workflow and is not a third product integration.

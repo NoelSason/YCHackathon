@@ -40,6 +40,8 @@ export interface Adapter {
 - **Player events** are POSTed by the browser game to the platform API:
   `POST /events` with JSON `{ game_id, level_id, session_id, type: "attempt"|"win"|"loss"|"quit", moves_used?, time_seconds? }`.
   Fire `attempt` when a level starts, exactly one of `win`/`loss`/`quit` when it ends.
+- **Saved level loading:** `GET /levels/:level_id` returns `{ level_id, game_id, level, status }` for
+  public play URLs. Level IDs are random UUIDs; level writes remain authenticated through MCP.
 - `games/<game_id>/SKILL.md` is the Naïve skill for the Designer and Tuner. The platform pushes it
   with `naive skill push --slug game-<game_id>`.
 

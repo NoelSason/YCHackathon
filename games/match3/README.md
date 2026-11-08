@@ -1,7 +1,7 @@
 # Match-3 integration
 
-This directory contains the match-3 agent skill and the integration contract notes for the
-platform. It does not contain a game implementation yet.
+This directory contains the match-3 agent skill, an adapter, the headless Gem Swap rules engine,
+and a local browser demo at `demo/`. The demo renders the same engine used by the adapter.
 
 ## Adapter contract
 
@@ -15,9 +15,11 @@ contract, described in the root `README.md`, requires:
 - Loading a saved level by URL and emitting attempt, win, quit, and moves-used events.
 - This directory's `SKILL.md`, attached to the Designer and Tuner as the match-3 Naïve skill.
 
-The skill consumes the schema and tool interfaces provided by the running integration; it does
-not define a parallel wire format. Implement the schema and game-specific rules alongside the
-game adapter, then update the skill examples and contract notes to match that implementation.
+The skill consumes the schema and tool interfaces provided by the adapter; it does not define a
+parallel wire format. `adapter/index.ts` wraps the headless rules engine copied from
+[Houseki](https://github.com/johnmorrisdotca/houseki) under its MIT license. The level format uses
+a deterministic seed, optional board mask, clearable seal blockers, move limit, and collection
+goal. It intentionally does not copy Houseki's campaign levels or demo assets.
 
 ## Editor reference
 

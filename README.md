@@ -13,35 +13,35 @@ breaks. Every step-in is logged.
 
 - **The product is the platform, not a game.** Any casual game can plug in through a small
   adapter. We don't build a game.
-- **Three open-source games as our first customers,** one per genre: a match-3 puzzle game, a
-  rhythm runner, and a property-trading board game. We fork each one, connect it to the platform,
-  and let the agents make and ship new content for all three. Three very different genres on one
-  platform prove it works for any game, which is the B2B pitch.
-- **What "levels" means depends on the genre:** puzzle levels for match-3, obstacle courses timed
-  to music for the runner, and new boards and challenge scenarios for the board game. For the board
-  game the real product is **balance**: no player strategy or seat should win too often.
+- **Three initial workflows:** a match-3 adapter, a platformer adapter, and a
+  Geometry Dash editor workflow run through Mobilerun. The editor workflow is not a shipped game
+  integration. The two adapters connect data-driven games to the platform; the editor workflow
+  demonstrates bounded mobile operation separately.
+- **What "levels" means depends on the genre:** match-3 boards with move limits, platformer maps
+  with reachable routes and hazards, and editor drafts authored in Geometry Dash. The editor
+  workflow is checked visually through Mobilerun, not headlessly solved.
 - **Real studios as paying customers.** Agents find games whose players are asking for more levels
   or complaining about difficulty, make sample content for that genre *before* reaching out, and
   sell a pilot pack.
 
-The pitch to a studio: "Our agents have been making and tuning content for three different games
-since Saturday. Here's the data. Plug yours in."
+The pitch to a studio: "Our agents have been making and tuning content through two game adapters,
+and we've also used an agent to author a local mobile-game draft. Here's the data. Plug yours in."
 
-## Our three games
+## Our game integrations and editor workflow
 
-The team found open-source versions of games like **Candy Crush, Geometry Dash, and Monopoly.**
-Those names describe the genre of each game. **We use the genre and mechanics, not the original
-game.**
+The product adapters target match-3 and platformer. Geometry Dash is a separate editor workflow.
+Candy Crush, Geometry Dash, and Mario are references only; their names, code, assets, music,
+levels, and other content are not part of our product.
 
 **Rules for every fork (non-negotiable):**
 
 - **License:** the repo's license must allow forking and modification, and we keep its credit and
   license file. No license file means we can't use it.
-- **Not a copy of the original.** Candy Crush (King), Geometry Dash (RobTop), and Monopoly (Hasbro)
-  are trademarks, and their art, music, characters, levels, and boards are copyrighted. In our
-  product and demo, each game gets **its own name and its own art.** Our forks never use the
-  original game's name, logo, look, music, levels, or board (such as Monopoly's street names,
-  tokens, or card text). If a repo ships copied assets, replace them before anything is public.
+- **Not a copy of the original.** Candy Crush (King), Geometry Dash (RobTop), and Mario (Nintendo)
+  are trademarks, and their art, music, characters, and levels are copyrighted. In our product and
+  demo, each integrated game gets **its own name and its own art.** Never use the original game's
+  name, logo, look, music, levels, or expressive content. If a repo ships copied assets, replace
+  them before anything is public.
   In conversation, "a Candy Crush–style game" is fine for describing the genre.
 - **Music** for the rhythm runner must be royalty-free or CC0 with its license recorded. Many
   Geometry Dash clones bundle the original game's songs. Never use those.
@@ -59,43 +59,27 @@ game.**
   target win rate.
 - **Phone playtest:** the Mobilerun agent plays it by tapping. Turn-based, so remote taps work.
 
-### 2. Rhythm runner (Geometry Dash–style)
+### 2. Geometry Dash editor workflow (not a product adapter)
 
-- **A level:** a timeline of obstacles (spikes, blocks, gaps, jump pads, speed or gravity changes)
-  placed on the beats of a royalty-free song.
-- **How hard is it:** the game runs frame by frame with fixed physics, so a **search solver** can
-  find whether any sequence of jumps clears the level. That gives an exact answer: possible or
-  impossible. Difficulty comes from **how many inputs it needs and how tight each timing window
-  is** (a jump that must land within 2 frames is much harder than one with 12). Bots with
-  human-like reaction delays then give a win rate.
-- **Tuning:** widen or tighten the timing windows, spacing, and speed until the level hits its
-  target. Every published level is proven possible.
-- **Making levels:** detect the song's beats, then let the Designer place obstacles on them.
-- **Phone playtest:** a cloud phone's taps arrive over the network, too late for frame-exact
-  jumps. So the phone **doesn't** play it by hand. The game runs a replay of the solver's winning
-  inputs on the phone, and the agent checks that it loads, renders, stays smooth, and matches what
-  the solver expected. The recording also makes a good trailer.
+- Use the existing official-editor skill with a Mobilerun Agent on an existing authorized device.
+- Create and save local drafts only; never upload or publish without a separate request.
+- Mobilerun can report editor navigation, local save state, and visual loading. It cannot establish
+  frame-exact completion, solvability, or calibrated difficulty.
+- No Geometry Dash code, music, assets, or levels are included in the product.
 
-### 3. Property-trading board game (Monopoly-style)
+### 3. Platformer levels (Mario-style genre only)
 
-- **"Levels" here:** new boards (properties, prices, rents, tile order, a theme) and **challenge
-  scenarios** ("start from this position, win within 15 turns").
-- **How hard or balanced is it:** AI players with different strategies (buy everything, save cash,
-  trade aggressively) play thousands of games. Measure the average game length, the share of
-  games that end within the time limit, the first-seat advantage, and how often each strategy
-  wins.
-- **Tuning:** prices and rents until no strategy wins more than its fair share, games end within a
-  target number of turns, and seat order doesn't matter much.
-- **Phone playtest:** turn-based, so the Mobilerun agent can play a full game.
-- **Why it matters for the pitch:** it shows the platform does game balance, not only puzzle
-  levels. Balance is work every multiplayer and board-game studio pays for.
+- **A level:** a rectangular tile map with a start, goal, solid ground, hazards, and collectibles.
+- **How hard is it:** the adapter validates reachability, computes a shortest route under its
+  declared jump and fall limits, and runs seeded bots for empirical completion rates.
+- **Brand and code:** Mario is a genre reference only. Use an open-source project with a compatible
+  license and original assets before describing this adapter as a playable fork.
 
 ### The order to connect them
 
-Start with **match-3** (closest to the research, and phone-friendly), then the **board game**
-(simple turn-based simulation), then the **rhythm runner** (the physics solver is the most work, and
-the most impressive result). Two games running end to end by 6:00 PM beat three half-connected
-ones.
+Start with **match-3**, then the **platformer**. The Geometry Dash editor workflow stays separate
+and requires an attached Mobilerun agent and an existing authorized device. Browser-game forks and
+hosting still need to be completed before these adapters are end-to-end integrations.
 
 ## Why this can win
 
@@ -161,11 +145,11 @@ Everything depends on this, so Max and Abhinav agree on it by **3:00 PM** and wr
 
 The match-3 skill and integration notes live in [`games/match3/`](games/match3/). The skill uses
 the active adapter schema and simulation tools rather than defining a second level format.
-An editor-only platformer authoring skill is available in [`games/platformer/`](games/platformer/SKILL.md);
-it does not add a fourth game to the product.
+The platformer adapter and authoring skill live in [`games/platformer/`](games/platformer/).
+Its grid-step rules are a prototype and are not yet connected to a forked browser game.
 The official Geometry Dash Editor workflow is documented in
 [`games/editors/geometry-dash/`](games/editors/geometry-dash/SKILL.md). It uses Mobilerun for
-bounded editor and visual-check tasks and remains separate from our rhythm-runner adapter.
+bounded editor and visual-check tasks and remains separate from the product adapters.
 
 The unified agent skill workflow and config-based route interpreter are documented in
 [`docs/skill-routing-plan.md`](docs/skill-routing-plan.md). The router selects the domain skill and
@@ -220,7 +204,7 @@ A plan is structured, so the Mobilerun agent can follow it and its results can b
 
 Mobilerun has two ways to run this, and Noel picks per step. The **Agent** (Tasks API) takes a goal
 in plain words and decides the taps itself, which suits a studio app we've never seen. The
-**Phone** API (tap, swipe, screenshot) gives exact control, which suits our own three games. Default
+**Phone** API (tap, swipe, screenshot) gives exact control, which suits our own connected games. Default
 to the Agent for studio apps.
 
 **Check early:** how to install a studio's build on a cloud phone. Android can install an APK file.
@@ -248,7 +232,7 @@ The cut order is in `docs/master-plan.md`.
 | **HubSpot** | Studio pipeline: found → sample made → emailed → replied → pilot paid → delivered | Noel |
 | **Stripe** | Studio pilot-pack payment links, and hint packs in the games. Test mode until the team agrees to go live. | Noel |
 | **OpenAI / OpenRouter** | Models. A strong model for design and sales replies, a cheap one for sorting reviews. Route through Naïve's model proxy where possible, so all spend sits in one ledger. | Abhinav |
-| **Vercel** | Hosts the three games and the dashboard | Max |
+| **Vercel** | Hosts connected game clients and the dashboard | Max |
 | **Neon** | Postgres for everything the demo replays | Abhinav |
 | **Render** | Solver worker, if a Naïve Computer is too slow or costly | Abhinav |
 | **Luxor** | Stretch: train a small model that predicts difficulty from a level's layout. King's research found a learned model can beat simulation-only bots at predicting how hard a level feels to people. | Abhinav |
@@ -328,7 +312,8 @@ Open with the result, not the architecture.
    them to `allow`. But once a chat reads people's data (such as an inbound email), every send,
    phone action, and MCP call in that chat asks *each time, even at `allow`.* Abhinav tests this in
    the first hour. Every approval clicked overnight is a step-in judges count.
-2. **Three adapters, one of them hard.** The rhythm runner's solver is the riskiest piece. See the cut order above.
+2. **Game clients are not connected yet.** The match-3 and platformer adapters are registered,
+   but their open-source game forks and browser loaders still need integration.
 3. **Headless play.** Some open-source games mix rules with drawing code, so their rules won't run
    in Node. Check this before choosing a game.
 4. **Licenses and art.** Check every license. Skip any repo with art copied from a commercial game.

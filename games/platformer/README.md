@@ -1,27 +1,16 @@
-# Platformer editor skill
+# Platformer adapter
 
-**Source:** [JHDev2006/Super-Mario-Bros.-Remastered-Public](https://github.com/JHDev2006/Super-Mario-Bros.-Remastered-Public)
+`adapter/index.ts` implements the studio's original grid-platformer contract: schema, validation,
+seeded bots, a shortest-route solver, and a saved-level URL. Its mechanics are deliberately small
+and data-driven. `SKILL.md` is the level designer's guide.
 
-The repository describes itself as a remake/celebration of Super Mario Bros. games, includes a
-custom level editor, and is marked GPL-3.0. Its README also says the game requires an original
-SMB1 NES ROM. See the [repository README](https://github.com/JHDev2006/Super-Mario-Bros.-Remastered-Public#readme)
-and [license](https://github.com/JHDev2006/Super-Mario-Bros.-Remastered-Public/blob/main/LICENSE).
+The adapter currently uses an independent grid-step model and is not connected to a forked browser
+game. The previously referenced Super Mario Bros. remake is not used because it requires
+third-party ROM content. No Mario code, trademarks, art, levels, or ROMs are included.
 
-## Scope
-
-This is an editor workflow skill only; it does not add this game as a product integration. The
-current product plan remains limited to match-3, rhythm-runner, and board-game integrations. The
-repository's GPL license does not grant rights to Nintendo trademarks, ROMs, or other third-party
-materials. Do not fork, ship, or demonstrate this game or its assets as part of our product. The
-project instructions prohibit using Mario names, characters, art, levels, or music in our product.
-
-## Integration readiness
-
-The repository advertises an in-game custom level editor/system, but its level-data schema and
-headless rules have not been audited. No platform adapter is being built. The editor skill tells
-agents to use the editor's own save/export actions instead of guessing its format. The README says
-the game needs an original SMB1 ROM to play; that remains separate and user-supplied, and must not
-be copied into this project.
-
-See [SKILL.md](SKILL.md) for the editor-only workflow. Any future product integration requires a
-separate scope decision and a rights-safe game with distributable assets and levels stored as data.
+The [Systematic editor project](https://github.com/Lolo23450/systematic) is MIT licensed and has
+JSON import/export, but its current implementation stores editor-specific multilayer tile IDs and
+keeps movement rules inside a DOM-driven game loop. It does not expose the same headless rules for
+the browser and solver. It was reviewed as a candidate and not integrated. Do not describe this
+adapter as a fork or claim browser playability until a compatible source project and shared rules
+implementation are connected.

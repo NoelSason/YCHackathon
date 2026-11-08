@@ -1,6 +1,8 @@
 // Adapter registry. See platform/CONTRACTS.md §1.
 // Max's adapters live in games/<game_id>/adapter/index.ts and are imported here by game_id.
-// Until they land, the `stub` adapter lets agents be built and tested end to end.
+// The `stub` adapter remains available for backward-compatible smoke runs.
+import { adapter as match3 } from "../../../games/match3/adapter/index.js";
+import { adapter as platformer } from "../../../games/platformer/adapter/index.js";
 
 export interface ValidateOk { ok: true }
 export interface ValidateErr { ok: false; errors: string[] }
@@ -63,10 +65,11 @@ export const stubAdapter: Adapter = {
   },
 };
 
-const registry = new Map<string, Adapter>([[stubAdapter.game_id, stubAdapter]]);
-
-// Real adapters are registered here once they exist, e.g.:
-//   import match3 from "../../../games/match3/adapter/index.js"; registry.set(match3.game_id, match3);
+const registry = new Map<string, Adapter>([
+  [match3.game_id, match3],
+  [platformer.game_id, platformer],
+  [stubAdapter.game_id, stubAdapter],
+]);
 
 export function getAdapter(game_id: string): Adapter | undefined {
   return registry.get(game_id);

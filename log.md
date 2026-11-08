@@ -20,6 +20,22 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 16:30 PT · Max (Codex) · branch `max-game-adapters-fruit-patch`
+
+**What:** Added the match-3 and platformer adapter prototypes, a local Fruit Patch client using the shared Gem Swap engine, three mask-shaped match-3 layouts with clearable crate blockers, and saved-level read routes. Updated game routing and integration docs.
+**Why:** Deliver playable, measurable game integration work for the studio demo while keeping all game art and level designs original.
+**Files:** `games/match3/`, `games/platformer/adapter/`, `games/editors/geometry-dash/`, `games/skill-routing.json`, `platform/mcp/`, shared game docs and contracts.
+**State:** Works locally. `npm run typecheck` passed; all three layouts loaded through the engine; match-3 bots validated the level settings; `git diff --check` passed. Demo server is local only and is not hosted.
+**Next / heads-up:** Max: deploy the browser client and connect it to saved-level URLs/player events before claiming hosted end-to-end playtests. Abhinav: review the additive public `GET /levels/:id` route and adapter registry wiring. Platformer remains a grid-step prototype; Geometry Dash remains an editor workflow, not a product adapter.
+
+### 2026-11-07 15:44 PT · Max (Codex) · branch `main`
+
+**What:** Added registered match-3 and platformer adapter prototypes, integrated Houseki's MIT headless Gem Swap engine, added a public read endpoint for saved-level URLs, and updated the Geometry Dash Mobilerun editor workflow documentation. Updated routing and plan docs to replace the board game with a platformer adapter.
+**Why:** Implement the requested Candy Crush-style, Mario-style, and Geometry Dash workflows without using proprietary game content.
+**Files:** `games/match3/adapter/`, `games/platformer/adapter/`, `games/skill-routing.json`, `platform/mcp/src/adapters.ts`, `platform/mcp/src/server.ts`, contracts and game docs.
+**State:** Partly works. Platform typecheck and build passed after installing locked dev dependencies; `git diff --check` passed. Routing JSON parsed with Node. Python route-interpreter check could not run because `python.exe` is unavailable. No browser clients or Mobilerun tools/device were available. Platformer rules are a grid-step prototype, not a forked game's rules.
+**Next / heads-up:** Abhinav: `/levels/:level_id` is an additive public read route for random UUID level IDs. Max: Systematic was reviewed but not integrated because its DOM-driven physics and editor-specific multilayer levels do not share the adapter rules. Houseki's headless engine is integrated, but its demo UI/campaigns are excluded; connect a browser client using the same engine before claiming a playable fork. Noel: Mobilerun agent/tools are not attached in this session, so no phone task was run.
+
 ### 2026-11-07 15:25 PT · Abhinav (Claude) · branch `main`
 
 **What:** `npm run vault` in `platform/naive`: stores the platform MCP bearer in a Naïve vault as a

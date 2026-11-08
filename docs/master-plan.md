@@ -20,27 +20,26 @@ that Max owns game integration, and Noel's choice to own business ops.
 
 | Person | Owns | Why them |
 |---|---|---|
-| **Max** | **Game integration:** the three forks, their new names and art, the adapters, phone-friendly hosting, and player events. Then the **heartbeat dashboard.** | Team decision. Integrating the games into our web platform leads straight into the dashboard. |
-| **Pinara** | **Level quality:** the Solver harness, bot players, all three solvers, the Designer and Tuner agents, the evals, and the CEO's "did that decision work?" check | Highest in solvers (4). Wants agents and solvers. Strong at evals and causal questions. |
+| **Max** | **Game integration:** the match-3 and platformer adapters and clients, the Geometry Dash editor workflow, hosting, and player events. Then the **heartbeat dashboard.** | Team decision. Integrating the games into our web platform leads straight into the dashboard. |
+| **Pinara** | **Level quality:** the Solver harness, bot players and programmatic adapter solvers, the Designer and Tuner agents, the evals, and the CEO's "did that decision work?" check | Highest in solvers (4). Wants agents and solvers. Strong at evals and causal questions. |
 | **Abhinav** | **The Naïve backbone:** Neon, the platform's MCP server, the Naïve Team setup (coordinator, roster, board, skills, budgets, permissions, cron, kill switch, the approval-rule test), the CEO agent's loop, and the demo-readiness checks | Agents 4, backend 4. Wants to learn to build an MCP server with per-tool permissions. |
 | **Noel** | **Business ops (top priority), then mobile.** Outreach, finance, billing, and CRM as agents on the Naïve SDK. Mobilerun phones under agent control for playtests. The demo script. | Wants business ops and mobile. Business 3 with live Stripe experience, mobile 4, backend 5. |
 
-**Workload** (S=1, M=2, L=3): Max 7, Noel 8, Abhinav 9, Pinara 10. Pinara's total drops to 7 if the
-rhythm runner gets cut, and it's first on the cut list.
+**Workload** (S=1, M=2, L=3): Max 7, Noel 8, Abhinav 9, Pinara 10. Cut the Geometry Dash editor
+workflow first if it stalls the two product adapters.
 
 ## Work packages
 
 | # | Package | Size | Blocks others? | Owner | Backup |
 |---|---|---|---|---|---|
-| 1 | Match-3 and board-game adapters (fork, rename, re-art, schema, validate, simulate, load by URL, events, `SKILL.md`) | L | **Yes**, the adapter contract is due at 3:00 PM | Max | Pinara |
-| 2 | Rhythm-runner adapter and hosting for all three games | M | No | Max | Pinara |
+| 1 | Match-3 and platformer adapters (schema, validate, simulate/solve, load by URL, events, `SKILL.md`) | L | **Yes**, the adapter contract is due at 3:00 PM | Max | Pinara |
+| 2 | Geometry Dash official-editor workflow through Mobilerun; host any connected product games | M | No | Max | Pinara |
 | 3 | Heartbeat dashboard | M | No | Max | Pinara |
 | 4 | Neon schema, activity log, and step-in log | M | **Yes** | Abhinav | Noel |
 | 5 | Platform MCP server | M | **Yes** | Abhinav | Noel |
 | 6 | Naïve Team setup, approval-rule test, kill switch | L | **Yes** | Abhinav | Noel |
 | 7 | CEO agent loop and decision record | M | No | Abhinav | Pinara |
-| 8 | Solver harness and bot players (match-3, board game) | L | **Yes** for difficulty numbers | Pinara | Abhinav |
-| 9 | Rhythm-runner physics solver | L | No (cut first) | Pinara | Abhinav |
+| 8 | Solver harness and bot players (match-3, platformer) | L | **Yes** for difficulty numbers | Pinara | Abhinav |
 | 10 | Designer and Tuner agents | M | No | Pinara | Abhinav |
 | 11 | Evals and the CEO's expected-vs-result check | M | No | Pinara | Abhinav |
 | 12 | **Business ops: outreach** (Research, Sales Sender, Sales Reader agents, CRM, inbound leads) | L | No, but it's the "selling" in the brief | Noel | Abhinav |
@@ -113,14 +112,14 @@ Hacking ends at **11:00 AM Sunday, the code freeze.**
 
 | Time | Max | Pinara | Abhinav | Noel |
 |---|---|---|---|---|
-| **2:20–3:00** | Check the three repos: license, copied art or music, levels as data, rules that run in Node | Solver harness skeleton and the bot interface | Neon tables, activity log, Naïve Team skeleton, **approval-rule test** | Mobilerun phone under Naïve control over MCP: open a game, tap, screenshot |
+| **2:20–3:00** | Check adapter source candidates: license, copied art or music, levels as data, rules that run in Node | Solver harness skeleton and the bot interface | Neon tables, activity log, Naïve Team skeleton, **approval-rule test** | Mobilerun phone under Naïve control over MCP: open a game, tap, screenshot |
 | **3:00** | **Contracts agreed (all four)** | | | |
 | **3:00–4:00** | Match-3 adapter: rename, re-art, schema, validate | Match-3 bot players | MCP server v1 (`validate_level`, `solve_level`, `save_level`) | Playtest tool v1. **Check whether Stripe can take live payments.** Pick the CRM and email tool. |
-| **4:00–6:00** | Match-3 hosted and phone-ready. Board-game adapter. | Designer and Tuner for match-3. First 20 accepted levels. Eval set. | Roster on the board, budgets, cron, `publish_pack`, `get_player_stats`, kill switch | Research, Sales Sender and Reader, payment links, Stripe webhook to fulfillment, the inbound lead QR |
+| **4:00–6:00** | Match-3 adapter; platformer adapter and source audit. | Designer and Tuner for match-3. First 20 accepted levels. Eval set. | Roster on the board, budgets, cron, `publish_pack`, `get_player_stats`, kill switch | Research, Sales Sender and Reader, payment links, Stripe webhook to fulfillment, the inbound lead QR |
 | **6:00** | **Switch on.** First packs ship on cron. First outreach emails go out. | | | |
-| **6:00–8:00** | Board game live. Rhythm-runner adapter. | Board-game strategy bots and balance numbers | CEO loop running on cron, with real decisions | Finance agent v1. A test payment end to end: link → pay → webhook → deliver → receipt. |
+| **6:00–8:00** | Platformer adapter integration. Geometry Dash local-editor Mobilerun workflow, if device/tool are available. | Platformer bot runs and difficulty numbers | CEO loop running on cron, with real decisions | Finance agent v1. A test payment end to end: link → pay → webhook → deliver → receipt. |
 | **8:00 PM** | **Full loop on two games:** design → tune → solve → ship → phone playtest → player data → CEO decision → outreach → payment | | | |
-| **8:00 PM–1:00 AM** | Heartbeat dashboard | Rhythm-runner solver. CEO expected-vs-result check by 10:00 PM. | Demo-readiness checks. LiveOps event (stretch) | Reply handling, CRM stages, finance numbers on the dashboard. Plan runner (stretch) |
+| **8:00 PM–1:00 AM** | Heartbeat dashboard | Platformer solver and CEO expected-vs-result check by 10:00 PM. | Demo-readiness checks. LiveOps event (stretch) | Reply handling, CRM stages, finance numbers on the dashboard. Plan runner (stretch) |
 | **1:00–2:00 AM** | **Pre-flight.** Every demo check green. Budgets set. Kill switch tested. Restart notes in `log.md`. | | | |
 | **2:00–8:00 AM** | Off (restart notes left) | **On call:** agents, solvers, levels | Off unless confirmed (restart notes left) | **On call:** phones, outreach, payments |
 | **8:00–10:00 AM** | **Feature freeze at breakfast.** Fix the worst overnight failure. Every demo check green. Record the backup. | | | |
@@ -170,7 +169,7 @@ From `docs/how-to-win.md` and three pasted research write-ups (Nov 7):
     Python calls, `naive.agents.create({ model: "gpt-4" })`). Use the real docs.
   - A "Developer" agent that edits game code or compiles Unity. Our agents write level data, and
     the adapters load it.
-  - Sudoku or crossword drift. Our three games are set.
+    - Sudoku or crossword drift. Match-3, platformer, and the separate Geometry Dash editor workflow are set.
   - Saying a number like "92% autonomy" that we didn't measure.
   - Timelines that assume 24 or 48 hours.
 
@@ -178,5 +177,5 @@ From `docs/how-to-win.md` and three pasted research write-ups (Nov 7):
 
 If 8:00 PM arrives without the full loop on two games, cut in this order: Luxor, phone research on
 other companies' games, the plan runner, Android playtests, the LiveOps event, the HubSpot mirror,
-then the rhythm runner. **Never cut** design → tune → solve → ship → phone playtest → CEO decision
+then the Geometry Dash editor workflow. **Never cut** design → tune → solve → ship → phone playtest → CEO decision
 → outreach → billing on at least two games.
