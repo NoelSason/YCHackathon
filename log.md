@@ -20,6 +20,15 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 20:09 PT · Pinara (Codex) · branch `pinara/game-ui`
+
+**What:** Live production now fills only a 100-level-ahead buffer, rather than prebuilding all 1,000 positions. Added `--database --watch` to recheck every 60 seconds and top up only missing future levels. The importer enforces the same rule on checkpoint resume. Progress comes from consecutive sequence wins; a one-off phone win on level 561 cannot pretend levels 1–560 were completed.
+**Why:** Pinara asked to keep about 100 unplayed levels ready (completed through 50 → target 150), preserve all existing stock, and avoid unnecessary generation/compute. The old bulk run was gracefully stopped immediately; no existing levels/checkpoints were deleted or retired.
+**Files:** `solver/src/production/{buffer,cli,store}.ts`, `solver/test/production-buffer.test.ts`, `solver/{PRODUCTION,README}.md`.
+**State:** Works in tests. Production tests 11/11; strict solver typecheck and diff checks pass. Tested the exact 50→150 case, retention of 550 existing levels, holes in the future buffer, attempts/losses not advancing progress, late playtests not skipping the sequence, game/series isolation, import refusal beyond the buffer, and the existing kill switch/idempotency/evidence checks. Live inventory was read without mutation; watcher will start from the pinned commit after push.
+**Next / heads-up:** **Pinara:** use `npm run production -- --database --watch` with the existing series/checkpoint; the 1,000 ceiling remains, not a bulk production target. A full buffer starts no generation workers or simulations. Old excess stays available until players catch up. **Abhinav/Max:** no API/schema changes. Progress uses existing production sequence notes plus `player_events` wins; unsequenced Designer/studio-order content is not given invented positions, and the separate studio pack-delivery flow is unchanged. This rule applies to the production utility. Existing unfinished Claude work in the main checkout was not touched.
+
+
 ### 2026-11-07 20:06 PT · Pinara (Claude Code) · branch `main`
 
 **What:** Turbo Lanes and Splash Sort play live levels one after another:

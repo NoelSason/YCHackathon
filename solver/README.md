@@ -153,7 +153,8 @@ These come from `platform/CONTRACTS.md` §1:
 ## Fast production to 1,000 levels per game
 
 `npm run production` compiles a resumable progression for Splash Sort, Turbo Lanes, and match-3
-without waiting for the Designer's 10-minute cron. It uses the shared adapters, one completion
+without waiting for the Designer's 10-minute cron. Live production fills only a 100-level buffer
+ahead of player wins; `-- --database --watch` maintains it without deleting surplus. It uses the shared adapters, one completion
 profile and independent 200-game verification, with a 55-second per-position deadline. Add
 `-- --database` to import accepted levels and evidence into LevelOps; no automatic publication.
 See [PRODUCTION.md](PRODUCTION.md) for progression, supported feature unlocks, commands, stopping,
