@@ -120,3 +120,25 @@ removed, retired, or trimmed by this rule. Offline plans/benchmarks remain expli
 Progress is taken from `player_events` wins joined to the production sequence metadata in level
 notes. The contiguous completed prefix across recorded wins sets the shared catalog's frontier; earlier players retain all previous levels. Unsequenced Designer/studio-order content is not assigned an invented
 position, and the separate studio pack-delivery workflow is unchanged. No API/schema change.
+
+## Published production opening packs (Nov 7)
+
+The ordered first 100 verified positions of each game are now published in the live Neon catalog:
+
+- Splash Sort: https://levelai.vercel.app/games/watersort/?pack=4d1a0bb8-f13a-53e4-a8cd-e393035b9c29
+- Turbo Lanes: https://levelai.vercel.app/games/racer/?pack=3242638a-a0e8-57eb-a044-44635b3b7056
+- Gem Garden: https://levelai.vercel.app/play?pack=cf429a4a-4346-5974-a286-fc40d775c3e1
+
+Publication was explicitly requested by Pinara and logged as a human intervention, not attributed
+to an autonomous CEO decision. Existing packs/levels were preserved. Every published position
+has >=200 recorded reference-bot games; measured win rates across these packs are 38.5–90%.
+Sort and racer also have exact-solvability evidence with minimum moves within the shipped budget.
+Match-3 has empirical wins, not an exact-solvability proof. These are bot results, not human ratings.
+
+Verified actual production browser wins: Splash Sort opening level in 5 pours (limit 7),
+Turbo Lanes in 50 ticks (limit 52), and Gem Garden with real pointer inputs in 7 moves on a
+reproducible production board seed. The pages fetched their actual production packs/levels;
+QA intercepted only outgoing telemetry to avoid manufacturing player metrics. The sort/racer
+public pack API returned all 100 ordered levels; Gem Garden loaded its opening pack and finished.
+The site's laptop-tunnel API intermittently returned 502/530 during testing and later recovered;
+this availability limitation is separate from the level data, which is live in Neon.

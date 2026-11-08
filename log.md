@@ -20,6 +20,14 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 20:24 PT · Pinara (Codex) · branch `pinara/game-ui`
+
+**What:** Published the verified opening 100 levels for each of watersort, racer and match3 to the real production catalog as ordered packs, retaining all prior levels and packs. Added the live play links and evidence to `solver/PRODUCTION.md`. Publication and browser QA were requested by Pinara; this was recorded as a human intervention, not a CEO decision.
+**Why:** Pinara required the levels to be playable in production, not only local/generated/accepted. Existing sort/racer packs mixed positions and match3 had no public pack; the new packs begin at position 1 and preserve progression order.
+**Files:** `solver/PRODUCTION.md`, `log.md`; live `packs`, published level statuses, audit/step-in records (existing schema only).
+**State:** Works live. Preflight required exactly positions 1–100 per game, accepted/published status, >=200 completed reference-bot games, nonzero actual wins, and matching measured rates. Sort/racer also required exact proof with minimum moves <= shipped budget. Production browser checks won all three opening levels: sort 5/7 pours, racer 50/52 ticks, match3 7 moves on reproducible seed 1 using actual pointer input and the shared engine's plan. No local level responses were substituted. QA event sends were suppressed to avoid inflating player counts. Live measured rates across the packs are 38.5–90% (bots, not humans). Sort/racer pack APIs returned all 100 levels and their pages played the first entry; match3 loaded its actual published pack and completed. The 100-ahead watcher remains in place.
+**Next / heads-up:** **Noel:** the laptop-tunnel endpoints intermittently returned 502/530 during these checks; retries recovered and all three production pages were verified, but backend availability still needs attention. **Max/Abhinav:** content publication is live-data-only; no Vercel rebuild was needed for these packs. No game rules, bots, tuning policy, customer packs, or existing uncommitted work were changed. Exact pack URLs are in `solver/PRODUCTION.md`.
+
 ### 2026-11-07 20:12 PT · Pinara (Claude Code) · branch `main`
 
 **What:** Turbo Lanes and Splash Sort show a level badge next to the mission heading. It reads,
