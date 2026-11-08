@@ -5,6 +5,7 @@ import { runPlan, type PlaytestOutcome } from "../mobile/playtest.js";
 import { idempotencyKey } from "../outreach/send.js";
 import type { Lead } from "../types.js";
 import { finish, step } from "./progress.js";
+import * as E from "../email/html.js";
 
 /**
  * The phone playtest offer: "Your app, played on a real iPhone, with a report in about 10 minutes."
@@ -70,7 +71,8 @@ export function composeReport(args: {
   error: string | null;
   companyName: string;
   postalAddress: string;
-}): { subject: string; body: string } {
+  siteUrl?: string;
+}): { subject: string; body: string; html: string } {
   const r = args.outcome?.results?.results?.[0];
   const hi = args.name ? `Hi ${args.name.split(" ")[0]},` : `Hi ${args.team},`;
   const findings: string[] = [];
@@ -103,7 +105,33 @@ export function composeReport(args: {
     args.postalAddress,
     `Reply "stop" and we won't email you again.`,
   ].join("\n");
-  return { subject: `Your iPhone playtest report: ${args.team}`, body };
+  const site = args.siteUrl ?? "https://levelai.vercel.app";
+  const first = args.name ? args.name.split(" ")[0]! : args.team;
+  const html = E.layout({
+    preheader: r ? `Loaded: ${r.loaded ? "yes" : "no"} · Touch: ${r.touchOk ? "works" : "problems"} · Visual issues: ${r.visualIssues.length || "none"}` : "Our phone couldn't finish this playtest yet.",
+    companyName: args.companyName,
+    postalAddress: args.postalAddress,
+    footerReason: "You're getting it because you ordered a playtest.",
+    body: [
+      r ? E.eyebrow("iPhone playtest report", E.C.green) : E.eyebrow("Playtest update", E.C.red),
+      E.heading(r ? `Here's how your app did, ${first}` : `We couldn't finish this one, ${first}`),
+      E.text(`We played ${args.appUrl} on a real iPhone, like a first-time user.`, { color: E.C.muted }),
+      r
+        ? E.panel(E.rows([
+            E.checkRow("Loaded on iPhone", r.loaded ? "Yes" : "No", r.loaded ? "pass" : "fail"),
+            E.checkRow("Taps and swipes", r.touchOk ? "Worked" : "Problems", r.touchOk ? "pass" : "fail"),
+            E.checkRow("Visual problems", r.visualIssues.length ? `${r.visualIssues.length} found` : "None seen", r.visualIssues.length ? "fail" : "pass"),
+            ...(r.stuckReason ? [E.checkRow("Got stuck", "Yes", "fail")] : []),
+          ].join("")))
+        : E.panel(E.text(args.error ? "Our phone couldn't finish the playtest this time. We'll retry and write again." : "The playtest finished, but the phone didn't return a readable report. We'll retry and write again.")),
+      ...(r && r.visualIssues.length ? [E.text("What looked wrong", { weight: 800 }), ...r.visualIssues.map((v) => E.quote(v))] : []),
+      ...(r?.stuckReason ? [E.text("Where it got stuck", { weight: 800 }), E.quote(r.stuckReason)] : []),
+      ...(r?.notes ? [E.text("Notes from the playtest", { weight: 800 }), E.text(r.notes, { color: E.C.muted })] : []),
+      E.text("Reply with anything you'd like us to check next, like a specific flow or screen, and we'll run it again."),
+      E.button("Order another playtest", `${site}/playtest`),
+    ].join(""),
+  });
+  return { subject: `Your iPhone playtest report: ${args.team}`, body, html };
 }
 
 export async function runPlaytestOrder(ctx: ToolContext, lead: Lead, appUrl: string, focus: string | null): Promise<void> {
@@ -138,12 +166,12 @@ export async function runPlaytestOrder(ctx: ToolContext, lead: Lead, appUrl: str
 
   if (!lead.email || !ctx.mail) { finish(lead.id, "Playtest finished", outcome?.results != null); return; }
   step(lead.id, "Writing your report");
-  const { subject, body } = composeReport({
+  const { subject, body, html } = composeReport({
     name: lead.contactName, team: lead.company, appUrl, outcome, error,
-    companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
+    companyName: ctx.config.COMPANY_NAME, postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "", siteUrl: ctx.config.SITE_URL,
   });
   if (await ctx.store.isSuppressed(lead.email)) { finish(lead.id, "Playtest finished", true); return; }
-  const sent = await ctx.mail.send({ to: lead.email, subject, text: body, idempotencyKey: idempotencyKey("playtest-report", lead.id, appUrl, outcome?.taskId ?? "none") });
+  const sent = await ctx.mail.send({ to: lead.email, subject, text: body, html, idempotencyKey: idempotencyKey("playtest-report", lead.id, appUrl, outcome?.taskId ?? "none") });
   await ctx.store.addOutreach({ leadId: lead.id, to: lead.email, subject, body, status: "sent", blockedReason: null, providerMessageId: sent.messageId });
   if (outcome?.results) await ctx.store.setStage(lead.id, "delivered");
   await log(`emailed the playtest report to ${lead.company}`, null, `message ${sent.messageId}`);

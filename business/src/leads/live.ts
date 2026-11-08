@@ -8,6 +8,7 @@ import { sendOutreach } from "../outreach/send.js";
 import type { OutreachDraft } from "../outreach/compose.js";
 import type { Lead, Target } from "../types.js";
 import { finish, step } from "./progress.js";
+import * as E from "../email/html.js";
 
 /**
  * The live signup: someone at our table (or in the audience) enters their game, and within about a
@@ -31,7 +32,8 @@ export function composeWelcome(args: {
   sampleUrl: string | null;
   companyName: string;
   postalAddress: string;
-}): OutreachDraft {
+  replyTo?: string;
+}): OutreachDraft & { html: string } {
   const { lead, target, sampleUrl, companyName, postalAddress } = args;
   const first = lead.contactName?.split(" ")[0];
   const game = args.gameTitle ?? lead.company;
@@ -73,7 +75,33 @@ export function composeWelcome(args: {
     postalAddress,
     `Reply "stop" and we won't email you again.`,
   ];
+  const reviews = target ? `newest ${storeName(target.appId)} reviews` : "";
+  const html = E.layout({
+    preheader: kind && target ? `${n} of your ${target.reviewsAnalyzed} ${reviews} point to the same thing.` : `Your free levels from ${companyName}.`,
+    companyName,
+    postalAddress,
+    footerReason: "You're getting it because you signed up for free levels.",
+    body: [
+      E.eyebrow(kind ? "Your players, in their words" : "Welcome", kind ? E.C.yellow : E.C.green),
+      E.heading(kind ? `What ${game}'s players are saying` : `Thanks for stopping by, ${first ?? lead.company}`),
+      ...(kind && target
+        ? [
+            E.panel(E.bigStat(`${n} of ${target.reviewsAnalyzed}`, `of the ${reviews} of ${game} ${signalPhrase(kind, n)}.`)),
+            ...(quote ? [E.quote(quote)] : []),
+            E.text("That's exactly what we fix. We design levels in your game's style and play each one hundreds of times until it hits the difficulty you want, then check it on a real iPhone."),
+          ]
+        : target
+          ? [E.panel(E.bigStat(`${target.reviewsAnalyzed}`, `newest ${storeName(target.appId)} reviews of ${game} read. No difficulty complaints. Nice work.`, E.C.green)),
+             E.text("If you ever need more levels, we design them in your game's style and tune each one before it ships.")]
+          : [E.text("We design levels in your game's style and play each one hundreds of times until it hits the difficulty you want, then check it on a real iPhone.")]),
+      sampleUrl
+        ? E.button("Play your free levels", sampleUrl)
+        : E.button("Reply for your free levels", `mailto:${args.replyTo ?? "levelai@agentmail.to"}?subject=${encodeURIComponent(`Free levels for ${game}`)}`),
+      E.text("A person on our team reads every reply.", { color: E.C.muted, size: 14 }),
+    ].join(""),
+  });
   return {
+    html,
     subject: kind ? `What ${game}'s players are saying` : `Your free levels from ${companyName}`,
     body: lines.join("\n"),
     facts: target
@@ -118,6 +146,7 @@ export async function runLiveSignup(ctx: ToolContext, lead: Lead, gameTitle: str
     sampleUrl,
     companyName: ctx.config.COMPANY_NAME,
     postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
+    replyTo: ctx.config.AGENTMAIL_INBOX_ID,
   });
   const extraAllowedNumbers = [sampleUrl ?? "", ctx.config.COMPANY_POSTAL_ADDRESS ?? ""];
 

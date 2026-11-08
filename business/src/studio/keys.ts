@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { ToolContext } from "../mcp/tools.js";
 import { idempotencyKey } from "../outreach/send.js";
+import * as E from "../email/html.js";
 
 /**
  * Developer keys: a studio signs up on /developers, gets a key by email, and plugs Level AI into its
@@ -50,7 +51,28 @@ export async function issueDeveloperKey(ctx: ToolContext, input: unknown): Promi
     ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
     `Reply "stop" and we won't email you again.`,
   ].join("\n");
-  const sent = await ctx.mail.send({ to: f.email, subject: `Your ${ctx.config.COMPANY_NAME} developer key`, text: body, idempotencyKey: idempotencyKey("dev-key", lead.id, hashKey(key)) });
+  const html = E.layout({
+    preheader: "Your key, and one command to connect your coding agent.",
+    companyName: ctx.config.COMPANY_NAME,
+    postalAddress: ctx.config.COMPANY_POSTAL_ADDRESS ?? "",
+    footerReason: "You're getting it because you asked for a developer key.",
+    body: [
+      E.eyebrow("Developer key", E.C.blue),
+      E.heading(`You're in, ${f.name.split(" ")[0]}`),
+      E.text("Here's your key. Keep it private, like a password.", { color: E.C.muted }),
+      E.code(key),
+      E.text("Connect your coding agent (for example, Claude Code):", { weight: 800 }),
+      E.code(`claude mcp add --transport http levelai ${site}/studio-mcp --header "Authorization: Bearer ${key}"`),
+      E.panel(E.rows([
+        E.checkRow("Playtest your app on a real iPhone", "request_playtest", "info"),
+        E.checkRow("Read your game's newest reviews", "audit_reviews", "info"),
+        E.checkRow("Ask for free levels", "request_free_levels", "info"),
+        E.checkRow("Check on a request", "get_status", "info"),
+      ].join(""))),
+      E.button("Open the setup guide", `${site}/developers`, E.C.blue),
+    ].join(""),
+  });
+  const sent = await ctx.mail.send({ to: f.email, subject: `Your ${ctx.config.COMPANY_NAME} developer key`, text: body, html, idempotencyKey: idempotencyKey("dev-key", lead.id, hashKey(key)) });
   // The email body holds the key, so only a note is stored, never the key itself.
   await ctx.store.addOutreach({ leadId: lead.id, to: f.email, subject: `Your ${ctx.config.COMPANY_NAME} developer key`, body: "Developer key sent (not stored).", status: "sent", blockedReason: null, providerMessageId: sent.messageId });
   await ctx.store.logActivity({ at: new Date().toISOString(), agent: "sales", action: `issued a developer key to ${f.studio}`, why: "requested on the developers page", result: null, costUsd: null, human: false });

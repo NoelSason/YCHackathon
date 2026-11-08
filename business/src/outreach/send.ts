@@ -11,7 +11,7 @@ export function idempotencyKey(...parts: string[]): string {
 }
 
 export interface MailSender {
-  send(args: { to: string; subject: string; text: string; idempotencyKey: string }): Promise<{ messageId: string }>;
+  send(args: { to: string; subject: string; text: string; html?: string; idempotencyKey: string }): Promise<{ messageId: string }>;
   reply(args: { messageId: string; text: string; idempotencyKey: string }): Promise<{ messageId: string }>;
 }
 
@@ -23,10 +23,10 @@ export class AgentMailSender implements MailSender {
     this.client = new AgentMailClient({ apiKey });
   }
 
-  async send(args: { to: string; subject: string; text: string; idempotencyKey: string }): Promise<{ messageId: string }> {
+  async send(args: { to: string; subject: string; text: string; html?: string; idempotencyKey: string }): Promise<{ messageId: string }> {
     const res = await this.client.inboxes.messages.send(
       this.inboxId,
-      { to: args.to, subject: args.subject, text: args.text, labels: ["outreach"] },
+      { to: args.to, subject: args.subject, text: args.text, ...(args.html ? { html: args.html } : {}), labels: ["outreach"] },
       { idempotencyKey: args.idempotencyKey },
     );
     return { messageId: res.messageId };

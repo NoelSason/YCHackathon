@@ -51,6 +51,22 @@ rename/strip the fields that trip it from `get_company_metrics` and `get_player_
 split the CEO into a reader thread and an actor thread like Sales. **Pinara:** the same will hit the
 Tuner the moment any tool output mentions a person.
 
+### 2026-11-07 16:55 PT · Noel (Claude Code) · branch `main`
+
+**What:** **Designed HTML emails in the website's look:** a navy card, tile-color badges, a big evidence number, and a
+yellow tile button. They cover the **playtest report** (pass/fail badges for loaded, touch, and visual problems, plus
+what looked wrong, where it got stuck, and notes), the **signup welcome** ("7 of 86" evidence panel, the player's quote,
+and a reply button), and the **developer key** (the key and the MCP command in code blocks, plus the four tools). Each
+still sends a plain-text version. Cold outreach to studios stays plain on purpose (better deliverability; it reads as a
+person, not a newsletter). Inline styles and tables only, all values escaped.
+**Files:** `business/src/email/html.ts`, `business/src/leads/playtest-offer.ts`, `business/src/leads/live.ts`,
+`business/src/studio/keys.ts`, `business/src/outreach/send.ts`, `business/test/email-html.test.ts`.
+**State:** 70 tests pass. Rendered and screenshot-checked, and preview copies of both emails were sent to Noel's Gmail.
+The live server restarted with the new emails. The console server on :4545 had stopped while the demo agent was
+working; it's restarted, and https://levelai-console.vercel.app is back.
+
+---
+
 ### 2026-11-07 17:15 PT · Noel (Claude Code) · branch `main`
 
 **What:**
