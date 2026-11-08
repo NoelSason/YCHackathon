@@ -27,12 +27,38 @@ This is the team's build log. It isn't the company's agent activity log, which t
 - **State:** works; solver 28/28 tests pass.
 - **Next / heads-up:** **Pinara:** please review. Your worker needs a pull and restart to pick this up.
 
+### 2026-11-07 19:32 PT · Pinara (Claude Code) · branch `main`
+
+**What:** The Designer runs every 10 minutes instead of every 20, rotating games by minute:
+- :00 and :30: match3.
+- :10 and :40: racer.
+- :20 and :50: watersort.
+
+Each game now gets 2 levels an hour. Before, racer and watersort got 1 every 2 hours each, and
+match3 got about 2 an hour. Each run is still one `save_level` call, so the `read_people` hold
+doesn't apply.
+**Why:** There were 0 racer levels in Neon, and the Turbo Lanes page only replays its 5 practice
+tracks. Racer and watersort tune in seconds, so the worker can easily absorb more of them.
+**Files:** `platform/naive/src/roster.ts` (Designer prompt and cron only).
+**State:** The typecheck is clean. **Not live yet**: it needs `npm run setup`, and Pinara's clone
+has no `NAIVE_API_KEY`.
+**Next / heads-up:**
+- **Abhinav:**
+  1. `npm run setup`. It creates a **new** designer deployment (`*/10`, disabled) and leaves the
+     old `*/20` one alone. Don't use `RESET_DEPLOYMENTS=1`, which recreates every agent's
+     deployment.
+  2. Disable or delete the old designer `*/20` deployment in the Studio.
+  3. Enable the new one.
+
+  Otherwise both run. That's harmless but doubles match3 at :00 and :40. Spend: this is up to
+  144 runs a day against the Designer's $35 daily cap.
 ### 2026-11-07 7:40 PM PT · Noel · Claude Code · main
 - **What:** Candy Crush Saga and Sudoku.com installed on the main cloud iPhone from Mobilerun's catalog (18 s and 9 s), and added to the phone loop's market-study rotation as native apps: started by bundle id, labeled "(iOS app, market study)", shown on the console as "Now playtesting Candy Crush Saga, an App Store game". We study the genre leader's difficulty ramp; we never use its name or art in our games.
 - **Why:** Noel spotted Candy Crush in Mobilerun's catalog. Real App Store games on the phone make a stronger Mobilerun demo.
 - **Files:** `business/src/mobile/loop.ts`, `business/test/playtest-loop.test.ts`, `demo/src/moments.ts`
 - **State:** works; business 174/174 and demo 17/17 tests pass, server restarted.
 - **Next / heads-up:** The second phone ("Level AI App Store iPhone") still needs a person to sign in to an Apple Account in Settings before any App Store download.
+
 ### 2026-11-07 7:29 PM PT · Pinara · Claude Code · main
 - **What:** The auto-tuner resumes a tune that stopped mid-way. A version left `solving` (worker stopped or crashed) is taken again by any worker once it has been untouched for 20 minutes and has no queued or running measurement and no newer version, so a live tune is never taken. Its log rows say "resumed". A version whose measurement stopped twice is rejected instead of retried. Saving a new version and retiring the old one is now one statement. README: "at most 4 rounds" corrected to 6. Also fixed my 7:16 PM log merge (a stray heading, and the 7:14 → 7:09 PM correction landing on the right entry).
 - **Why:** A worker restart mid-tune (needed after every pull) left the level `solving` forever: never accepted or rejected, so the Designer's work was lost and the pipeline numbers stayed off.
