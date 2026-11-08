@@ -1,5 +1,6 @@
 import { axisDirections, initialState, move, slide, slideLimit, type Direction, type Level, type State, type Vehicle } from "../src/engine.js";
-import { LEVELS } from "../src/levels.js";
+import { BUILT_IN_BEST, LEVELS } from "../src/levels.js";
+import { runJob, type Job, type JobRequest, type JobResult } from "./jobs.js";
 
 declare global { interface Window { STUDIO_API?: string } }
 const board = document.querySelector<HTMLDivElement>("#board")!;
@@ -7,11 +8,16 @@ const selectedLabel = document.querySelector<HTMLElement>("#selected")!;
 const titleLabel = document.querySelector<HTMLElement>("#level-title")!;
 const movesLabel = document.querySelector<HTMLElement>("#moves")!;
 const message = document.querySelector<HTMLElement>("#message")!;
+const indicator = document.querySelector<HTMLElement>("#level-indicator")!;
+const limitLabel = document.querySelector<HTMLElement>("#limit")!;
+const bestLabel = document.querySelector<HTMLElement>("#best")!;
+const building = document.querySelector<HTMLElement>("#building")!;
+const endlessToggle = document.querySelector<HTMLInputElement>("#endless")!;
 const api = (window.STUDIO_API ?? "").replace(/\/$/, "");
 const HINT = "Each car has a marked exit. Clear its lane to let it leave.";
 const BLOCKED = "That lane is blocked. Try sliding another car first.";
 let level: Level = LEVELS[0]!; let state: State = initialState(level); let selected = state.vehicles[0]?.id ?? "";
-let levelId: string | undefined; let activeIndex = 0; let ended = false; let sessionId = crypto.randomUUID();
+let levelId: string | undefined; let activeIndex = 0; let best: number | undefined; let ended = false; let sessionId = crypto.randomUUID();
 const cars = new Map<string, HTMLButtonElement>();
 const exits = new Map<string, HTMLElement>();
 const lane = document.createElement("div"); lane.className = "lane";
@@ -106,7 +112,11 @@ function updateSelected() {
   }
 }
 function finish() {
-  if (state.won && !ended) { ended = true; message.textContent = "Lot clear! Every car made it out."; message.className = "message good"; event("win"); }
+  if (state.won && !ended) {
+    ended = true; message.className = "message good"; event("win");
+    message.textContent = mode === "endless" ? "Lot clear! On to a harder one." : "Lot clear! Every car made it out.";
+    if (mode === "endless") { const at = endless.level; setTimeout(() => { if (mode === "endless" && endless.level === at && state.won) void advanceEndless(); }, 1100); }
+  }
   else if (state.moves >= level.move_limit && !ended) { ended = true; message.textContent = "Move limit reached. Give the lot another try."; message.className = "message bad"; event("loss"); }
 }
 function commit(next: State) {
@@ -126,10 +136,85 @@ function act(direction: Direction) {
   if (next === state) { message.textContent = BLOCKED; return; }
   commit(next);
 }
-function loadLevel(index: number) { activeIndex = index; level = LEVELS[index]!; levelId = undefined; titleLabel.textContent = level.title; restart(); }
+function show(next: Level, label: string, generated: boolean, bestMoves: number | undefined) {
+  level = next; best = bestMoves; titleLabel.textContent = level.title;
+  indicator.textContent = label; indicator.classList.toggle("generated", generated);
+  limitLabel.textContent = `Move limit ${level.move_limit}`;
+  bestLabel.textContent = best === undefined ? "Best possible: checking…" : `Best possible: ${best} moves`;
+  building.hidden = true; restart();
+}
+function loadLevel(index: number) {
+  mode = "builtin"; activeIndex = index; levelId = undefined; store.set(KEY_BUILTIN, String(index));
+  show(LEVELS[index]!, `Level ${index + 1} of ${LEVELS.length} · Built-in`, false, BUILT_IN_BEST[index]);
+}
+
+// ---- Endless mode: each lot is generated in the browser, one notch harder than the last. --------
+// Preferences live in localStorage. Storage can be missing or blocked, so every access is guarded
+// and the game works without it.
+const KEY_ENDLESS = "lotescape:endless", KEY_BUILTIN = "lotescape:builtin", KEY_RUN = "lotescape:endless-run";
+const store = {
+  get(key: string): string | null { try { return localStorage.getItem(key); } catch { return null; } },
+  set(key: string, value: string) { try { localStorage.setItem(key, value); } catch { /* storage unavailable: nothing is remembered */ } },
+};
+type Mode = "builtin" | "endless" | "saved";
+interface EndlessRun { seed: string; level: number; lot?: Level; best?: number }
+let mode: Mode = "builtin";
+let endless: EndlessRun = readRun();
+let upcoming: { level: number; result: Promise<JobResult> } | undefined;
+function readRun(): EndlessRun {
+  try {
+    const raw = JSON.parse(store.get(KEY_RUN) ?? "null") as Partial<EndlessRun> | null;
+    if (raw && typeof raw.seed === "string" && Number.isInteger(raw.level) && (raw.level as number) >= 1) {
+      const lot = raw.lot && Array.isArray(raw.lot.vehicles) && Number.isInteger(raw.lot.size) && Number.isInteger(raw.lot.move_limit) ? raw.lot : undefined;
+      return { seed: raw.seed, level: raw.level as number, lot, best: lot && typeof raw.best === "number" ? raw.best : undefined };
+    }
+  } catch { /* unreadable: start a new run */ }
+  return { seed: Math.random().toString(36).slice(2, 10), level: 1 };
+}
+function saveRun() { store.set(KEY_RUN, JSON.stringify(endless)); }
+
+// Generation runs in a Web Worker so the board never freezes. If workers are unavailable, the same
+// job runs on the main thread after the "Building" state has painted.
+let worker: Worker | undefined;
+try { worker = new Worker(new URL("./worker.js", import.meta.url)); } catch { worker = undefined; }
+let jobId = 0;
+const waiting = new Map<number, (result: JobResult) => void>();
+worker?.addEventListener("message", (e: MessageEvent<JobResult>) => { waiting.get(e.data.id)?.(e.data); waiting.delete(e.data.id); });
+worker?.addEventListener("error", () => { worker = undefined; for (const [id, done] of waiting) done({ id, kind: "error", message: "worker failed" }); waiting.clear(); });
+function runInBackground(job: JobRequest): Promise<JobResult> {
+  const full: Job = { ...job, id: ++jobId };
+  if (!worker) return new Promise((resolve) => setTimeout(() => resolve(runJob(full)), 50));
+  return new Promise((resolve) => { waiting.set(full.id, resolve); worker!.postMessage(full); });
+}
+function generate(levelNumber: number): Promise<JobResult> {
+  if (upcoming?.level === levelNumber) return upcoming.result;
+  const result = runInBackground({ kind: "generate", seed: `${endless.seed}:${levelNumber}`, difficulty: levelNumber, timeLimitMs: 6000 });
+  upcoming = { level: levelNumber, result };
+  return result;
+}
+async function playEndless(levelNumber: number) {
+  mode = "endless"; levelId = undefined;
+  if (endless.level === levelNumber && endless.lot && endless.best !== undefined) { showEndless(); return; }
+  building.hidden = false; ended = true; updateSelected();
+  const result = await generate(levelNumber);
+  if (mode !== "endless") return; // switched back to built-ins while it was building
+  if (result.kind !== "generate") { upcoming = undefined; building.hidden = true; message.textContent = "The next lot could not be built. Turn endless off and on to try again."; message.className = "message bad"; return; }
+  endless = { seed: endless.seed, level: levelNumber, lot: result.level, best: result.best }; saveRun();
+  showEndless();
+}
+function showEndless() {
+  show(endless.lot!, `Level ${endless.level} · Generated`, true, endless.best);
+  void generate(endless.level + 1); // start on the next lot while this one is played
+}
+async function advanceEndless() { await playEndless(endless.level + 1); }
+function setEndless(on: boolean) {
+  endlessToggle.checked = on; store.set(KEY_ENDLESS, on ? "1" : "0");
+  if (on) void playEndless(endless.level); else loadLevel(activeIndex);
+}
+endlessToggle.addEventListener("change", () => setEndless(endlessToggle.checked));
 document.querySelectorAll<HTMLButtonElement>("[data-dir]").forEach((button) => button.addEventListener("click", () => act(button.dataset.dir as Direction)));
 document.querySelector<HTMLButtonElement>("#reset")!.addEventListener("click", restart);
-document.querySelector<HTMLButtonElement>("#next")!.addEventListener("click", () => loadLevel((activeIndex + 1) % LEVELS.length));
+document.querySelector<HTMLButtonElement>("#next")!.addEventListener("click", () => { if (mode === "endless") void advanceEndless(); else loadLevel((activeIndex + 1) % LEVELS.length); });
 document.addEventListener("keydown", (e) => {
   const map: Record<string, Direction> = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down", a: "left", d: "right", w: "up", s: "down" };
   const dir = map[e.key];
@@ -180,6 +265,19 @@ function endDrag(e: PointerEvent) {
 board.addEventListener("pointerup", endDrag);
 board.addEventListener("pointercancel", endDrag);
 
-async function loadSaved(id: string) { const response = await fetch(`${api}/levels/${encodeURIComponent(id)}`); if (!response.ok) throw new Error(`Could not load saved level (${response.status}).`); const result = await response.json() as { game_id: string; level: Level }; if (result.game_id !== "lotescape") throw new Error("This saved level belongs to another game."); level = result.level; levelId = id; titleLabel.textContent = level.title; restart(); }
-void (async () => { const id = new URLSearchParams(location.search).get("level"); if (id) { try { await loadSaved(id); return; } catch { /* falls back to a practice lot below */ } } loadLevel(Number(new URLSearchParams(location.search).get("demo")) === 1 ? 1 : 0); if (id) message.textContent = "That saved lot could not load, so here is a practice lot."; })();
+async function loadSaved(id: string) {
+  const response = await fetch(`${api}/levels/${encodeURIComponent(id)}`); if (!response.ok) throw new Error(`Could not load saved level (${response.status}).`);
+  const result = await response.json() as { game_id: string; level: Level }; if (result.game_id !== "lotescape") throw new Error("This saved level belongs to another game.");
+  mode = "saved"; levelId = id; endlessToggle.checked = false; show(result.level, "Studio level", false, undefined);
+  const saved = result.level, solved = await runInBackground({ kind: "solve", level: saved });
+  if (level === saved) bestLabel.textContent = solved.kind === "solve" && solved.best !== undefined ? `Best possible: ${solved.best} moves` : "Best possible: not checked";
+}
+void (async () => {
+  const params = new URLSearchParams(location.search), id = params.get("level");
+  const stored = Number(store.get(KEY_BUILTIN));
+  activeIndex = params.get("demo") === "1" ? 1 : Number.isInteger(stored) && stored >= 0 && stored < LEVELS.length ? stored : 0;
+  if (id) { try { await loadSaved(id); return; } catch { /* falls back to a practice lot below */ } }
+  if (store.get(KEY_ENDLESS) === "1" && !params.has("demo")) setEndless(true); else loadLevel(activeIndex);
+  if (id) message.textContent = "That saved lot could not load, so here is a practice lot.";
+})();
 window.addEventListener("beforeunload", () => { if (!ended) event("quit"); });

@@ -5,28 +5,54 @@ export interface Vehicle { id: string; x: number; y: number; length: number; axi
 export interface Level { title: string; size: number; vehicles: Vehicle[]; move_limit: number }
 export interface State { vehicles: Vehicle[]; moves: number; won: boolean }
 export const DIRECTIONS: Direction[] = ["left", "right", "up", "down"];
-const DELTA: Record<Direction, [number, number]> = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
 
 export function initialState(level: Level): State { return { vehicles: level.vehicles.map((v) => ({ ...v })), moves: 0, won: level.vehicles.length === 0 }; }
 export function cells(vehicle: Vehicle): Array<[number, number]> {
   return Array.from({ length: vehicle.length }, (_, i) => [vehicle.x + (vehicle.axis === "h" ? i : 0), vehicle.y + (vehicle.axis === "v" ? i : 0)]);
 }
-function overlaps(a: Vehicle, b: Vehicle, size: number): boolean {
-  const bCells = new Set(cells(b).filter(([x, y]) => x >= 0 && y >= 0 && x < size && y < size).map(([x, y]) => `${x},${y}`));
-  return cells(a).some(([x, y]) => x >= 0 && y >= 0 && x < size && y < size && bCells.has(`${x},${y}`));
+/** `stepAlongLane` result: the slide is illegal. */
+export const BLOCKED = -2;
+/** `stepAlongLane` result: the slide takes the vehicle out through its exit. */
+export const EXITS = -1;
+/**
+ * The one movement rule. Every caller (the browser, `move`, the solver, the generator) goes
+ * through it, so they cannot disagree. A one-cell slide is legal only along the vehicle's own
+ * axis. It enters exactly one new cell, the one ahead of its front: that cell must be inside the
+ * lot and empty, or, if it lies past the edge, that edge must be the vehicle's exit, in which
+ * case the vehicle leaves. Returns the vehicle's new position along its axis (`x` for "h", `y`
+ * for "v"), `EXITS`, or `BLOCKED`. `occupied(x, y)` reports in-lot cells held by other vehicles.
+ */
+export function stepAlongLane(size: number, vehicle: Pick<Vehicle, "x" | "y" | "length" | "axis" | "exit">, direction: Direction, occupied: (x: number, y: number) => boolean): number {
+  const horizontal = vehicle.axis === "h";
+  if (horizontal ? direction !== "left" && direction !== "right" : direction !== "up" && direction !== "down") return BLOCKED;
+  const forward = direction === "right" || direction === "down";
+  const at = horizontal ? vehicle.x : vehicle.y, laneAt = horizontal ? vehicle.y : vehicle.x;
+  const lead = forward ? at + vehicle.length : at - 1;
+  if (lead < 0 || lead >= size) return direction === vehicle.exit ? EXITS : BLOCKED;
+  if (horizontal ? occupied(lead, laneAt) : occupied(laneAt, lead)) return BLOCKED;
+  return forward ? at + 1 : at - 1;
+}
+function covers(v: Vehicle, x: number, y: number): boolean {
+  return v.axis === "h" ? y === v.y && x >= v.x && x < v.x + v.length : x === v.x && y >= v.y && y < v.y + v.length;
 }
 export function move(level: Level, state: State, id: string, direction: Direction): State {
   if (state.won) return state;
   const index = state.vehicles.findIndex((v) => v.id === id), vehicle = state.vehicles[index];
-  if (!vehicle || (vehicle.axis === "h" && direction !== "left" && direction !== "right") || (vehicle.axis === "v" && direction !== "up" && direction !== "down")) return state;
-  const [dx, dy] = DELTA[direction], next = { ...vehicle, x: vehicle.x + dx, y: vehicle.y + dy };
-  const outside = cells(next).some(([x, y]) => x < 0 || y < 0 || x >= level.size || y >= level.size);
-  if (outside && direction !== vehicle.exit) return state;
-  if (state.vehicles.some((other, i) => i !== index && overlaps(next, other, level.size))) return state;
-  const escaped = outside;
+  if (!vehicle) return state;
+  const to = stepAlongLane(level.size, vehicle, direction, (x, y) => state.vehicles.some((other, i) => i !== index && covers(other, x, y)));
+  if (to === BLOCKED) return state;
   const vehicles = state.vehicles.slice();
-  if (escaped) vehicles.splice(index, 1); else vehicles[index] = next;
+  if (to === EXITS) vehicles.splice(index, 1); else vehicles[index] = vehicle.axis === "h" ? { ...vehicle, x: to } : { ...vehicle, y: to };
   return { vehicles, moves: state.moves + 1, won: vehicles.length === 0 };
+}
+/** Cells a vehicle must still travel to leave: the fewest moves it needs if nothing were in the way. */
+export function distanceToExit(size: number, vehicle: Vehicle): number {
+  switch (vehicle.exit) {
+    case "right": return size - vehicle.x - vehicle.length + 1;
+    case "left": return vehicle.x + 1;
+    case "down": return size - vehicle.y - vehicle.length + 1;
+    case "up": return vehicle.y + 1;
+  }
 }
 export function legalMoves(level: Level, state: State): Array<{ id: string; direction: Direction }> {
   return state.vehicles.flatMap((v) => DIRECTIONS.flatMap((direction) => {

@@ -55,10 +55,16 @@ they cannot disagree. The tests in `test/lotescape.test.ts` cover each rule belo
    as one move. Lot Escape keeps step counting because every saved level's `move_limit`, and every
    solver and bot result already stored, is measured in steps. Changing the unit would silently
    change the difficulty of existing levels.
-8. **Solver.** A breadth-first search over these rules returns the fewest steps that clear the
-   lot, plus the step-by-step inputs. If the search reaches its state cap before finishing, the
-   result is marked `truncated`, and the adapter reports that the lot is too large to check. It
-   doesn't claim the lot is unsolvable.
+8. **Solver.** An exact search over these rules returns the fewest steps that clear the lot, plus
+   the step-by-step inputs. Every vehicle must cover a fixed distance to its exit, so a solution
+   costs that distance plus two steps for each step any vehicle takes away from its exit. The
+   solver is a 0-1 breadth-first search on those back-steps, which finds the same optimum as a
+   plain breadth-first search over steps while looking at far fewer states (the tests compare the
+   two). If the search reaches its state cap before finishing, the result is marked `truncated`,
+   and the adapter reports that the lot is too large to check. It doesn't claim the lot is
+   unsolvable.
+9. **One rule function.** `stepAlongLane` in `src/engine.ts` is the single definition of a legal
+   one-cell slide. `move` (browser, bots) and the solver (and so the generator) both call it.
 
 ## Controls (browser)
 

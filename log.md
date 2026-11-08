@@ -20,6 +20,13 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 7:52 PM PT · Noel · Claude Code (Lot Escape subagent, in progress) · main
+- **What:** Lot Escape work in progress: a seeded level generator (`games/lotescape/src/generate.ts`) that produces solver-proven levels at a target difficulty, harder built-in levels, and an in-browser worker for the coming endless mode (`ui/worker.ts`, `ui/jobs.ts`).
+- **Why:** Noel: make Lot Escape much harder, with an endless generated mode.
+- **Files:** `games/lotescape/**`
+- **State:** partly works; typecheck clean, 19/19 game tests pass. The hosted copy isn't rebuilt yet.
+- **Next / heads-up:** The endless toggle and site rebuild land in the next push. Level-pack delivery (business/src/levels/pack-*) is still local and failing tests mid-edit, so it isn't pushed.
+
 ### 2026-11-07 19:49 PT · Pinara (Claude Code) · branch `main`
 
 **What:** The Turbo Lanes bots are about 3× faster with identical results: `human` (the

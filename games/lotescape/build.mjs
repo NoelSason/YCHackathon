@@ -4,5 +4,7 @@ await rm("dist", { recursive: true, force: true });
 await mkdir("dist", { recursive: true });
 await cp("public", "dist", { recursive: true });
 await build({ entryPoints: ["ui/main.ts"], outfile: "dist/game.js", bundle: true, format: "esm", target: "es2022" });
+// Endless mode builds lots in a classic Web Worker (an IIFE bundle), loaded next to game.js.
+await build({ entryPoints: ["ui/worker.ts"], outfile: "dist/worker.js", bundle: true, format: "iife", target: "es2022" });
 const index = await readFile("dist/index.html", "utf8");
 await writeFile("dist/index.html", index.replace("__PLATFORM_URL__", JSON.stringify(process.env.PLATFORM_URL ?? "")));

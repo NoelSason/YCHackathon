@@ -2,6 +2,10 @@ import type { Adapter } from "../../../platform/mcp/src/adapters.js";
 import { BOTS, playOut } from "../src/bots.js";
 import { DIRECTIONS, type Level, type Vehicle } from "../src/engine.js";
 import { solveLevel } from "../src/solver.js";
+import { generateLevel, type GenerateOptions, type GeneratedLevel } from "../src/generate.js";
+// The level generator, re-exported so platform services can make fresh lots through the adapter.
+export { generateLevel, rateLevel, difficultyProfile, moveLimitFor } from "../src/generate.js";
+export type { GenerateOptions, GeneratedLevel, LevelRating, DifficultyProfile } from "../src/generate.js";
 const BASE_URL = process.env.GAMES_BASE_URL ?? "http://localhost:3000";
 const schema = { $schema: "https://json-schema.org/draft/2020-12/schema", title: "Lot Escape level", type: "object", additionalProperties: false, required: ["title", "size", "vehicles", "move_limit"], properties: { title: { type: "string", minLength: 1, maxLength: 48 }, size: { type: "integer", minimum: 5, maximum: 8 }, move_limit: { type: "integer", minimum: 1, maximum: 300 }, vehicles: { type: "array", minItems: 1, maxItems: 12, items: { type: "object", additionalProperties: false, required: ["id", "x", "y", "length", "axis", "exit", "color"], properties: { id: { type: "string", pattern: "^[a-z][a-z0-9-]{0,15}$" }, x: { type: "integer" }, y: { type: "integer" }, length: { type: "integer", minimum: 2, maximum: 3 }, axis: { enum: ["h", "v"] }, exit: { enum: DIRECTIONS }, color: { enum: ["coral", "sunshine", "lagoon", "mint", "violet", "peach"] } } } } } } as const;
 export function validateLevel(value: unknown) {
@@ -27,4 +31,10 @@ export function validateLevel(value: unknown) {
   return errors.length ? { ok: false as const, errors } : { ok: true as const };
 }
 export const adapter: Adapter = { game_id: "lotescape", name: "Lot Escape", schema: schema as object, bots: [...BOTS], validate: validateLevel, simulate(level, bot, seed) { return playOut(level as Level, bot, seed); }, solve(value) { const check = validateLevel(value); if (!check.ok) return { solvable: false }; const result = solveLevel(value as Level); return { solvable: result.solvable, min_moves: result.min_moves, inputs: result.inputs }; }, level_url(id) { return `${BASE_URL}/lotescape/?level=${encodeURIComponent(id)}`; } };
+/** Generates a lot and checks it with this adapter's own validator before returning it. Throws if it somehow fails validation. */
+export function generateValidLevel(options: GenerateOptions): GeneratedLevel {
+  const made = generateLevel(options), check = validateLevel(made.level);
+  if (!check.ok) throw new Error(`generated level failed validation: ${check.errors.join("; ")}`);
+  return made;
+}
 export default adapter;
