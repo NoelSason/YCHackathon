@@ -26,6 +26,10 @@ const HEX: Record<Color, string> = {
 
 const params = new URLSearchParams(location.search);
 const API = (params.get("api") ?? __PLATFORM_URL__).replace(/\/+$/, "");
+// The site's public level API: the newest accepted levels for this game. Empty when it isn't
+// reachable (local dev), and then the page plays practice levels only, as before.
+const LIVE_API = (params.get("live") ?? "/levels-latest").replace(/\/+$/, "");
+let liveIds: string[] = [];
 const SESSION = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Math.random()).slice(2);
 
 type Status = "playing" | "won" | "lost";
@@ -224,7 +228,10 @@ function finish(status: "won" | "lost", title?: string, text?: string): void {
     const nextInPack = pack && pack.n < pack.levels.length ? pack.n + 1 : null;
     const next = game.sample !== null && game.sample < SAMPLES.length ? game.sample + 1 : null;
     if (nextInPack) setButton("Next level", () => startPackLevel(nextInPack));
-    else setButton(next ? "Next level" : "Play again", () => (next ? startSample(next) : restart()));
+    else {
+      const live = next || pack ? null : nextLiveId(game.levelId);
+      setButton(next || live ? "Next level" : "Play again", () => (next ? startSample(next) : live ? void startLive(live) : restart()));
+    }
   } else {
     el("ov-title").textContent = title ?? "Try again";
     el("ov-text").textContent = text ?? "";
@@ -417,6 +424,41 @@ function notice(text: string): void {
 
 // ---------- loading ----------
 
+/** The live level after `current` (newest first, then wrapping around), or null if there are none. */
+function nextLiveId(current: string | null): string | null {
+  if (!liveIds.length) return null;
+  const i = current ? liveIds.indexOf(current) : -1;
+  const id = liveIds[(i + 1) % liveIds.length]!;
+  return id === current ? null : id;
+}
+
+async function fetchLiveIds(): Promise<void> {
+  try {
+    const res = await fetch(`${LIVE_API}?game=${GAME_ID}&limit=50`);
+    if (!res.ok) return;
+    const body = (await res.json()) as { levels?: Array<{ level_id?: unknown }> };
+    liveIds = (body.levels ?? []).map((l) => l.level_id).filter((id): id is string => typeof id === "string" && UUID_RE.test(id));
+  } catch {
+    // No live levels (offline or local dev): practice levels only.
+  }
+}
+
+/** Start a live level by id and put it in the address bar, so the link can be shared. */
+async function startLive(id: string): Promise<void> {
+  window.clearInterval(autoTimer);
+  try {
+    start(await fetchLevel(id), id, null);
+    const url = new URL(location.href);
+    url.searchParams.delete("sample");
+    url.searchParams.delete("data");
+    url.searchParams.set("level", id);
+    history.replaceState(null, "", url);
+  } catch (e) {
+    notice(`Couldn't load the next level (${e instanceof Error ? e.message : String(e)}).`);
+    restart();
+  }
+}
+
 function startSample(n: number): void {
   window.clearInterval(autoTimer);
   leaveAttempt();
@@ -567,6 +609,7 @@ async function boot(): Promise<void> {
   const id = params.get("level");
   const data = params.get("data");
   const packId = params.get("pack");
+  void fetchLiveIds();
   let loaded = false;
   if (packId) {
     try {

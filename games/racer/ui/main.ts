@@ -22,6 +22,10 @@ const LANE_EASE = 2.5;   // a lane change finishes in the first 1/LANE_EASE of i
 
 const params = new URLSearchParams(location.search);
 const API = (params.get("api") ?? __PLATFORM_URL__).replace(/\/+$/, "");
+// The site's public level API: the newest accepted levels for this game. Empty when it isn't
+// reachable (local dev), and then the page plays practice tracks only, as before.
+const LIVE_API = (params.get("live") ?? "/levels-latest").replace(/\/+$/, "");
+let liveIds: string[] = [];
 const SESSION = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Math.random()).slice(2);
 
 type Status = "ready" | "running" | "won" | "lost";
@@ -271,6 +275,7 @@ function end(won: boolean): void {
   const secs = (run.state.tick / run.level.speed).toFixed(1);
   const next = run.sample !== null && run.sample < SAMPLES.length ? run.sample + 1 : null;
   const nextInPack = pack && pack.n < pack.levels.length ? pack.n + 1 : null;
+  const live = next || pack ? null : nextLiveId(run.levelId);
   if (won && nextInPack) {
     const stars = run.crashes === 0 ? 3 : run.crashes <= 2 ? 2 : 1;
     const starsHtml = [1, 2, 3].map((n) => `<span class="${n <= stars ? "" : "off"}">★</span>`).join("");
@@ -279,7 +284,7 @@ function end(won: boolean): void {
     const stars = run.crashes === 0 ? 3 : run.crashes <= 2 ? 2 : 1;
     const starsHtml = [1, 2, 3].map((n) => `<span class="${n <= stars ? "" : "off"}">★</span>`).join("");
     showOverlay("Finished!", `${secs}s · ${run.coins} coins · ${run.crashes} crash${run.crashes === 1 ? "" : "es"}`, starsHtml,
-      next ? "Next track" : "Race again", () => (next ? loadSample(next) : restart()));
+      next || live ? "Next track" : "Race again", () => (next ? loadSample(next) : live ? void loadLive(live) : restart()));
   } else {
     const pct = Math.min(99, Math.floor((run.state.row / run.level.length) * 100));
     showOverlay("Time's up!", `You made it ${pct}% of the way. Fewer crashes, more boosts.`, "", "Try again", restart);
@@ -460,6 +465,41 @@ function bindInput(): void {
 
 // ---------- loading ----------
 
+/** The live level after `current` (newest first, then wrapping around), or null if there are none. */
+function nextLiveId(current: string | null): string | null {
+  if (!liveIds.length) return null;
+  const i = current ? liveIds.indexOf(current) : -1;
+  const id = liveIds[(i + 1) % liveIds.length]!;
+  return id === current ? null : id;
+}
+
+async function fetchLiveIds(): Promise<void> {
+  try {
+    const res = await fetch(`${LIVE_API}?game=${GAME_ID}&limit=50`);
+    if (!res.ok) return;
+    const body = (await res.json()) as { levels?: Array<{ level_id?: unknown }> };
+    liveIds = (body.levels ?? []).map((l) => l.level_id).filter((id): id is string => typeof id === "string" && UUID_RE.test(id));
+  } catch {
+    // No live levels (offline or local dev): practice tracks only.
+  }
+}
+
+/** Load a live level by id and put it in the address bar, so the link can be shared. */
+async function loadLive(id: string): Promise<void> {
+  if (run?.status === "running") sendEvent("quit");
+  try {
+    load(await fetchLevel(id), id, null);
+    const url = new URL(location.href);
+    url.searchParams.delete("sample");
+    url.searchParams.delete("data");
+    url.searchParams.set("level", id);
+    history.replaceState(null, "", url);
+  } catch (e) {
+    notice(`Couldn't load the next level (${e instanceof Error ? e.message : String(e)}).`);
+    restart();
+  }
+}
+
 function loadSample(n: number): void {
   if (run?.status === "running") sendEvent("quit");
   const i = Number.isInteger(n) && n >= 1 && n <= SAMPLES.length ? n : 1;
@@ -498,6 +538,7 @@ async function boot(): Promise<void> {
   const id = params.get("level");
   const data = params.get("data");
   const packId = params.get("pack");
+  void fetchLiveIds();
   let loaded = false;
   if (packId) {
     try {

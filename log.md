@@ -20,6 +20,37 @@ This is the team's build log. It isn't the company's agent activity log, which t
 
 ---
 
+### 2026-11-07 20:06 PT · Pinara (Claude Code) · branch `main`
+
+**What:** Turbo Lanes and Splash Sort play live levels one after another:
+- After a win on a live level (`?level=<id>`), or after the last practice level, "Next" loads the
+  next accepted level from the site's `/levels-latest?game=<id>`, newest first, wrapping around.
+- It puts that level's id in the address bar.
+- If the list can't be loaded (local dev, or the API down), the pages behave exactly as before.
+
+I merged this with Noel's `?pack=` mode from 20:00. Packs go first, and live chaining applies
+only outside a pack. `site/games/{racer,watersort}` are rebuilt from the merged source, and
+`published.json` is unchanged.
+**Why:** The pages replayed the same practice tracks. Production now has hundreds of accepted
+levels for these games (from `production-v1`), which were reachable only through the 10 links on
+the `/games` hub.
+**Files:** `games/racer/ui/main.ts`, `games/watersort/ui/main.ts`, `site/games/racer/`,
+`site/games/watersort/`.
+**State:** Works:
+- Typechecks are clean. Racer tests pass 21/21 and watersort 14/14.
+- Headless Chromium at 390×844 played the built site pages against the **production** API and
+  platform: 3 live levels in a row per game, each "Next" loaded a new live level, with 0 console
+  errors.
+- **Not deployed:** the site deploys with `vercel deploy --prod` from Noel's machine (it needs his
+  untracked `site/vercel.json`).
+
+**Next / heads-up:**
+- **Noel:**
+  1. Please redeploy the site (`business/live.sh` does it) so these pages go live.
+  2. At about 7:58 PM, `levelai.vercel.app/levels-latest` returned **502** (tunnel to the
+     business server) for a few minutes, so `/play` couldn't load levels then. It came back on
+     its own.
+
 ### 2026-11-07 8:00 PM PT · Noel · Claude Code (checkpoint of running agents) · main
 - **What:** A checkpoint of in-progress work from the agents still running: level-pack delivery (`business/src/levels/{deliver-pack,pack-maker,pack-worker,pack-types}.ts`, wired into orders and the server), plus demo-hardening edits to billing/orders, the level API, the phone loop, developer docs, pricing, and the game players (pack/level URL support in Splash Sort and Turbo Lanes).
 - **Why:** Noel asked to push everything; it builds and the tests pass right now.
